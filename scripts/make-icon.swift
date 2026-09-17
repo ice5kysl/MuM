@@ -5,7 +5,12 @@
 // 用代码画而不是塞一张位图：图标需要 16pt 到 1024pt 共 10 个尺寸，从矢量描述
 // 逐个尺寸渲染出来，小尺寸下笔画才不会糊成一团。
 //
-// 设计：深色圆角方块 + 居中的粗体 M + 底部一道强调色横线（暗示 Markdown 的下划线语法）。
+// 设计：深色圆角方块 + 居中的几何 M + 底部一道绿色横线。
+//
+// M 不用字体字形，而是用几段粗线画出来 —— 关键差别在**接头**：
+// 字体里的 M 是圆角设计（SF Rounded），顶角是圆的；这里用斜接（miter）接头，
+// 顶角是刀锋一样的尖点，端点也是平切。整体更硬、更有棱角。
+// 底部横线用绿色（#2ECC4A），作为整个图标唯一的高饱和色。
 
 import AppKit
 
@@ -40,24 +45,34 @@ func drawIcon(in rect: NSRect) {
     highlight?.draw(in: NSRect(x: body.minX, y: body.midY, width: body.width, height: body.height / 2), angle: -90)
     NSGraphicsContext.restoreGraphicsState()
 
-    // M 字形
-    let fontSize = size * 0.50
-    let base = NSFont.systemFont(ofSize: fontSize, weight: .bold)
-    let descriptor = base.fontDescriptor.withDesign(.rounded) ?? base.fontDescriptor
-    let font = NSFont(descriptor: descriptor, size: fontSize) ?? base
+    // M 字形 —— 几何绘制，斜接尖角。
+    // 笔画宽度必须明显小于字面宽度的 1/4，否则四段笔画会互相吃掉，
+    // 中间那个 V 填实，整个字就糊成一个三角块了。
+    let stroke = size * 0.090
+    let mWidth = size * 0.435
+    let mHeight = size * 0.445
+    let centerX = body.midX
+    let bottom = body.minY + size * 0.335
+    let top = bottom + mHeight
+    let left = centerX - mWidth / 2
+    let right = centerX + mWidth / 2
+    // V 的谷底：抬高一点才有"谷"，太深会顶到横线
+    let valley = bottom + mHeight * 0.42
 
-    let attributes: [NSAttributedString.Key: Any] = [
-        .font: font,
-        .foregroundColor: NSColor.white,
-    ]
-    let glyph = "M" as NSString
-    let glyphSize = glyph.size(withAttributes: attributes)
+    let mPath = NSBezierPath()
+    mPath.move(to: NSPoint(x: left, y: bottom))
+    mPath.line(to: NSPoint(x: left, y: top))
+    mPath.line(to: NSPoint(x: centerX, y: valley))
+    mPath.line(to: NSPoint(x: right, y: top))
+    mPath.line(to: NSPoint(x: right, y: bottom))
+    mPath.lineWidth = stroke
+    mPath.lineJoinStyle = .miter
+    mPath.lineCapStyle = .butt
+    // 默认斜接限制是 10，顶角那个锐角会被削平成斜角；放宽到 20 保住尖点
+    mPath.miterLimit = 20
 
-    let glyphOrigin = NSPoint(
-        x: body.midX - glyphSize.width / 2,
-        y: body.midY - glyphSize.height / 2 + size * 0.045
-    )
-    glyph.draw(at: glyphOrigin, withAttributes: attributes)
+    NSColor.white.setStroke()
+    mPath.stroke()
 
     // 底部强调线
     let barWidth = size * 0.34
@@ -68,7 +83,7 @@ func drawIcon(in rect: NSRect) {
         width: barWidth,
         height: barHeight
     )
-    NSColor(srgbRed: 0.298, green: 0.604, blue: 1.0, alpha: 1).setFill()
+    NSColor(srgbRed: 0.180, green: 0.800, blue: 0.290, alpha: 1).setFill()   // #2ECC4A
     NSBezierPath(roundedRect: bar, xRadius: barHeight / 2, yRadius: barHeight / 2).fill()
 }
 
