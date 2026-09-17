@@ -19,6 +19,12 @@ let package = Package(
                 // 标注撒满整个工程却不带来实际收益，这里退回 v5 语言模式。
                 .swiftLanguageMode(.v5)
             ]
+        ),
+        .testTarget(
+            name: "MuMTests",
+            dependencies: ["MuM"],
+            path: "Tests/MuMTests",
+            swiftSettings: [.swiftLanguageMode(.v5)]
         )
     ]
 )
