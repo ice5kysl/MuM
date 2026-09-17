@@ -365,21 +365,30 @@ final class PreviewViewController: NSViewController {
     ///   传 nil 表示这是一次重排（同一文件，比如边打字边渲染），保持当前滚动不动。
     func show(attributed: NSAttributedString, restoreFraction: CGFloat?) {
         showOnly(textScrollView)
+        LaunchTimer.mark("    show: showOnly 完成")
 
         // 重排时先记下当前位置，因为换 textStorage 会把滚动重置
         let keptFraction: CGFloat? = restoreFraction == nil ? scrollFraction() : nil
+        LaunchTimer.mark("    show: scrollFraction 读取完成")
 
         textView.textStorage?.setAttributedString(attributed)
+        LaunchTimer.mark("    show: setAttributedString 完成")
 
-        if let target = restoreFraction ?? keptFraction {
+        // 目标是顶部时别走 restoreScrollFraction：它要算 documentHeight，
+        // 而 documentHeight 会 ensureLayout 整篇 —— 冷打开一个 1MB 文档，
+        // 为了"滚到 y=0"先把全文排一遍（实测 ≈812ms，MUM_LAUNCH_TIMING=1 可复现）。
+        // 滚到顶部不需要知道文档高度。
+        if let target = restoreFraction ?? keptFraction, target > 0.001 {
             restoreScrollFraction(target)
         } else {
             textView.scrollToBeginningOfDocument(nil)
         }
+        LaunchTimer.mark("    show: 滚动定位完成")
         textScrollView.reflectScrolledClipView(textScrollView.contentView)
 
         // textStorage 被整个换掉了，查找高亮要重新套一遍
         if isFindBarVisible { runFind(findBar.query) }
+        LaunchTimer.mark("    show: 完成")
     }
 
     func show(image: NSImage) {
