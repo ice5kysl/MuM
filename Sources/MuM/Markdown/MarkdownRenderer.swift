@@ -44,6 +44,29 @@ final class MarkdownRenderer {
         return output
     }
 
+    /// 【原型】渐进渲染：先渲染前 `firstBlockCount` 个顶层块并立刻回调上屏，
+    /// 剩余块作为第二段返回。切分只在顶层块边界发生，BlockContext 因此总是干净的
+    /// （嵌套内容都在块内部）。大纲在最后一段渲染完才完整。
+    func renderProgressive(
+        _ markdown: String,
+        firstBlockCount: Int,
+        onFirstChunk: (NSAttributedString) -> Void
+    ) -> NSAttributedString {
+        let document = RenderProfiler.time(.parse) { Document(parsing: markdown) }
+        let all = Array(document.children)
+        let cut = min(max(firstBlockCount, 0), all.count)
+
+        let first = NSMutableAttributedString()
+        renderBlocks(Array(all.prefix(cut)), into: first, context: BlockContext())
+        trimTrailingNewlines(first)
+        onFirstChunk(first)
+
+        let rest = NSMutableAttributedString()
+        renderBlocks(Array(all.dropFirst(cut)), into: rest, context: BlockContext())
+        trimTrailingNewlines(rest)
+        return rest
+    }
+
     /// 纯文本渲染（无扩展名的文本文件走这里）
     func renderPlainText(_ text: String) -> NSAttributedString {
         let style = paragraphStyle(indent: 0, spacingBefore: 0, spacingAfter: 0)

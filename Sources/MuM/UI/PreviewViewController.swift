@@ -361,6 +361,12 @@ final class PreviewViewController: NSViewController {
 
     // MARK: - 内容切换
 
+    /// 渐进渲染的第二段：把剩余块拼到 textStorage 末尾。
+    /// 追加不重置滚动位置，用户看到的首屏保持不动。
+    func append(attributed: NSAttributedString) {
+        textView.textStorage?.append(attributed)
+    }
+
     /// - Parameter restoreFraction: 打开**另一个文件**时传它保存过的位置；
     ///   传 nil 表示这是一次重排（同一文件，比如边打字边渲染），保持当前滚动不动。
     func show(attributed: NSAttributedString, restoreFraction: CGFloat?) {

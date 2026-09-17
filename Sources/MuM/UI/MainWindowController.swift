@@ -502,6 +502,23 @@ final class MainWindowController: NSWindowController {
         let text = contentPane.editorViewController.text
         let kind = FileKind(url: url, isDirectory: false)
 
+        let restore = pendingScrollFraction
+        pendingScrollFraction = nil
+
+        // 【原型】渐进渲染：大文档先渲染前 80 个顶层块立刻上屏（TTFR 的 R 在这里），
+        // 剩余部分紧随其后补齐。有保存的阅读位置时不走渐进 —— 恢复位置需要全文高度，
+        // 留到正式版处理。
+        if case .markdown = kind, text.count > 100_000, restore == nil {
+            let rest = renderer.renderProgressive(text, firstBlockCount: 80) { first in
+                contentPane.previewViewController.show(attributed: first, restoreFraction: nil)
+                LaunchTimer.mark("    渐进：首屏已写入（TTFR 的 R）")
+            }
+            contentPane.previewViewController.append(attributed: rest)
+            contentPane.previewViewController.setOutline(renderer.outline)
+            LaunchTimer.mark("    渐进：全文已补齐")
+            return
+        }
+
         let attributed: NSAttributedString
         switch kind {
         case .markdown:
@@ -514,8 +531,6 @@ final class MainWindowController: NSWindowController {
         }
         LaunchTimer.mark("    render 返回（AST→富文本）")
 
-        let restore = pendingScrollFraction
-        pendingScrollFraction = nil
         contentPane.previewViewController.show(attributed: attributed, restoreFraction: restore)
         LaunchTimer.mark("    预览已写入富文本")
     }
