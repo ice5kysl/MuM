@@ -49,13 +49,15 @@ func drawIcon(in rect: NSRect) {
     // 笔画宽度必须明显小于字面宽度的 1/4，否则四段笔画会互相吃掉，
     // 中间那个 V 填实，整个字就糊成一个三角块了。
     let stroke = size * 0.090
-    let mWidth = size * 0.435
-    let mHeight = size * 0.445
+    let mWidth = size * 0.400
+    let mHeight = size * 0.370
     let centerX = body.midX
-    let bottom = body.minY + size * 0.335
+    let bottom = body.minY + size * 0.300
     let top = bottom + mHeight
     let left = centerX - mWidth / 2
     let right = centerX + mWidth / 2
+    // 端点要按"尖点高度"往下压：斜接尖角会顺角平分线再往外伸约 0.12×尺寸，
+    // 不预留的话渲染出来的 M 会顶破上边框、视觉重心也整体偏高（实测过）。
     // V 的谷底：抬高一点才有"谷"，太深会顶到横线
     let valley = bottom + mHeight * 0.42
 
@@ -79,7 +81,7 @@ func drawIcon(in rect: NSRect) {
     let barHeight = max(size * 0.028, 1)
     let bar = NSRect(
         x: body.midX - barWidth / 2,
-        y: body.minY + size * 0.155,
+        y: body.minY + size * 0.190,
         width: barWidth,
         height: barHeight
     )
