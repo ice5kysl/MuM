@@ -50,6 +50,20 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/MuM"
 cp "$ROOT/Resources/Info.plist" "$APP/Contents/Info.plist"
 
+# 版本号的唯一来源是仓库根目录的 VERSION（SemVer）。
+# 构建时写进 Info.plist —— 只维护一处，脚本和 README 都从它读。
+VERSION=$(tr -d '[:space:]' < "$ROOT/VERSION")
+if [ -z "$VERSION" ]; then
+    echo "错误：VERSION 文件为空" >&2
+    exit 1
+fi
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$APP/Contents/Info.plist"
+# CFBundleVersion 必须是单调递增的整数字符串（Sparkle / App Store 用），
+# 由 SemVer 折算：0.1.2 → 102，1.4.0 → 10400。
+BUILD_NUMBER=$(echo "$VERSION" | awk -F. '{printf "%d", $1*10000 + $2*100 + $3}')
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$APP/Contents/Info.plist"
+echo "    版本 $VERSION (build $BUILD_NUMBER)"
+
 if [ -f "$ROOT/Resources/AppIcon.icns" ]; then
   cp "$ROOT/Resources/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
 fi

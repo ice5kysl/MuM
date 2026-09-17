@@ -425,6 +425,15 @@ dist/MuM.app/Contents/MacOS/MuM --snapshot /tmp/mum.png
 
 ---
 
+## 版本与更新日志
+
+版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)，唯一来源是仓库根目录的
+[`VERSION`](VERSION) —— 构建时由 `scripts/build-app.sh` 写进 `Info.plist`，只维护一处。
+
+所有重要变更有记录，见 [CHANGELOG.md](CHANGELOG.md)（格式遵循 Keep a Changelog）。
+
+当前版本：**0.1.0**（尚未达到 1.0 —— 定位已清晰，但 API 与设置项仍可能变动）。
+
 ## 开源
 
 仓库当前的状态（已逐项核对）：

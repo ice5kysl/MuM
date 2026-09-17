@@ -20,6 +20,12 @@ final class MainWindowController: NSWindowController {
     private var theme = MarkdownTheme()
     private var renderWorkItem: DispatchWorkItem?
     private var fileWatcher: FileWatcher?
+    /// 当前文件的类型。非文本文件不允许编辑，也不允许保存 ——
+    /// 否则打开一个 .ipa 之后敲几个字按 ⌘S，就会把文本写进那个二进制文件。
+    private var currentKind: FileKind?
+    /// 上次从磁盘读取（或写入）时该文件的修改时间。
+    /// 保存前拿它和磁盘现状比一次，避免静默覆盖别人在外面做的修改。
+    private var loadedModificationDate: Date?
     private var workspaceWatcher: FileWatcher?
 
 
@@ -356,10 +362,12 @@ final class MainWindowController: NSWindowController {
         case .image:
             contentPane.previewViewController.show(image: NSImage(contentsOf: standardized) ?? NSImage())
             currentFileURL = standardized
+            contentPane.editorViewController.setEditable(false)
 
         case .pdf:
             contentPane.previewViewController.show(pdf: standardized)
             currentFileURL = standardized
+            contentPane.editorViewController.setEditable(false)
 
         case .unsupported, .folder:
             contentPane.previewViewController.showMessage(
@@ -368,7 +376,10 @@ final class MainWindowController: NSWindowController {
                 subtitle: "这个格式暂时不支持预览"
             )
             currentFileURL = standardized
+            contentPane.editorViewController.setEditable(false)
         }
+
+        currentKind = kind
 
         // 文本文件沿用用户选的呈现方式；图片 / PDF 没有"编辑"可言，临时用 Read。
         // 注意这里不改 preferredMode —— 看完一张图再切回 Markdown，应该还是原来的模式。
@@ -421,6 +432,8 @@ final class MainWindowController: NSWindowController {
 
         currentFileURL = url
         isDirty = false
+        loadedModificationDate = try? FileManager.default
+            .attributesOfItem(atPath: url.path)[.modificationDate] as? Date
         contentPane.editorViewController.setEditable(true)
         contentPane.editorViewController.setText(text)
         renderPreview(immediately: true)
@@ -528,9 +541,26 @@ final class MainWindowController: NSWindowController {
 
     func saveDocument() {
         guard let url = currentFileURL, isDirty else { return }
+        // 图片 / PDF / 二进制没有"保存文本"这回事
+        guard currentKind?.isTextual ?? false else { return }
+
+        // 文件在别处被改过？先问一句，别静默盖掉。
+        if let loaded = loadedModificationDate,
+           let onDisk = try? FileManager.default.attributesOfItem(atPath: url.path)[.modificationDate] as? Date,
+           onDisk > loaded {
+            let alert = NSAlert()
+            alert.messageText = "「\(url.lastPathComponent)」在磁盘上已被修改"
+            alert.informativeText = "保存会用编辑器里的内容覆盖磁盘上的版本，那部分改动会丢失。"
+            alert.addButton(withTitle: "仍然覆盖")
+            alert.addButton(withTitle: "取消")
+            guard alert.runModal() == .alertFirstButtonReturn else { return }
+        }
+
         do {
             try contentPane.editorViewController.text.write(to: url, atomically: true, encoding: .utf8)
             isDirty = false
+            loadedModificationDate = try? FileManager.default
+                .attributesOfItem(atPath: url.path)[.modificationDate] as? Date
             refreshChrome()
         } catch {
             presentError(message: "保存失败", detail: error.localizedDescription)
@@ -557,6 +587,8 @@ final class MainWindowController: NSWindowController {
         fileWatcher?.stop()
         fileWatcher = nil
         currentFileURL = nil
+        currentKind = nil
+        loadedModificationDate = nil
         isDirty = false
         contentPane.editorViewController.setText("")
     }
