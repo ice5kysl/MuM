@@ -18,6 +18,10 @@
 
 ## [未发布]
 
+## [0.3.0] - 2026-09-18
+
+0.3 读得进去 —— 把「读」这件事做完整。
+
 ### 新增
 
 - **性能基线**（0.3）—— 新增 `--bench <文件.md>`，分解析 / 渲染 / 排版三段计时。
@@ -142,6 +146,7 @@
   此前打开一个 `.ipa` 后敲字按 `⌘S`，会把文本写进那个二进制文件
 - 保存前比对磁盘修改时间，文件被外部改过时先询问，不再静默覆盖
 
-[未发布]: https://github.com/ice5kysl/MuM/compare/v0.2.0...HEAD
+[未发布]: https://github.com/ice5kysl/MuM/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/ice5kysl/MuM/releases/tag/v0.3.0
 [0.2.0]: https://github.com/ice5kysl/MuM/releases/tag/v0.2.0
 [0.1.0]: https://github.com/ice5kysl/MuM/releases/tag/v0.1.0
