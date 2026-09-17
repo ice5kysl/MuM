@@ -13,8 +13,8 @@
 
 | | 格式 | 原因 |
 | :--- | :--- | :--- |
-| `VERSION` 文件 / `CFBundleShortVersionString` | `0.2.0` | Apple 不接受前缀 |
-| git tag / Release | `v0.2.0` | 惯例，加 `v` |
+| `VERSION` 文件 / `CFBundleShortVersionString` | `0.3.0` | Apple 不接受前缀 |
+| git tag / Release | `v0.3.0` | 惯例，加 `v` |
 
 ## [未发布]
 
