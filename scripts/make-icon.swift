@@ -48,11 +48,11 @@ func drawIcon(in rect: NSRect) {
     // M 字形 —— 几何绘制，斜接尖角。
     // 笔画宽度必须明显小于字面宽度的 1/4，否则四段笔画会互相吃掉，
     // 中间那个 V 填实，整个字就糊成一个三角块了。
-    let stroke = size * 0.090
-    let mWidth = size * 0.400
-    let mHeight = size * 0.370
+    let stroke = size * 0.078
+    let mWidth = size * 0.345
+    let mHeight = size * 0.320
     let centerX = body.midX
-    let bottom = body.minY + size * 0.300
+    let bottom = body.minY + size * 0.325
     let top = bottom + mHeight
     let left = centerX - mWidth / 2
     let right = centerX + mWidth / 2
