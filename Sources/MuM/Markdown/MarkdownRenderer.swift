@@ -21,6 +21,18 @@ final class MarkdownRenderer {
 
     // MARK: - 入口
 
+    /// 文档大纲的一项。`location` 是它在渲染结果里的字符位置 ——
+    /// 点它就能跳到那一段，不需要把字符位置再映射回源码行。
+    struct OutlineItem {
+        let level: Int
+        let title: String
+        let location: Int
+    }
+
+    /// 最近一次 `render(_:)` 收集到的标题。渲染器是一次性的（每次重排都新建），
+    /// 所以直接挂在实例上，不用回调。
+    private(set) var outline: [OutlineItem] = []
+
     func render(_ markdown: String) -> NSAttributedString {
         let document = Document(parsing: markdown)
         let output = NSMutableAttributedString()
@@ -162,6 +174,15 @@ final class MarkdownRenderer {
     }
 
     private func renderHeading(_ heading: Heading, into out: NSMutableAttributedString, context: BlockContext) {
+        // 记下它在渲染结果中的位置，供大纲跳转用。
+        // 只收层级 1…3 —— 更深的标题进大纲只会让列表变长，不会让它更有用。
+        if heading.level <= 3, context.indent == 0 {
+            let title = plainText(of: heading).trimmingCharacters(in: .whitespacesAndNewlines)
+            if !title.isEmpty {
+                outline.append(OutlineItem(level: heading.level, title: title, location: out.length))
+            }
+        }
+
         let level = min(max(heading.level, 1), 6)
         let fonts = theme.headingFonts
         let font = fonts.indices.contains(level - 1) ? fonts[level - 1] : fonts[0]

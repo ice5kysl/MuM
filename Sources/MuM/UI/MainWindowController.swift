@@ -503,6 +503,7 @@ final class MainWindowController: NSWindowController {
         switch kind {
         case .markdown:
             attributed = renderer.render(text)
+            contentPane.previewViewController.setOutline(renderer.outline)
         case .code:
             attributed = renderer.renderCode(text, language: FileKind.language(for: url))
         default:
@@ -534,6 +535,12 @@ final class MainWindowController: NSWindowController {
         contentPane.previewViewController.showFindBar()
     }
 
+    var hasOutline: Bool { canFindInPreview && contentPane.previewViewController.hasOutline }
+
+    func showOutline() {
+        contentPane.previewViewController.showOutline(from: contentPane.view)
+    }
+
     func findNext() { contentPane.previewViewController.findNext() }
     func findPrevious() { contentPane.previewViewController.findPrevious() }
 
@@ -545,6 +552,11 @@ final class MainWindowController: NSWindowController {
             ? contentPane.editorViewController.scrollFraction()
             : contentPane.previewViewController.scrollFraction()
         WorkspaceStore.shared.rememberReadingPosition(Double(fraction), for: url)
+    }
+
+    /// 诊断用：离屏弹出大纲
+    func debugOutline() {
+        showOutline()
     }
 
     /// 诊断用：离屏触发一次查找
@@ -574,6 +586,9 @@ final class MainWindowController: NSWindowController {
         return lines.joined(separator: "\n")
     }
 
+
+    /// 诊断用：大纲
+    var debugOutlineDescription: String { contentPane.previewViewController.debugOutlineSummary }
 
     /// 诊断用：当前生效的偏好
     var debugSettingsDescription: String {

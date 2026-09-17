@@ -45,6 +45,12 @@ enum SnapshotRenderer {
         // NSSplitView 还没有任何位置信息，会把空间分错。
         RunLoop.main.run(until: Date().addingTimeInterval(0.4))
 
+        // 模拟弹出文档大纲：`--outline`
+        if arguments.contains("--outline") {
+            controller.debugOutline()
+            RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+        }
+
         // 模拟一次预览查找：`--find <查询词>`
         if let index = arguments.firstIndex(of: "--find"), index + 1 < arguments.count {
             controller.debugFind(arguments[index + 1])
@@ -75,6 +81,7 @@ enum SnapshotRenderer {
 
         if ProcessInfo.processInfo.environment["MUM_LAYOUT_DEBUG"] != nil {
             print("设置：\(controller.debugSettingsDescription)")
+            print("大纲：\(controller.debugOutlineDescription)")
             print("视图树：")
             print(controller.dumpViewTree())
         }

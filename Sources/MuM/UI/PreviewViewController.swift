@@ -58,6 +58,63 @@ final class PreviewViewController: NSViewController {
 
     var isFinding: Bool { isFindBarVisible }
 
+    // MARK: - 大纲
+
+    private var outline: [MarkdownRenderer.OutlineItem] = []
+    private var outlinePopover: NSPopover?
+
+    /// 每次重排后由窗口控制器写入。
+    /// 大纲的位置（字符下标）是针对**当前这份渲染结果**的，重排后必须换新的，
+    /// 否则跳转会落到错的地方。
+    func setOutline(_ items: [MarkdownRenderer.OutlineItem]) {
+        outline = items
+    }
+
+    var hasOutline: Bool { !outline.isEmpty }
+
+    /// 诊断用：大纲收到了什么
+    var debugOutlineSummary: String {
+        outline.isEmpty
+            ? "空"
+            : "\(outline.count) 条：" + outline.prefix(4).map { "H\($0.level)@\($0.location) \($0.title)" }.joined(separator: " | ")
+    }
+
+    func showOutline(from pane: NSView) {
+        guard !outline.isEmpty else { return }
+        if let existing = outlinePopover, existing.isShown {
+            existing.performClose(nil)
+            return
+        }
+
+        let list = PreviewOutlineView(items: outline)
+        list.onSelect = { [weak self] location in
+            self?.outlinePopover?.performClose(nil)
+            self?.scrollToCharacter(location)
+        }
+
+        let popover = NSPopover()
+        popover.behavior = .transient
+        popover.contentViewController = list
+        popover.contentSize = list.preferredContentSize
+        // 锚在内容区顶栏左端，向下弹出 —— 大纲是"从这里往下有什么"的地图，
+        // 贴着正文上沿出现最自然
+        let anchor = NSRect(x: 24, y: pane.bounds.height - 30, width: 1, height: 1)
+        popover.show(relativeTo: anchor, of: pane, preferredEdge: .minY)
+        outlinePopover = popover
+    }
+
+    private func scrollToCharacter(_ location: Int) {
+        guard let manager = textView.layoutManager, let container = textView.textContainer,
+              location < (textView.string as NSString).length else { return }
+        let range = NSRange(location: location, length: 1)
+        let glyphRange = manager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+        let rect = manager.boundingRect(forGlyphRange: glyphRange, in: container)
+        // 顶端留一点余量，标题不要贴着上沿
+        textView.scrollToVisible(
+            rect.offsetBy(dx: 0, dy: textView.textContainerOrigin.y).insetBy(dx: 0, dy: -16)
+        )
+    }
+
     /// 诊断用：离屏快照里没法敲键盘，用它触发一次查找
     func debugRunFind(_ query: String) {
         showFindBar()

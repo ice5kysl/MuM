@@ -118,6 +118,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mainWindowController?.showPreviewFind()
     }
 
+    @objc func showOutline(_ sender: Any?) {
+        mainWindowController?.showOutline()
+    }
+
     @objc func findNext(_ sender: Any?) {
         mainWindowController?.findNext()
     }
