@@ -34,11 +34,13 @@ final class MarkdownRenderer {
     private(set) var outline: [OutlineItem] = []
 
     func render(_ markdown: String) -> NSAttributedString {
-        let document = Document(parsing: markdown)
+        let renderStart = Date()
+        let document = RenderProfiler.time(.parse) { Document(parsing: markdown) }
         let output = NSMutableAttributedString()
         renderBlocks(Array(document.children), into: output, context: BlockContext())
         // 末尾多余的空行去掉，避免滚动区底部一大片空白
         trimTrailingNewlines(output)
+        RenderProfiler.report(totalMS: Date().timeIntervalSince(renderStart) * 1000)
         return output
     }
 
@@ -56,9 +58,11 @@ final class MarkdownRenderer {
     /// 代码文件预览：整篇按语言做语法高亮
     func renderCode(_ text: String, language: String?) -> NSAttributedString {
         let style = paragraphStyle(indent: 0, spacingBefore: 0, spacingAfter: 0, lineSpacing: 2)
-        let highlighted = NSMutableAttributedString(
-            attributedString: CodeHighlighter.highlight(text, language: language, theme: theme)
-        )
+        let highlighted = RenderProfiler.time(.highlight) {
+            NSMutableAttributedString(
+                attributedString: CodeHighlighter.highlight(text, language: language, theme: theme)
+            )
+        }
         highlighted.addAttribute(
             .paragraphStyle,
             value: style,
@@ -144,7 +148,9 @@ final class MarkdownRenderer {
             renderList(list, isOrdered: true, into: out, context: context)
 
         case let table as Table:
-            renderTable(table, into: out, context: context)
+            RenderProfiler.time(.tables) {
+                renderTable(table, into: out, context: context)
+            }
 
         case is ThematicBreak:
             renderThematicBreak(into: out, context: context)
@@ -195,7 +201,9 @@ final class MarkdownRenderer {
         )
 
         let text = NSMutableAttributedString()
-        renderInlines(Array(heading.children), into: text, style: InlineStyle(), context: context)
+        RenderProfiler.time(.inlines) {
+            renderInlines(Array(heading.children), into: text, style: InlineStyle(), context: context)
+        }
         // 换行符也要在同一段样式范围内：TextKit 按段落终止符所在位置的属性
         // 决定整段的段落样式，漏掉它会让标题的间距时而生效时而不生效。
         text.append(NSAttributedString(string: "\n"))
@@ -223,7 +231,9 @@ final class MarkdownRenderer {
         )
 
         let text = NSMutableAttributedString()
-        renderInlines(Array(paragraph.children), into: text, style: InlineStyle(), context: context)
+        RenderProfiler.time(.inlines) {
+            renderInlines(Array(paragraph.children), into: text, style: InlineStyle(), context: context)
+        }
         text.append(NSAttributedString(string: "\n"))
         text.addAttribute(.paragraphStyle, value: style, range: NSRange(location: 0, length: text.length))
         applyQuoteMarkers(to: text, context: context)
@@ -245,9 +255,11 @@ final class MarkdownRenderer {
         var code = codeBlock.code
         if !code.hasSuffix("\n") { code += "\n" }
 
-        let highlighted = NSMutableAttributedString(
-            attributedString: CodeHighlighter.highlight(code, language: codeBlock.language, theme: theme)
-        )
+        let highlighted = RenderProfiler.time(.highlight) {
+            NSMutableAttributedString(
+                attributedString: CodeHighlighter.highlight(code, language: codeBlock.language, theme: theme)
+            )
+        }
 
         // 底色不交给 TextKit 的 `.backgroundColor`：它填首行时从 firstLineHeadIndent 起算，
         // 填续行时却从行片段原点起算（忽略 headIndent），于是代码块左上角会缺一角。
@@ -413,7 +425,9 @@ final class MarkdownRenderer {
                 }
 
                 let cellText = NSMutableAttributedString()
-                renderInlines(Array(cell.children), into: cellText, style: InlineStyle(), context: context)
+                RenderProfiler.time(.inlines) {
+                    renderInlines(Array(cell.children), into: cellText, style: InlineStyle(), context: context)
+                }
                 if cellText.length == 0 {
                     cellText.append(NSAttributedString(string: " "))
                 }
@@ -573,7 +587,7 @@ final class MarkdownRenderer {
         if let cached = Self.imageCache[key] {
             loaded = cached
         } else {
-            loaded = NSImage(contentsOf: url)
+            loaded = RenderProfiler.time(.images) { NSImage(contentsOf: url) }
             if let loaded { Self.imageCache[key] = loaded }
         }
         guard let source = loaded else {

@@ -42,6 +42,8 @@ enum RenderBench {
             theme: theme,
             baseURL: URL(fileURLWithPath: path).deletingLastPathComponent()
         )
+        RenderProfiler.enabled = true
+        RenderProfiler.reset()
         let t1 = Date()
         let attributed = renderer.render(text)
         let renderMS = Date().timeIntervalSince(t1) * 1000

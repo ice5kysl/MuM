@@ -59,6 +59,12 @@ final class EditorViewController: NSViewController, NSTextViewDelegate {
         textView.textContainer?.widthTracksTextView = true
         textView.textContainer?.lineFragmentPadding = 0
 
+        // 非连续排版。`setText` 一个大文档会触发 TextKit 连续排版：要排第 N 行得先排完
+        // 前 N-1 行，于是打开 1MB 文档时编辑器这一行就卡掉 ≈4.9 秒（MUM_LAUNCH_TIMING=1
+        // 可复现），全堵在窗口上屏之前 —— 而 Read 模式下编辑器此刻根本不可见。
+        // 打开它之后，排到哪算哪。预览区在 0.3 已开了同一个开关。
+        textView.layoutManager?.allowsNonContiguousLayout = true
+
         scrollView.documentView = textView
         scrollView.hasVerticalScroller = true
         scrollView.hasHorizontalScroller = false

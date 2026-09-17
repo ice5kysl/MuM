@@ -437,8 +437,10 @@ final class MainWindowController: NSWindowController {
         isDirty = false
         loadedModificationDate = try? FileManager.default
             .attributesOfItem(atPath: url.path)[.modificationDate] as? Date
+        LaunchTimer.mark("    readText 完成")
         contentPane.editorViewController.setEditable(true)
         contentPane.editorViewController.setText(text)
+        LaunchTimer.mark("    编辑器 setText 完成")
         pendingScrollFraction = WorkspaceStore.shared.readingPosition(for: url).map { CGFloat($0) }
         renderPreview(immediately: true)
     }
@@ -493,6 +495,7 @@ final class MainWindowController: NSWindowController {
         guard contentPane.mode != .write else { return }
         guard FileKind(url: url, isDirectory: false).isTextual else { return }
 
+        LaunchTimer.mark("    performRender 开始（异步渲染）")
         contentPane.previewViewController.previewTextView.maxContentWidth = theme.maxContentWidth
 
         let renderer = MarkdownRenderer(theme: theme, baseURL: url.deletingLastPathComponent())
@@ -509,10 +512,12 @@ final class MainWindowController: NSWindowController {
         default:
             attributed = renderer.renderPlainText(text)
         }
+        LaunchTimer.mark("    render 返回（AST→富文本）")
 
         let restore = pendingScrollFraction
         pendingScrollFraction = nil
         contentPane.previewViewController.show(attributed: attributed, restoreFraction: restore)
+        LaunchTimer.mark("    预览已写入富文本")
     }
 
     // MARK: - 保存
@@ -906,6 +911,7 @@ final class MainWindowController: NSWindowController {
     }
 
     private func updateStatusBar() {
+        LaunchTimer.mark("    updateStatusBar 开始")
         let workspace = WorkspaceStore.shared.active
 
         var location: String?
@@ -919,6 +925,7 @@ final class MainWindowController: NSWindowController {
             location: location,
             detail: statusDetail()
         )
+        LaunchTimer.mark("    updateStatusBar 完成")
     }
 
     private func statusDetail() -> String {
