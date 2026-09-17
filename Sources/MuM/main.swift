@@ -13,6 +13,11 @@ if CommandLine.arguments.contains("--selftest") {
     exit(RendererSelfTest.run(arguments: CommandLine.arguments))
 }
 
+// 大文档性能基线：`MuM --bench <文件.md>`
+if CommandLine.arguments.contains("--bench") {
+    exit(RenderBench.run(arguments: CommandLine.arguments))
+}
+
 // 离屏快照：`MuM --snapshot out.png`，不需要屏幕点亮
 if CommandLine.arguments.contains("--snapshot")
     || CommandLine.arguments.contains("--snapshot-settings") {
