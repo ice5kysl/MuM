@@ -486,6 +486,12 @@ private func makePreviewTextView() -> PreviewTextView {
     container.lineFragmentPadding = 0
     container.widthTracksTextView = false
 
+    // **非连续排版**。TextKit 默认是连续排版：要排第 10000 行，得先把前 9999 行排完。
+    // 大文档打开时因此会把整篇排一遍 —— 实测 1MB 的 markdown 排版就要 1 秒、
+    // 5MB 要 9 秒（`--bench` 可复现），直接把"280 毫秒上屏"这个定位打穿。
+    // 打开它之后，跳到某处只排到那处为止。
+    layout.allowsNonContiguousLayout = true
+
     storage.addLayoutManager(layout)
     layout.addTextContainer(container)
 
