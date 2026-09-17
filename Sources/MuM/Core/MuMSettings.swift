@@ -66,8 +66,10 @@ struct MuMSettings {
 
     /// 正文字号
     var previewFontSize: CGFloat = 15
-    /// 行距（额外的行间空白，pt）
-    var lineSpacing: CGFloat = 4
+    /// 行距（额外的行间空白，pt）。
+    /// 15pt 字号下 7pt ≈ 1.73 倍行高 —— 中文正文的舒适区在 1.7~1.8。
+    /// 原来的 4pt 只有 1.47，汉字撑满字框，读起来会挤。
+    var lineSpacing: CGFloat = 7
     /// 段间距倍数：1.0 是设计基准，调大更松散
     var blockSpacing: CGFloat = 1.0
     /// 正文最大宽度
@@ -92,7 +94,7 @@ struct MuMSettings {
 
     static let previewFontSizeRange: ClosedRange<CGFloat> = 11...30
     static let editorFontSizeRange: ClosedRange<CGFloat> = 11...20
-    static let lineSpacingRange: ClosedRange<CGFloat> = 0...12
+    static let lineSpacingRange: ClosedRange<CGFloat> = 0...16
     static let blockSpacingRange: ClosedRange<CGFloat> = 0.5...2.0
     static let letterSpacingRange: ClosedRange<CGFloat> = 0...2.0
 }
@@ -133,6 +135,13 @@ enum SettingsStore {
                let width = MarkdownTheme.ReadingWidth(rawValue: Int(value)) { settings.readingWidth = width }
             if let value = boolean(stored["showsLineNumbers"]) { settings.showsLineNumbers = value }
             if let value = boolean(stored["highlightsCurrentLine"]) { settings.highlightsCurrentLine = value }
+
+            // 排版默认值修正（settingsVersion 2）：行距 4pt / 段间距 8pt 对中文太挤。
+            // 老用户手里存的是旧默认值，不迁移的话改了默认也看不到效果。
+            if (stored["settingsVersion"] as? Int ?? 0) < 2,
+               settings.lineSpacing == 4 {
+                settings.lineSpacing = MuMSettings().lineSpacing
+            }
             return settings
         }
 
@@ -174,6 +183,7 @@ enum SettingsStore {
 
     static func save(_ settings: MuMSettings) {
         UserDefaults.standard.set([
+            "settingsVersion": 2,
             "restoresLastSession": settings.restoresLastSession,
             "startMode": settings.startMode.rawValue,
             "showsHiddenFiles": settings.showsHiddenFiles,

@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 构建
+        run: swift build
+
+      - name: 渲染层自检（24 项断言）
+        run: .build/debug/MuM --selftest
+
+      - name: 打包
+        run: ./scripts/build-app.sh debug
+
+      - name: 离屏快照（验证界面能完整渲染出来）
+        run: |
+          dist/MuM.app/Contents/MacOS/MuM --snapshot /tmp/mum.png
+          test -s /tmp/mum.png
+
+# 说明：
+#
+# 1. 这里**不用** .mumenv。它存在的理由是"受限沙箱里 ~/Library 不可写"，
+#    那是本地开发环境的约束，GitHub runner 上不存在，反而会把 HOME 重定向掉。
+#
+# 2. --snapshot 这一步不是凑数：它会把整个窗口离屏渲染一遍，
+#    任何视图层级的崩溃（约束冲突、越界、绘制异常）都会让这一步失败。
+#
+# 3. 目前只覆盖渲染层。open(url:) / 模式切换 / 折叠这些状态逻辑还没有测试 ——
+#    本仓库至今出现过的两个真 bug 都落在那个盲区里。补测试是下一步。

@@ -138,7 +138,7 @@ final class MarkdownRenderer {
             renderThematicBreak(into: out, context: context)
 
         case let html as HTMLBlock:
-            let style = paragraphStyle(indent: context.indent, spacingBefore: 6, spacingAfter: 6)
+            let style = paragraphStyle(indent: context.indent, spacingBefore: 10, spacingAfter: 10)
             let text = NSMutableAttributedString(string: html.rawHTML + "\n", attributes: [
                 .font: theme.codeBlockFont,
                 .foregroundColor: theme.tertiaryTextColor,
@@ -166,11 +166,11 @@ final class MarkdownRenderer {
         let fonts = theme.headingFonts
         let font = fonts.indices.contains(level - 1) ? fonts[level - 1] : fonts[0]
 
-        let spacingBefore: CGFloat = level == 1 ? 20 : (level == 2 ? 16 : 12)
+        let spacingBefore: CGFloat = level == 1 ? 26 : (level == 2 ? 20 : 15)
         let style = paragraphStyle(
             indent: context.indent,
             spacingBefore: spacingBefore,
-            spacingAfter: level <= 2 ? 6 : 4
+            spacingAfter: level <= 2 ? 12 : 8
         )
 
         let text = NSMutableAttributedString()
@@ -210,7 +210,7 @@ final class MarkdownRenderer {
     }
 
     private func renderParagraphText(_ raw: String, into out: NSMutableAttributedString, context: BlockContext) {
-        let style = paragraphStyle(indent: context.indent, spacingAfter: 8)
+        let style = paragraphStyle(indent: context.indent, spacingAfter: 12)
         let text = NSMutableAttributedString(string: raw, attributes: [
             .font: theme.bodyFont,
             .foregroundColor: theme.textColor,
@@ -233,9 +233,9 @@ final class MarkdownRenderer {
         // 改由 PreviewLayoutManager 在文字**之下**统一绘制整块底色，见那里的说明。
         let style = paragraphStyle(
             indent: context.indent + 12,
-            spacingBefore: 6,
+            spacingBefore: 10,
             spacingAfter: 0,
-            lineSpacing: 2
+            lineSpacing: 4
         )
         style.firstLineHeadIndent = context.indent + 12
         style.tailIndent = -(context.indent + 12)
@@ -317,7 +317,7 @@ final class MarkdownRenderer {
         let style = paragraphStyle(
             indent: context.indent,
             firstLineIndent: context.indent,
-            spacingAfter: 3,
+            spacingAfter: 5,
             markerWidth: markerWidth
         )
 
@@ -338,7 +338,7 @@ final class MarkdownRenderer {
     }
 
     private func renderThematicBreak(into out: NSMutableAttributedString, context: BlockContext) {
-        let style = paragraphStyle(indent: 0, spacingBefore: 14, spacingAfter: 14)
+        let style = paragraphStyle(indent: 0, spacingBefore: 18, spacingAfter: 18)
         let text = NSMutableAttributedString(string: "\u{00A0}\n", attributes: [
             .font: theme.bodyFont,
             .paragraphStyle: style,
@@ -413,7 +413,7 @@ final class MarkdownRenderer {
         }
 
         // 表格与后文之间留白
-        let spacer = paragraphStyle(indent: 0, spacingAfter: 6)
+        let spacer = paragraphStyle(indent: 0, spacingAfter: 10)
         out.append(NSAttributedString(string: "\n", attributes: [.paragraphStyle: spacer, .font: theme.bodyFont]))
     }
 
