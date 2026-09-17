@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>zh_CN</string>
+	<key>CFBundleExecutable</key>
+	<string>MuM</string>
+	<key>CFBundleIdentifier</key>
+	<string>ai.mum.app</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>MuM</string>
+	<key>CFBundleDisplayName</key>
+	<string>MuM</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.productivity</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>NSSupportsAutomaticTermination</key>
+	<false/>
+	<key>NSSupportsSuddenTermination</key>
+	<false/>
+
+	<!--
+	  文档类型声明。两点说明：
+
+	  1. LSHandlerRank 一律用 Alternate，不用 Owner。
+	     Owner 是"这类文件归我"，会去抢系统默认；Alternate 只表示"我能打开"，
+	     于是 MuM 出现在「打开方式」里，但不主动劫持用户的现有选择。
+	     要成为默认，由用户在访达里指定，或用 MuM 的「设为默认 Markdown 编辑器」。
+
+	  2. LSItemContentTypes（现代 UTI）和 CFBundleTypeExtensions（旧式扩展名）都写。
+	     只写 UTI 时，某些动态生成的 UTI 文件不会出现在「打开方式」里；
+	     扩展名是兜底。
+	-->
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Markdown 文档</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>net.daringfireball.markdown</string>
+				<string>public.plain-text</string>
+				<string>public.text</string>
+			</array>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>md</string>
+				<string>markdown</string>
+				<string>mdown</string>
+				<string>mkd</string>
+				<string>mkdn</string>
+				<string>txt</string>
+				<string>text</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>源代码</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.source-code</string>
+				<string>public.json</string>
+				<string>public.yaml</string>
+				<string>public.xml</string>
+				<string>public.shell-script</string>
+			</array>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>swift</string>
+				<string>js</string>
+				<string>ts</string>
+				<string>jsx</string>
+				<string>tsx</string>
+				<string>py</string>
+				<string>rb</string>
+				<string>go</string>
+				<string>rs</string>
+				<string>java</string>
+				<string>kt</string>
+				<string>c</string>
+				<string>h</string>
+				<string>cpp</string>
+				<string>hpp</string>
+				<string>cs</string>
+				<string>php</string>
+				<string>sh</string>
+				<string>zsh</string>
+				<string>bash</string>
+				<string>json</string>
+				<string>yaml</string>
+				<string>yml</string>
+				<string>toml</string>
+				<string>xml</string>
+				<string>html</string>
+				<string>css</string>
+				<string>scss</string>
+				<string>sql</string>
+				<string>dockerfile</string>
+				<string>lua</string>
+				<string>pl</string>
+				<string>r</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>文件夹</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.folder</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

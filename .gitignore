@@ -1,0 +1,18 @@
+# 构建产物
+.build/
+dist/
+
+# 生成的图标（由 scripts/make-icon.swift 生成）
+Resources/AppIcon.icns
+
+# macOS
+.DS_Store
+
+# Xcode（如果之后用 Xcode 打开这个包）
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+.swiftpm/
+
+# 本机私有配置（代理地址等）
+.mumenv.local

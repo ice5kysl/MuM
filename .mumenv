@@ -1,0 +1,31 @@
+# MuM 构建环境
+#
+# 用法： source ./.mumenv && swift build --disable-sandbox
+#
+# 这里只做一件与机器无关的事：把 SwiftPM / clang 的模块缓存重定向到 .build/。
+# 受限沙箱里 ~/Library 与 /var/folders 不可写，不重定向会直接失败。
+# 顺带把 HOME 也指过去，避免构建过程碰到真实的用户目录。
+
+export CLANG_MODULE_CACHE_PATH="$PWD/.build/modulecache"
+export SWIFT_MODULE_CACHE_PATH="$PWD/.build/modulecache"
+export HOME="$PWD/.build/home"
+
+# 可选的 GitHub 代理。
+#
+# SwiftPM 会隔离 git 的全局配置，导致 ~/.gitconfig 里的代理规则失效、拉取超时。
+# 这里用 GIT_CONFIG_COUNT 从环境注入同样的规则，不改用户的 ~/.gitconfig。
+#
+# 地址不写死在这个文件里 —— 它是机器相关的，不该进版本库。
+# 需要的话在 .mumenv.local（已在 .gitignore 里）写一行：
+#
+#     export GITHUB_PROXY="http://127.0.0.1:10809"
+#
+if [ -f "$PWD/.mumenv.local" ]; then
+    . "$PWD/.mumenv.local"
+fi
+
+if [ -n "$GITHUB_PROXY" ]; then
+    export GIT_CONFIG_COUNT=1
+    export GIT_CONFIG_KEY_0="http.https://github.com.proxy"
+    export GIT_CONFIG_VALUE_0="$GITHUB_PROXY"
+fi
