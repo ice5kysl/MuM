@@ -414,14 +414,31 @@ dist/MuM.app/Contents/MacOS/MuM --snapshot /tmp/mum.png
 
 ### 关于 `.mumenv`
 
-构建脚本会 `source .mumenv`，它做两件事：
+构建脚本会 `source .mumenv`，它只做一件事：**把 clang / SwiftPM 的模块缓存重定向到 `.build/`**。
 
-1. 把 SwiftPM / clang 的模块缓存重定向到 `.build/`（在受限沙箱里 `~/Library`
-   不可写时必需）；
-2. 通过 `GIT_CONFIG_COUNT` 从环境注入 GitHub 代理 —— SwiftPM 会隔离 git 的
-   全局配置，导致 `~/.gitconfig` 里的代理规则失效。
+必需的理由很硬：clang 默认把模块缓存写到 `$TMPDIR` 下的
+`/var/folders/.../C/clang/ModuleCache`，而受限沙箱不让写那里，构建会直接失败：
 
-如果你的网络能直连 GitHub，可以删掉第 2 项。
+```
+error: unable to open output file '.../ModuleCache/.../SwiftShims-....pcm'
+       'Operation not permitted'
+```
+
+它**不重定向 `HOME`**，这是踩过三次坑之后才定下来的。早先有一行
+`export HOME="$PWD/.build/home"`，看起来无害，实际会让所有读 `~/.gitconfig`、
+`~/.config/gh`、`~/Library/Preferences` 的命令找不到配置：
+
+| 症状 | 真实原因 |
+| :--- | :--- |
+| `git commit` 报 "Author identity unknown" | git 去 `.build/home` 找 `.gitconfig` |
+| `gh` 报 "please run gh auth login" | gh 去 `.build/home` 找配置 |
+| 离屏快照读不到已保存的项目列表 | `UserDefaults` 指向了另一个 HOME |
+
+**三个症状和"HOME 被改"看起来都毫无关系** —— 这正是它值得单独记一笔的原因。
+
+另外支持一个可选的 GitHub 代理（用 `GIT_CONFIG_COUNT` 注入，不改用户的 `~/.gitconfig`），
+地址写在 `.mumenv.local`（已 gitignore），不硬编码进版本库。
+
 
 ---
 

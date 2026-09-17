@@ -2,13 +2,22 @@
 #
 # 用法： source ./.mumenv && swift build --disable-sandbox
 #
-# 这里只做一件与机器无关的事：把 SwiftPM / clang 的模块缓存重定向到 .build/。
-# 受限沙箱里 ~/Library 与 /var/folders 不可写，不重定向会直接失败。
-# 顺带把 HOME 也指过去，避免构建过程碰到真实的用户目录。
+# 只做一件事：把 SwiftPM / clang 的模块缓存重定向到 .build/。
+#
+# 为什么必需：clang 默认把模块缓存写到 $TMPDIR 下的 /var/folders/.../C/clang/ModuleCache，
+# 而受限沙箱不让写那里，构建会直接失败：
+#     error: unable to open output file '.../ModuleCache/.../SwiftShims-....pcm'
+#           'Operation not permitted'
+# 实测：只设这两个变量、保持真实 HOME，构建完全正常。
 
 export CLANG_MODULE_CACHE_PATH="$PWD/.build/modulecache"
 export SWIFT_MODULE_CACHE_PATH="$PWD/.build/modulecache"
-export HOME="$PWD/.build/home"
+
+# ⚠️ 曾经这里还有一行 `export HOME="$PWD/.build/home"`。已经删掉，别再加回来：
+# 它不是构建需要的（模块缓存的默认位置由 TMPDIR 决定，不是 HOME），
+# 却会让所有读 ~/.gitconfig、~/.config/gh、~/Library/Preferences 的命令找不到配置。
+# 实际咬过三次：git commit 报 "Author identity unknown"、gh 报 "please run gh auth login"、
+# 离屏快照读不到已保存的项目列表。而且症状和真实原因（HOME 被改）看起来毫无关系。
 
 # 可选的 GitHub 代理。
 #
