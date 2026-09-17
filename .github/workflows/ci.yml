@@ -1,9 +1,21 @@
 name: CI
 
+# 手动触发。**没有** push / pull_request 触发器，原因如下：
+#
+# MuM 是 AppKit 应用，只能在 macOS runner 上构建，而 macOS runner 对
+# **私有仓库是计费的**（Linux runner 的免费额度用不上）。
+# 本仓库当前是私有的，自动触发会每次都失败在计费上，反而成了噪音。
+#
+# 仓库转公开后，macOS runner 有免费额度，取消下面两行的注释即可：
+#
+#   push:
+#     branches: [main]
+#   pull_request:
+#
+# 在打开之前，本地跑一遍等价的三步：
+#   swift build && .build/debug/MuM --selftest && ./scripts/build-app.sh debug
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   build-and-test:
@@ -25,12 +37,12 @@ jobs:
           dist/MuM.app/Contents/MacOS/MuM --snapshot /tmp/mum.png
           test -s /tmp/mum.png
 
-# 说明：
+# 两点说明：
 #
 # 1. 这里**不用** .mumenv。它存在的理由是"受限沙箱里 ~/Library 不可写"，
 #    那是本地开发环境的约束，GitHub runner 上不存在，反而会把 HOME 重定向掉。
 #
-# 2. --snapshot 这一步不是凑数：它会把整个窗口离屏渲染一遍，
+# 2. --snapshot 不是凑数：它把整个窗口离屏渲染一遍，
 #    任何视图层级的崩溃（约束冲突、越界、绘制异常）都会让这一步失败。
 #
 # 3. 目前只覆盖渲染层。open(url:) / 模式切换 / 折叠这些状态逻辑还没有测试 ——
