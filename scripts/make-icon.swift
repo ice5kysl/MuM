@@ -50,14 +50,12 @@ func drawIcon(in rect: NSRect) {
     // 中间那个 V 填实，整个字就糊成一个三角块了。
     let stroke = size * 0.078
     let mWidth = size * 0.345
-    let mHeight = size * 0.320
+    let mHeight = size * 0.390
     let centerX = body.midX
-    let bottom = body.minY + size * 0.325
+    let bottom = body.minY + size * 0.285
     let top = bottom + mHeight
     let left = centerX - mWidth / 2
     let right = centerX + mWidth / 2
-    // 端点要按"尖点高度"往下压：斜接尖角会顺角平分线再往外伸约 0.12×尺寸，
-    // 不预留的话渲染出来的 M 会顶破上边框、视觉重心也整体偏高（实测过）。
     // V 的谷底：抬高一点才有"谷"，太深会顶到横线
     let valley = bottom + mHeight * 0.42
 
@@ -68,17 +66,17 @@ func drawIcon(in rect: NSRect) {
     mPath.line(to: NSPoint(x: right, y: top))
     mPath.line(to: NSPoint(x: right, y: bottom))
     mPath.lineWidth = stroke
-    mPath.lineJoinStyle = .miter
+    // 圆角接头：半径就是半个笔画宽，只把顶点磨圆；直边和端点的平切都保留。
+    // 不能再用斜接 —— 那样顶点会拉出尖刺，既顶破上边框又抬高重心。
+    mPath.lineJoinStyle = .round
     mPath.lineCapStyle = .butt
-    // 默认斜接限制是 10，顶角那个锐角会被削平成斜角；放宽到 20 保住尖点
-    mPath.miterLimit = 20
 
     NSColor.white.setStroke()
     mPath.stroke()
 
     // 底部强调线
-    let barWidth = size * 0.34
-    let barHeight = max(size * 0.028, 1)
+    let barWidth = size * 0.44
+    let barHeight = max(size * 0.042, 1)
     let bar = NSRect(
         x: body.midX - barWidth / 2,
         y: body.minY + size * 0.190,
