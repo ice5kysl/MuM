@@ -11,6 +11,10 @@ extension NSAttributedString.Key {
     /// 代码块范围（值为底色）。底色不交给 TextKit 的 `.backgroundColor` 绘制，
     /// 而是由 PreviewLayoutManager 统一在文字下方填整块 —— 原因见那里。
     static let mumCodeBlock = NSAttributedString.Key("MuM.codeBlock")
+    /// 查找命中。值 `Int`：1 = 当前这一处，0 = 其它命中。
+    /// 不用 `.backgroundColor` 画 —— 行内代码的底色就是它，会打架。
+    /// 改由 PreviewLayoutManager 在文字**下方**画，和代码块底色同一套机制。
+    static let mumFindMatch = NSAttributedString.Key("MuM.findMatch")
 }
 
 /// 正文使用的字族
@@ -143,4 +147,7 @@ struct MarkdownTheme {
     var syntaxFunction: NSColor { palette.syntaxFunction }
     var syntaxConstant: NSColor { palette.syntaxConstant }
     var syntaxAttribute: NSColor { palette.syntaxAttribute }
+
+    var findMatchColor: NSColor { palette.findMatch }
+    var currentFindMatchColor: NSColor { palette.currentFindMatch }
 }

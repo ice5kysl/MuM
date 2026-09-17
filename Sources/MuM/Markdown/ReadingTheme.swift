@@ -43,6 +43,11 @@ enum ReadingTheme: Int, CaseIterable {
         let syntaxFunction: NSColor
         let syntaxConstant: NSColor
         let syntaxAttribute: NSColor
+
+        // 查找命中色也归主题管。理由和语法色一样：语义色跟着应用外观解析，
+        // 而纸色由阅读主题决定 —— 暗色纸面上用 systemYellow 加透明度会变成一坨闷橄榄色。
+        let findMatch: NSColor
+        let currentFindMatch: NSColor
     }
 
     var palette: Palette {
@@ -96,6 +101,13 @@ extension ReadingTheme.Palette {
             syntaxFunction: .systemBlue,
             syntaxConstant: .systemOrange,
             syntaxAttribute: .systemIndigo
+,
+            findMatch: NSColor(name: "MuM.findMatch") { $0.isDark
+                ? NSColor(srgbRed: 1.00, green: 0.86, blue: 0.35, alpha: 0.42)
+                : NSColor(srgbRed: 1.00, green: 0.88, blue: 0.30, alpha: 0.55) },
+            currentFindMatch: NSColor(name: "MuM.currentFindMatch") { $0.isDark
+                ? NSColor(srgbRed: 1.00, green: 0.62, blue: 0.20, alpha: 0.62)
+                : NSColor(srgbRed: 1.00, green: 0.58, blue: 0.10, alpha: 0.62) }
         )
     }
 
@@ -119,6 +131,9 @@ extension ReadingTheme.Palette {
             syntaxFunction: NSColor(srgbRed: 0.251, green: 0.471, blue: 0.949, alpha: 1),// #4078F2
             syntaxConstant: NSColor(srgbRed: 0.596, green: 0.408, blue: 0.004, alpha: 1),
             syntaxAttribute: NSColor(srgbRed: 0.757, green: 0.518, blue: 0.004, alpha: 1)
+,
+            findMatch: NSColor(srgbRed: 1.00, green: 0.88, blue: 0.30, alpha: 0.55),
+            currentFindMatch: NSColor(srgbRed: 1.00, green: 0.58, blue: 0.10, alpha: 0.62)
         )
     }
 
@@ -142,6 +157,9 @@ extension ReadingTheme.Palette {
             syntaxFunction: NSColor(srgbRed: 0.380, green: 0.686, blue: 0.937, alpha: 1),// #61AFEF
             syntaxConstant: NSColor(srgbRed: 0.820, green: 0.604, blue: 0.400, alpha: 1),
             syntaxAttribute: NSColor(srgbRed: 0.337, green: 0.714, blue: 0.761, alpha: 1)
+,
+            findMatch: NSColor(srgbRed: 1.00, green: 0.86, blue: 0.35, alpha: 0.42),
+            currentFindMatch: NSColor(srgbRed: 1.00, green: 0.62, blue: 0.20, alpha: 0.62)
         )
     }
 
@@ -165,6 +183,9 @@ extension ReadingTheme.Palette {
             syntaxFunction: NSColor(srgbRed: 0.043, green: 0.310, blue: 0.749, alpha: 1),// #0B4FBF
             syntaxConstant: NSColor(srgbRed: 0.541, green: 0.227, blue: 0.000, alpha: 1),
             syntaxAttribute: NSColor(srgbRed: 0.416, green: 0.122, blue: 0.635, alpha: 1)
+,
+            findMatch: NSColor(srgbRed: 1.00, green: 0.90, blue: 0.20, alpha: 0.75),
+            currentFindMatch: NSColor(srgbRed: 1.00, green: 0.55, blue: 0.00, alpha: 0.75)
         )
     }
 }

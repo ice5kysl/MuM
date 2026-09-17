@@ -7,7 +7,12 @@ import PDFKit
 /// 三指查词、朗读、辅助功能全部免费获得 —— 这些是 WKWebView 方案要一个个补回来的东西。
 final class PreviewViewController: NSViewController {
 
+    private let findBar = PreviewFindBar()
     private let textScrollView = NSScrollView()
+    private var findMatches: [NSRange] = []
+    private var currentMatchIndex = 0
+    private var findBarHeight: NSLayoutConstraint!
+    private var isFindBarVisible = false
     private let textView = makePreviewTextView()
 
     private let imageContainer = NSView()
@@ -26,11 +31,127 @@ final class PreviewViewController: NSViewController {
     /// 预览用的文本视图。不叫 contentView 是为了不和 NSWindow.contentView 混淆。
     var previewTextView: PreviewTextView { textView }
 
+    // MARK: - 查找
+
+    /// ⌘F：显示查找条并聚焦。已经显示时只重新聚焦。
+    func showFindBar() {
+        guard textScrollView.superview != nil else { return }
+        if !isFindBarVisible {
+            isFindBarVisible = true
+            findBarHeight.constant = 34
+            findBar.isHidden = false
+            view.needsLayout = true
+        }
+        findBar.focus()
+    }
+
+    /// Esc：关闭查找条并清掉所有高亮
+    func hideFindBar() {
+        guard isFindBarVisible else { return }
+        isFindBarVisible = false
+        findBarHeight.constant = 0
+        findBar.isHidden = true
+        findMatches = []
+        clearHighlights()
+        view.window?.makeFirstResponder(textView)
+    }
+
+    var isFinding: Bool { isFindBarVisible }
+
+    /// 诊断用：离屏快照里没法敲键盘，用它触发一次查找
+    func debugRunFind(_ query: String) {
+        showFindBar()
+        findBar.setQuery(query)
+        runFind(query)
+    }
+
+    func findNext() { step(by: 1) }
+    func findPrevious() { step(by: -1) }
+
+    private func step(by delta: Int) {
+        guard !findMatches.isEmpty else { return }
+        currentMatchIndex = (currentMatchIndex + delta + findMatches.count) % findMatches.count
+        highlightMatches()
+        scrollToCurrentMatch()
+    }
+
+    private func runFind(_ query: String) {
+        clearHighlights()
+        findMatches = []
+        currentMatchIndex = 0
+
+        guard !query.isEmpty else {
+            findBar.update(current: 0, total: 0)
+            return
+        }
+
+        let haystack = textView.string as NSString
+        var searchRange = NSRange(location: 0, length: haystack.length)
+        while searchRange.length > 0 {
+            let found = haystack.range(
+                of: query,
+                options: [.caseInsensitive, .diacriticInsensitive],
+                range: searchRange
+            )
+            guard found.location != NSNotFound else { break }
+            findMatches.append(found)
+            let next = found.location + max(found.length, 1)
+            guard next < haystack.length else { break }
+            searchRange = NSRange(location: next, length: haystack.length - next)
+        }
+
+        // 命中的位置从当前滚动处开始找，比永远从第一处开始符合直觉
+        if let nearest = nearestMatchToViewport() { currentMatchIndex = nearest }
+        highlightMatches()
+        scrollToCurrentMatch()
+    }
+
+    private func nearestMatchToViewport() -> Int? {
+        let top = textScrollView.contentView.bounds.origin.y
+        guard let manager = textView.layoutManager, let container = textView.textContainer else { return nil }
+        for (index, range) in findMatches.enumerated() {
+            let glyphRange = manager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+            let rect = manager.boundingRect(forGlyphRange: glyphRange, in: container)
+            if rect.minY + textView.textContainerOrigin.y >= top { return index }
+        }
+        return findMatches.isEmpty ? nil : findMatches.count - 1
+    }
+
+    private func highlightMatches() {
+        guard let storage = textView.textStorage else { return }
+        storage.removeAttribute(.mumFindMatch, range: NSRange(location: 0, length: storage.length))
+        for (index, range) in findMatches.enumerated() {
+            guard range.location + range.length <= storage.length else { continue }
+            storage.addAttribute(.mumFindMatch, value: index == currentMatchIndex ? 1 : 0, range: range)
+        }
+        findBar.update(current: findMatches.isEmpty ? 0 : currentMatchIndex + 1, total: findMatches.count)
+        textView.needsDisplay = true
+    }
+
+    private func clearHighlights() {
+        guard let storage = textView.textStorage, storage.length > 0 else { return }
+        storage.removeAttribute(.mumFindMatch, range: NSRange(location: 0, length: storage.length))
+        textView.needsDisplay = true
+    }
+
+    private func scrollToCurrentMatch() {
+        guard findMatches.indices.contains(currentMatchIndex),
+              let manager = textView.layoutManager,
+              let container = textView.textContainer else { return }
+        let glyphRange = manager.glyphRange(forCharacterRange: findMatches[currentMatchIndex], actualCharacterRange: nil)
+        let rect = manager.boundingRect(forGlyphRange: glyphRange, in: container)
+        textView.scrollToVisible(rect.offsetBy(dx: 0, dy: textView.textContainerOrigin.y).insetBy(dx: 0, dy: -60))
+    }
+
     /// 应用阅读主题的纸色。
     /// 文本视图和它外面的滚动视图都要换 —— 只换一个的话，换纸色只会换一半。
     func applyReadingTheme(_ theme: MarkdownTheme) {
         textView.backgroundColor = theme.backgroundColor
         textScrollView.backgroundColor = theme.backgroundColor
+        if let manager = textView.layoutManager as? PreviewLayoutManager {
+            manager.findMatchColor = theme.findMatchColor
+            manager.currentFindMatchColor = theme.currentFindMatchColor
+        }
         textView.needsDisplay = true
     }
 
@@ -76,7 +197,32 @@ final class PreviewViewController: NSViewController {
         textScrollView.drawsBackground = true
         textScrollView.backgroundColor = .textBackgroundColor
 
-        pin(textScrollView)
+        // 查找条贴在顶部，高度约束 0 = 收起；滚动视图在它下面。
+        // 做成内容区自己的一条而不是独立浮层：查找是阅读的辅助动作，
+        // 不该独占窗口，也不该遮住正文。
+        findBar.translatesAutoresizingMaskIntoConstraints = false
+        findBar.isHidden = true
+        findBar.onQueryChanged = { [weak self] query in self?.runFind(query) }
+        findBar.onNext = { [weak self] in self?.findNext() }
+        findBar.onPrevious = { [weak self] in self?.findPrevious() }
+        findBar.onClose = { [weak self] in self?.hideFindBar() }
+        view.addSubview(findBar)
+
+        findBarHeight = findBar.heightAnchor.constraint(equalToConstant: 0)
+        textScrollView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(textScrollView)
+
+        NSLayoutConstraint.activate([
+            findBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            findBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            findBar.topAnchor.constraint(equalTo: view.topAnchor),
+            findBarHeight,
+
+            textScrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            textScrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            textScrollView.topAnchor.constraint(equalTo: findBar.bottomAnchor),
+            textScrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
     }
 
     private func setupImage() {
@@ -148,6 +294,12 @@ final class PreviewViewController: NSViewController {
         for candidate in [textScrollView, imageContainer, pdfView, messageContainer] {
             candidate.isHidden = (candidate !== target)
         }
+        // 切换到图片 / PDF / 提示页时收起查找条 —— 那些视图里没有可查找的文本
+        if target !== textScrollView, isFindBarVisible {
+            isFindBarVisible = false
+            findBarHeight.constant = 0
+            findBar.isHidden = true
+        }
     }
 
     // MARK: - 内容切换
@@ -168,6 +320,9 @@ final class PreviewViewController: NSViewController {
             textView.scrollToBeginningOfDocument(nil)
         }
         textScrollView.reflectScrolledClipView(textScrollView.contentView)
+
+        // textStorage 被整个换掉了，查找高亮要重新套一遍
+        if isFindBarVisible { runFind(findBar.query) }
     }
 
     func show(image: NSImage) {

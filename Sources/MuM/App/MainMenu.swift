@@ -81,6 +81,10 @@ enum MainMenuBuilder {
         menu.addItem(.separator())
         menu.addItem(withTitle: "查找…", action: #selector(NSTextView.performFindPanelAction(_:)), keyEquivalent: "f")
         menu.addItem(item("过滤文件…", #selector(AppDelegate.focusFileFilter(_:)), "p", target: target))
+        menu.addItem(.separator())
+        menu.addItem(item("在预览中查找…", #selector(AppDelegate.showPreviewFind(_:)), "f", target: target))
+        menu.addItem(item("查找下一处", #selector(AppDelegate.findNext(_:)), "g", target: target))
+        menu.addItem(item("查找上一处", #selector(AppDelegate.findPrevious(_:)), "g", modifiers: [.command, .shift], target: target))
 
         let holder = NSMenuItem(title: "编辑", action: nil, keyEquivalent: "")
         holder.submenu = menu

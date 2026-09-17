@@ -112,6 +112,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mainWindowController?.refreshFileTree()
     }
 
+    // MARK: - 查找
+
+    @objc func showPreviewFind(_ sender: Any?) {
+        mainWindowController?.showPreviewFind()
+    }
+
+    @objc func findNext(_ sender: Any?) {
+        mainWindowController?.findNext()
+    }
+
+    @objc func findPrevious(_ sender: Any?) {
+        mainWindowController?.findPrevious()
+    }
+
     @objc func revealInFinder(_ sender: Any?) {
         mainWindowController?.revealInFinder()
     }

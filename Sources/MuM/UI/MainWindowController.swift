@@ -518,6 +518,25 @@ final class MainWindowController: NSWindowController {
 
     var hasOpenDocument: Bool { currentFileURL != nil }
 
+    // MARK: - 查找
+
+    /// 预览里可查找的前提：当前显示的是一个文本文件，且不在纯编辑模式
+    var canFindInPreview: Bool {
+        (currentKind?.isTextual ?? false) && contentPane.mode != .write
+    }
+
+    var isFindingInPreview: Bool {
+        contentPane.previewViewController.isFinding
+    }
+
+    func showPreviewFind() {
+        guard canFindInPreview else { return }
+        contentPane.previewViewController.showFindBar()
+    }
+
+    func findNext() { contentPane.previewViewController.findNext() }
+    func findPrevious() { contentPane.previewViewController.findPrevious() }
+
     /// 记住当前读到哪。切文件和退出应用时各存一次 ——
     /// 这就够覆盖"关掉再打开落回原位置"，不需要在每次滚动时写 UserDefaults。
     func saveReadingPosition() {
@@ -526,6 +545,12 @@ final class MainWindowController: NSWindowController {
             ? contentPane.editorViewController.scrollFraction()
             : contentPane.previewViewController.scrollFraction()
         WorkspaceStore.shared.rememberReadingPosition(Double(fraction), for: url)
+    }
+
+    /// 诊断用：离屏触发一次查找
+    func debugFind(_ query: String) {
+        guard canFindInPreview else { return }
+        contentPane.previewViewController.debugRunFind(query)
     }
 
     /// 诊断用：模拟设置面板在**运行时**改动偏好。
