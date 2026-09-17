@@ -52,6 +52,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         true
     }
 
+    func applicationWillTerminate(_ notification: Notification) {
+        mainWindowController?.saveReadingPosition()
+    }
+
     /// 从访达双击 / `open -a MuM <路径>` 打开
     func application(_ application: NSApplication, open urls: [URL]) {
         // 打开事件可能早于 applicationDidFinishLaunching 到达，那时窗口还没建好。

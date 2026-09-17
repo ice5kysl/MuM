@@ -156,6 +156,28 @@ final class WorkspaceStore: @unchecked Sendable {
 
     // MARK: - 持久化
 
+    // MARK: - 阅读位置
+
+    private let readingPositionKey = "MuM.readingPositions"
+
+    /// 上次读到哪（0…1 的比例，不是绝对偏移）。
+    /// 用比例而不是像素：换字号、换字间距之后位置仍然合理。
+    func readingPosition(for url: URL) -> Double? {
+        guard let map = UserDefaults.standard.dictionary(forKey: readingPositionKey) as? [String: Double] else {
+            return nil
+        }
+        return map[url.standardizedFileURL.path]
+    }
+
+    func rememberReadingPosition(_ fraction: Double, for url: URL) {
+        var map = (UserDefaults.standard.dictionary(forKey: readingPositionKey) as? [String: Double]) ?? [:]
+        // 这是一个"便利"数据，不值得为它做 LRU。超过上限就整体丢掉重来 ——
+        // 丢掉的代价是回到文档开头，而不是出错。
+        if map.count > 500 { map.removeAll() }
+        map[url.standardizedFileURL.path] = min(max(fraction, 0), 1)
+        UserDefaults.standard.set(map, forKey: readingPositionKey)
+    }
+
     private func persist() {
         let paths = workspaces.map { $0.rootURL.path }
         UserDefaults.standard.set(paths, forKey: listKey)

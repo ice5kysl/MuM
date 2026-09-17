@@ -26,6 +26,8 @@ final class MainWindowController: NSWindowController {
     /// 上次从磁盘读取（或写入）时该文件的修改时间。
     /// 保存前拿它和磁盘现状比一次，避免静默覆盖别人在外面做的修改。
     private var loadedModificationDate: Date?
+    /// 本次打开要恢复到的阅读位置。渲染是异步的，所以先存着，等 performRender 时用掉
+    private var pendingScrollFraction: CGFloat?
     private var workspaceWatcher: FileWatcher?
 
 
@@ -351,6 +353,7 @@ final class MainWindowController: NSWindowController {
         guard standardized != currentFileURL else { return }
         guard confirmDiscardIfNeeded() else { return }
 
+        saveReadingPosition()
         closeCurrentFile()
 
         let kind = FileKind(url: standardized, isDirectory: false)
@@ -436,6 +439,7 @@ final class MainWindowController: NSWindowController {
             .attributesOfItem(atPath: url.path)[.modificationDate] as? Date
         contentPane.editorViewController.setEditable(true)
         contentPane.editorViewController.setText(text)
+        pendingScrollFraction = WorkspaceStore.shared.readingPosition(for: url).map { CGFloat($0) }
         renderPreview(immediately: true)
     }
 
@@ -505,12 +509,24 @@ final class MainWindowController: NSWindowController {
             attributed = renderer.renderPlainText(text)
         }
 
-        contentPane.previewViewController.show(attributed: attributed, preservingScroll: true)
+        let restore = pendingScrollFraction
+        pendingScrollFraction = nil
+        contentPane.previewViewController.show(attributed: attributed, restoreFraction: restore)
     }
 
     // MARK: - 保存
 
     var hasOpenDocument: Bool { currentFileURL != nil }
+
+    /// 记住当前读到哪。切文件和退出应用时各存一次 ——
+    /// 这就够覆盖"关掉再打开落回原位置"，不需要在每次滚动时写 UserDefaults。
+    func saveReadingPosition() {
+        guard let url = currentFileURL else { return }
+        let fraction = contentPane.mode == .write
+            ? contentPane.editorViewController.scrollFraction()
+            : contentPane.previewViewController.scrollFraction()
+        WorkspaceStore.shared.rememberReadingPosition(Double(fraction), for: url)
+    }
 
     /// 诊断用：模拟设置面板在**运行时**改动偏好。
     /// 启动时读设置和运行时改设置是两条路径，前者通不代表后者通。

@@ -152,18 +152,19 @@ final class PreviewViewController: NSViewController {
 
     // MARK: - 内容切换
 
-    func show(attributed: NSAttributedString, preservingScroll: Bool) {
+    /// - Parameter restoreFraction: 打开**另一个文件**时传它保存过的位置；
+    ///   传 nil 表示这是一次重排（同一文件，比如边打字边渲染），保持当前滚动不动。
+    func show(attributed: NSAttributedString, restoreFraction: CGFloat?) {
         showOnly(textScrollView)
 
-        let savedOrigin = preservingScroll ? textScrollView.contentView.bounds.origin : .zero
-        let savedFraction: CGFloat? = preservingScroll ? scrollFraction() : nil
+        // 重排时先记下当前位置，因为换 textStorage 会把滚动重置
+        let keptFraction: CGFloat? = restoreFraction == nil ? scrollFraction() : nil
 
         textView.textStorage?.setAttributedString(attributed)
 
-        if let savedFraction {
-            restoreScrollFraction(savedFraction)
+        if let target = restoreFraction ?? keptFraction {
+            restoreScrollFraction(target)
         } else {
-            textScrollView.contentView.scroll(to: savedOrigin)
             textView.scrollToBeginningOfDocument(nil)
         }
         textScrollView.reflectScrolledClipView(textScrollView.contentView)
@@ -189,23 +190,33 @@ final class PreviewViewController: NSViewController {
 
     // MARK: - 滚动同步
 
+    /// 文档总高度（含上下内边距）。
+    ///
+    /// **不能用 `textView.frame.height`** —— frame 要等一次布局才更新，
+    /// 而这两个方法都在 `setAttributedString` 之后立刻调用，那时 frame 还是
+    /// 上一个文档的。实测后果：恢复位置时算出的可滚动高度≈0（纹丝不动），
+    /// 保存位置时算出的比例也永远偏小。
+    /// 排版结果（`usedRect`）在 `ensureLayout` 之后立刻就是对的。
+    private var documentHeight: CGFloat {
+        guard let manager = textView.layoutManager, let container = textView.textContainer else {
+            return textView.frame.height
+        }
+        manager.ensureLayout(for: container)
+        return manager.usedRect(for: container).height + textView.textContainerInset.height * 2
+    }
+
     /// 返回 0…1 的滚动进度，用于在重新渲染后保持阅读位置
     func scrollFraction() -> CGFloat {
         let clip = textScrollView.contentView
-        let documentHeight = textView.frame.height
-        let visibleHeight = clip.bounds.height
-        let scrollable = documentHeight - visibleHeight
+        let scrollable = documentHeight - clip.bounds.height
         guard scrollable > 1 else { return 0 }
         return min(max(clip.bounds.origin.y / scrollable, 0), 1)
     }
 
     func restoreScrollFraction(_ fraction: CGFloat) {
         let clip = textScrollView.contentView
-        textView.layoutManager?.ensureLayout(for: textView.textContainer!)
-        let documentHeight = textView.frame.height
         let scrollable = max(documentHeight - clip.bounds.height, 0)
-        let y = scrollable * fraction
-        clip.scroll(to: NSPoint(x: 0, y: y))
+        clip.scroll(to: NSPoint(x: 0, y: scrollable * fraction))
         textScrollView.reflectScrolledClipView(clip)
     }
 
