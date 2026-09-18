@@ -64,6 +64,12 @@
   `!=`；磁盘 mtime 读不到（文件被删/不可读）原先是静默放行，同样当冲突处理。
   另外 mtime 基线改为**先取再读**（原顺序相反，读取中途被改就兜不住，D-6）；
   原子写会换 inode，POSIX 权限先记下、写完还回去（D-7）。
+- **FileWatcher 停止路径的 use-after-free 与竞态（审计 C-1/C-2）** —— FSEvents 的
+  context 里挂的是 `passUnretained(self)`：`deinit → stop()` 与串行队列上的在途
+  回调之间没有任何同步，回调解引用的是可能已释放的 self；`pending` 去抖项在
+  主线程（stop）和队列（scheduleFire）两边裸读写。改为：context 携带一个由
+  stream 生命周期强持的回调盒子（弱指回 self），stop 的全部动作收进同一个串行
+  队列 `sync` 执行 —— 在途回调天然排空后才释放资源，`pending` 只在队列上碰。
 
 ### 新增
 
