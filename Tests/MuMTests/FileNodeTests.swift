@@ -1,7 +1,7 @@
 import XCTest
 @testable import MuM
 
-/// FileNode：按需加载、失效重扫、indexPath 定位，以及 FileTreeLoader 的过滤与排序。
+/// FileNode：按需加载、失效重扫，以及 FileTreeLoader 的过滤与排序。
 final class FileNodeTests: XCTestCase {
 
     private var root: URL!
@@ -50,13 +50,6 @@ final class FileNodeTests: XCTestCase {
         node.invalidate()
         XCTAssertFalse(node.isLoaded)
         XCTAssertTrue(node.loadChildren().map(\.name).contains("new.md"), "失效后重扫应看到新增文件")
-    }
-
-    func testIndexPathLocatesNode() {
-        let node = FileNode(url: root)
-        let sub = node.loadChildren()[0] // zdir
-        let doc = sub.loadChildren()[0]  // c.md
-        XCTAssertEqual(doc.indexPath, [0, 0])
     }
 
     func testKindsOfFixtureChildren() {

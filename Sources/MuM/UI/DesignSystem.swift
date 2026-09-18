@@ -134,30 +134,3 @@ final class PaneBackgroundView: NSView {
         layer?.backgroundColor = fill.cgColor
     }
 }
-
-extension MuMDesign {
-
-    /// 面板头里那种 20×20 的无边框图标按钮
-    static func iconButton(
-        symbol: String,
-        tooltip: String,
-        target: AnyObject,
-        action: Selector
-    ) -> NSButton {
-        let button = NSButton()
-        button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: tooltip)
-        button.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
-        button.isBordered = false
-        button.bezelStyle = .inline
-        button.contentTintColor = MuMDesign.secondaryText
-        button.target = target
-        button.action = action
-        button.toolTip = tooltip
-        button.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            button.widthAnchor.constraint(equalToConstant: 20),
-            button.heightAnchor.constraint(equalToConstant: 20),
-        ])
-        return button
-    }
-}

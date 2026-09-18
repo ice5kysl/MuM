@@ -134,17 +134,4 @@ enum FileKind {
         default: return nil
         }
     }
-
-    /// 文件树里显示的图标（SF Symbol 名）。图片/PDF 直接用系统图标更准确。
-    var symbolName: String {
-        switch self {
-        case .markdown: return "text.document"
-        case .code: return "chevron.left.forwardslash.chevron.right"
-        case .plainText: return "doc.plaintext"
-        case .image: return "photo"
-        case .pdf: return "doc.richtext"
-        case .unsupported: return "doc"
-        case .folder: return "folder"
-        }
-    }
 }

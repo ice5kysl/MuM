@@ -24,10 +24,13 @@ final class SearchFilenameTimingTests: XCTestCase {
     private static let query = "doc-02500"   // 每个项目恰好一个文件名命中；正文不含
 
     func testLastFileNameHitArrivalTiming() throws {
-        let scopes = try Self.makeScopes()
+        // 跳过判定必须在碰磁盘之前：语料不存在时 makeScopes 会 throw，
+        // 那会让"跳过"变成"失败"（kimi 2026-09-19 清理批次踩到）
         try XCTSkipUnless(
-            ProcessInfo.processInfo.environment["MUM_SEARCH_BENCH"] == "1" && !scopes.isEmpty,
-            "测量默认跳过：需语料 + MUM_SEARCH_BENCH=1（见文件头注释）")
+            ProcessInfo.processInfo.environment["MUM_SEARCH_BENCH"] == "1",
+            "测量默认跳过：需 MUM_SEARCH_BENCH=1（见文件头注释）")
+        let scopes = (try? Self.makeScopes()) ?? []
+        try XCTSkipUnless(!scopes.isEmpty, "测量默认跳过：语料不存在（见文件头注释）")
 
         let engine = GlobalSearchEngine()
         let start = CFAbsoluteTimeGetCurrent()

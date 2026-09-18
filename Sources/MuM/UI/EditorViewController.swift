@@ -167,10 +167,6 @@ final class EditorViewController: NSViewController, NSTextViewDelegate {
         ruler.needsDisplay = true
     }
 
-    func focus() {
-        view.window?.makeFirstResponder(textView)
-    }
-
     /// 编辑器滚动进度 0…1
     func scrollFraction() -> CGFloat {
         let clip = scrollView.contentView

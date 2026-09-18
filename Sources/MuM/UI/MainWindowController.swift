@@ -56,11 +56,24 @@ final class MainWindowController: NSWindowController {
         return formatter
     }()
 
+    /// 渐进渲染与打字去抖的四个参数（原先是散在四处注释里的裸数字，
+    /// 改一个要同步两处文字 —— 审计 M 类魔法数）
+    private enum RenderTuning {
+        /// 打字时预览重排的去抖窗口：输入永远优先
+        static let typingDebounce: TimeInterval = 0.11
+        /// 超过这个字符数的 Markdown 打开时走渐进渲染
+        static let progressiveThreshold = 100_000
+        /// 渐进渲染首屏的顶层块数（TTFR 的 R 在这里）
+        static let firstScreenBlocks = 80
+        /// 渐进填充每片最多占主线程的时间，片间让出滚动和输入
+        static let fillSliceBudget: TimeInterval = 0.04
+    }
+
     // MARK: - 初始化
 
     init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1440, height: 900),
+            contentRect: NSRect(origin: .zero, size: MuMDesign.defaultWindowContentSize),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -569,8 +582,7 @@ final class MainWindowController: NSWindowController {
             // 同步只是把它从"一个 runloop 之后"挪到"现在"。
             work.perform()
         } else {
-            // 打字时每 110ms 才重排一次预览，输入永远优先
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.11, execute: work)
+            DispatchQueue.main.asyncAfter(deadline: .now() + RenderTuning.typingDebounce, execute: work)
         }
     }
 
@@ -592,11 +604,12 @@ final class MainWindowController: NSWindowController {
         let restore = pendingScrollFraction
         pendingScrollFraction = nil
 
-        // 渐进渲染：大文档打开时先渲染前 80 个顶层块立刻上屏（TTFR 的 R 在这里），
-        // 余量切 ≤40ms 的薄片分次补齐，填充期间滚动保持可用。
+        // 渐进渲染：大文档打开时先渲染首屏顶层块立刻上屏（TTFR 的 R 在这里），
+        // 余量切薄片分次补齐，填充期间滚动保持可用。
         // 回滚开关：defaults write sh.ice.mum MuM.disableProgressiveRender -bool true
         // （bench 包是 sh.ice.mum.bench）。只改时机不改内容 —— 拼接结果与全量渲染逐字一致。
-        if allowProgressive, !forceFullRenderForNextOpen, case .markdown = kind, text.count > 100_000,
+        if allowProgressive, !forceFullRenderForNextOpen, case .markdown = kind,
+           text.count > RenderTuning.progressiveThreshold,
            !UserDefaults.standard.bool(forKey: "MuM.disableProgressiveRender") {
             renderProgressively(renderer: renderer, text: text, restore: restore)
             return
@@ -618,11 +631,11 @@ final class MainWindowController: NSWindowController {
         LaunchTimer.mark("    预览已写入富文本")
     }
 
-    /// 渐进渲染的填充循环：每片最多占主线程 40ms，片间让出主线程处理滚动和输入。
+    /// 渐进渲染的填充循环：每片有时间预算，片间让出主线程处理滚动和输入。
     /// 代际不匹配（用户打开了别的文件 / 触发了新渲染）就悄悄停下。
     private func renderProgressively(renderer: MarkdownRenderer, text: String, restore: CGFloat?) {
         let session = ProgressiveRenderSession(renderer: renderer, markdown: text)
-        let first = session.renderFirst(count: 80)
+        let first = session.renderFirst(count: RenderTuning.firstScreenBlocks)
         // 新文档一律从顶部开始；保存的阅读位置等全文补齐后再还 ——
         // 填充到一半时全文高度还是错的，按比例恢复会落错地方
         contentPane.previewViewController.show(attributed: first, restoreFraction: 0)
@@ -633,7 +646,7 @@ final class MainWindowController: NSWindowController {
     private func fillProgressively(session: ProgressiveRenderSession, generation: Int, restore: CGFloat?) {
         DispatchQueue.main.async { [weak self] in
             guard let self, generation == self.progressiveGeneration else { return }
-            if let chunk = session.renderNext(timeBudget: 0.04) {
+            if let chunk = session.renderNext(timeBudget: RenderTuning.fillSliceBudget) {
                 self.contentPane.previewViewController.append(attributed: chunk)
             }
             guard session.isFinished else {
@@ -705,8 +718,6 @@ final class MainWindowController: NSWindowController {
         guard canFindInPreview else { return }
         contentPane.previewViewController.showFindBar()
     }
-
-    var hasOutline: Bool { canFindInPreview && contentPane.previewViewController.hasOutline }
 
     func showOutline() {
         contentPane.previewViewController.showOutline(from: contentPane.view)

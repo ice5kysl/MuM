@@ -72,8 +72,6 @@ final class PreviewViewController: NSViewController {
         outline = items
     }
 
-    var hasOutline: Bool { !outline.isEmpty }
-
     /// 诊断用：大纲收到了什么
     var debugOutlineSummary: String {
         outline.isEmpty
@@ -259,8 +257,8 @@ final class PreviewViewController: NSViewController {
         textView.backgroundColor = .textBackgroundColor
         textView.textContainerInset = NSSize(width: 28, height: 24)
         textView.isAutomaticLinkDetectionEnabled = false
-        textView.usesFindBar = true
-        textView.isIncrementalSearchingEnabled = true
+        // 不用系统查找条（usesFindBar）—— 预览聚焦时它会和我们自己的查找条
+        // 并存弹出，同一个动作两个 UI（审计 R-5）。查找统一走 PreviewFindBar
         textView.linkTextAttributes = [
             .foregroundColor: NSColor.linkColor,
             .cursor: NSCursor.pointingHand,
@@ -498,16 +496,10 @@ final class PreviewViewController: NSViewController {
         textScrollView.reflectScrolledClipView(clip)
     }
 
-    func scrollToTop() {
-        textView.scrollToBeginningOfDocument(nil)
-    }
-
     /// 按行号比例滚动到指定位置（编辑器滚动时联动预览）
     func scrollToFractionFromEditor(_ fraction: CGFloat) {
         restoreScrollFraction(fraction)
     }
-
-    var isShowingText: Bool { !textScrollView.isHidden }
 }
 
 // MARK: - 链接

@@ -41,8 +41,6 @@ final class FileWatcher {
         stop()
     }
 
-    var isRunning: Bool { queue.sync { stream != nil } }
-
     /// 主线程调用。只碰 stream 的创建与注册，可变状态仍全部落在 queue 之前
     /// （调用方保证 start 不会与 stop 并发 —— MainWindowController 全部在主线程）。
     func start() {

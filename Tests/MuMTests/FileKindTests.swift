@@ -81,10 +81,4 @@ final class FileKindTests: XCTestCase {
         XCTAssertFalse(kind("/tmp/a.bin").isTextual)
         XCTAssertFalse(kind("/tmp/dir", isDirectory: true).isTextual)
     }
-
-    func testSymbolNamesNotEmpty() {
-        for k in [FileKind.markdown, .code, .plainText, .image, .pdf, .unsupported, .folder] {
-            XCTAssertFalse(k.symbolName.isEmpty)
-        }
-    }
 }

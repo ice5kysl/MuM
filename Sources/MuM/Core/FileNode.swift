@@ -41,19 +41,6 @@ final class FileNode {
         children = nil
     }
 
-    /// 从根到自身的路径，用于在树里定位
-    var indexPath: [Int] {
-        var path: [Int] = []
-        var node: FileNode? = self
-        while let current = node, let parent = current.parent {
-            guard let siblings = parent.children,
-                  let index = siblings.firstIndex(where: { $0 === current }) else { break }
-            path.insert(index, at: 0)
-            node = parent
-        }
-        return path
-    }
-
     // MARK: - 图标
 
     private static let iconCache = ConcurrentCache<NSImage>()
@@ -83,9 +70,5 @@ final class FileNode {
         sized?.size = NSSize(width: 16, height: 16)
         if let sized { FileNode.iconCache[key] = sized }
         return sized
-    }
-
-    static func clearIconCache() {
-        iconCache.removeAll()
     }
 }

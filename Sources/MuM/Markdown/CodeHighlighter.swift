@@ -143,9 +143,6 @@ enum CodeHighlighter {
 
 /// 每种语言的词法规则。数据驱动，加一门语言只是加一行。
 struct LanguageRules {
-    enum Flavor { case cLike, hashLike, markup, shell }
-
-    var flavor: Flavor = .cLike
     var keywords: Set<String> = []
     var types: Set<String> = []
     var constants: Set<String> = []
@@ -189,7 +186,6 @@ struct LanguageRules {
 
         case "python":
             var r = LanguageRules()
-            r.flavor = .hashLike
             r.lineComment = ["#"]
             r.blockComment = []
             r.stringsSpanLines = false
@@ -201,7 +197,6 @@ struct LanguageRules {
 
         case "ruby":
             var r = LanguageRules()
-            r.flavor = .hashLike
             r.lineComment = ["#"]
             r.blockComment = [("=begin", "=end")]
             r.keywords = Set("alias and begin break case class def defined? do else elsif end ensure for if in module next not or redo rescue retry return self super then undef unless until when while yield require require_relative attr_accessor attr_reader attr_writer include extend prepend raise lambda proc".split(separator: " ").map(String.init))
@@ -241,7 +236,6 @@ struct LanguageRules {
 
         case "shell", "bash", "zsh", "fish", "powershell":
             var r = LanguageRules()
-            r.flavor = .shell
             r.lineComment = ["#"]
             r.blockComment = []
             r.keywords = Set("if then else elif fi for while until do done case esac function return in select time coproc break continue local export readonly declare typeset unset shift source alias echo printf cd pwd set trap exit".split(separator: " ").map(String.init))
@@ -251,7 +245,6 @@ struct LanguageRules {
 
         case "sql":
             var r = LanguageRules()
-            r.flavor = .cLike
             r.lineComment = ["--"]
             r.blockComment = [("/*", "*/")]
             r.keywords = Set("select from where insert into values update set delete create table alter drop index view join left right inner outer full on group by order having limit offset union all distinct as and or not null is in between like exists case when then else end primary key foreign references default unique constraint cascade begin commit rollback transaction grant revoke truncate with recursive returning".split(separator: " ").map(String.init))
@@ -261,7 +254,6 @@ struct LanguageRules {
 
         case "html", "xml", "vue", "svelte":
             var r = LanguageRules()
-            r.flavor = .markup
             r.lineComment = []
             r.blockComment = [("<!--", "-->")]
             r.keywords = []
@@ -271,7 +263,6 @@ struct LanguageRules {
 
         case "css", "scss", "sass", "less":
             var r = LanguageRules()
-            r.flavor = .cLike
             r.lineComment = ["//"]
             r.blockComment = [("/*", "*/")]
             r.keywords = []
@@ -281,7 +272,6 @@ struct LanguageRules {
 
         case "json", "jsonc", "json5":
             var r = LanguageRules()
-            r.flavor = .cLike
             r.lineComment = name == "json" ? [] : ["//"]
             r.blockComment = name == "json" ? [] : [("/*", "*/")]
             r.keywords = []
@@ -291,7 +281,6 @@ struct LanguageRules {
 
         case "yaml", "yml", "toml", "ini", "cfg", "conf", "editorconfig":
             var r = LanguageRules()
-            r.flavor = .hashLike
             r.lineComment = ["#"]
             r.blockComment = []
             r.keywords = []
@@ -301,7 +290,6 @@ struct LanguageRules {
 
         case "make", "docker", "cmake", "ini-conf":
             var r = LanguageRules()
-            r.flavor = .hashLike
             r.lineComment = ["#"]
             r.blockComment = []
             r.keywords = Set("FROM RUN CMD ENTRYPOINT COPY ADD ENV ARG WORKDIR EXPOSE VOLUME USER HEALTHCHECK SHELL LABEL ONBUILD STOPSIGNAL if else endif define endef include project cmake_minimum_required add_executable add_library target_link_libraries find_package set list".split(separator: " ").map(String.init))
@@ -311,7 +299,6 @@ struct LanguageRules {
 
         case "diff", "patch":
             var r = LanguageRules()
-            r.flavor = .cLike
             r.lineComment = []
             r.blockComment = []
             r.keywords = []
@@ -321,7 +308,6 @@ struct LanguageRules {
 
         case "markdown", "md":
             var r = LanguageRules()
-            r.flavor = .markup
             r.lineComment = []
             r.blockComment = [("<!--", "-->")]
             r.keywords = []
@@ -337,7 +323,6 @@ struct LanguageRules {
 
     private static func cLike(keywords: String, types: String, constants: String) -> LanguageRules {
         var r = LanguageRules()
-        r.flavor = .cLike
         r.keywords = Set(keywords.split(separator: " ").map(String.init))
         r.types = Set(types.split(separator: " ").map(String.init))
         r.constants = Set(constants.split(separator: " ").map(String.init))

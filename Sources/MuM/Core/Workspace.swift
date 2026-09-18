@@ -21,13 +21,6 @@ final class Workspace: Identifiable {
         (rootURL.path as NSString).abbreviatingWithTildeInPath
     }
 
-    var icon: NSImage? {
-        let image = NSWorkspace.shared.icon(forFile: rootURL.path)
-        let copy = image.copy() as? NSImage
-        copy?.size = NSSize(width: 16, height: 16)
-        return copy
-    }
-
     /// 树里所有已加载的目录节点，文件系统变动后据此逐个失效并重载
     func loadedDirectories() -> [FileNode] {
         var result: [FileNode] = []
