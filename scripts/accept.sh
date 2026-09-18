@@ -19,13 +19,26 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REF="${1:-main}"
-WT="$ROOT/.build/accept-$$"
+# ⚠️ worktree 必须建在**仓库之外**。
+#
+# 早先我把它建在 $ROOT/.build/accept-$$ —— 那是错的，有三个危害，第三个是硬伤：
+#   1. 嵌套混乱：worktree 里再有一个 .build/
+#   2. 遍历类工具（find / git status / 各种扫描）会钻进去
+#   3. **`rm -rf .build` 会连带删掉正在用的 worktree**，而 git 里还留着注册记录，
+#      之后 `worktree list` 出现幽灵条目
+#
+# 用 $TMPDIR：在仓库外、可写、且系统会回收。
+WT="${TMPDIR:-/tmp}/mum-accept-$$"
 
 cleanup() {
     git -C "$ROOT" worktree remove --force "$WT" 2>/dev/null || rm -rf "$WT"
     git -C "$ROOT" worktree prune 2>/dev/null || true
 }
 trap cleanup EXIT
+
+# 先清掉历史遗留：上一次被 SIGKILL 掉、trap 没跑成的残留。
+# 不先 prune 的话，同名路径复用会失败。
+git -C "$ROOT" worktree prune 2>/dev/null || true
 
 echo "═══ 干净检出 $REF ═══"
 git -C "$ROOT" worktree add -q --detach "$WT" "$REF"
