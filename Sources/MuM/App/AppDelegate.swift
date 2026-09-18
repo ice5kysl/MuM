@@ -78,15 +78,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
 
         for url in urls {
-            var isDirectory: ObjCBool = false
-            guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) else { continue }
-
-            if isDirectory.boolValue {
-                WorkspaceStore.shared.open(url: url)
-            } else {
-                // Info.plist 里声明了 Markdown 文档类型，双击 .md 也得能打开
-                controller.openFileFromOutside(url)
-            }
+            controller.openIncoming(url)
         }
     }
 

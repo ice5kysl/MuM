@@ -69,6 +69,12 @@ final class MainWindowController: NSWindowController {
 
         super.init(window: window)
 
+        // 拖文件/文件夹进窗口 = 打开。根视图是拖拽落点（NSWindow 的拖拽方法
+        // 是协议扩展实现，子类重写不到），这里只负责把 URL 接进来。
+        rootViewController.onDropURLs = { [weak self] urls in
+            self?.openDropped(urls)
+        }
+
         // 启动时的呈现方式来自系统设置。会话内切换只留在内存里 ——
         // 那是"这一次想怎么看"，不该覆盖用户设的启动偏好。
         preferredMode = ContentViewController.Mode(rawValue: settings.startMode.rawValue) ?? .read
@@ -365,6 +371,29 @@ final class MainWindowController: NSWindowController {
         }
 
         open(url: file)
+    }
+
+    /// 外部打开的统一入口（双击 / `open -a` / Dock 拖入 / 窗口拖入）：
+    /// 文件夹开成项目，文件走 openFileFromOutside（它会处理「不属于任何项目」的情况）。
+    func openIncoming(_ url: URL) {
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) else { return }
+
+        if isDirectory.boolValue {
+            WorkspaceStore.shared.open(url: url)
+        } else {
+            // Info.plist 里声明了 Markdown 文档类型，双击 .md 也得能打开
+            openFileFromOutside(url)
+        }
+    }
+
+    /// 拖进窗口的打开：窗口已经接住拖拽了，人也看着这个窗口，补上激活就到前台
+    private func openDropped(_ urls: [URL]) {
+        window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        for url in urls {
+            openIncoming(url)
+        }
     }
 
     func open(url: URL) {

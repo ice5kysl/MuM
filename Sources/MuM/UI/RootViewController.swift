@@ -1,5 +1,39 @@
 import AppKit
 
+/// 窗口根视图。自定义子类只为了接住「拖文件/文件夹进窗口」：
+/// 拖拽落点得落在 NSView 上 —— NSWindow 的拖拽方法是协议扩展实现，子类重写不到。
+final class RootView: NSView {
+
+    /// 拖放落点回调：文件或文件夹的 URL 数组
+    var onDropURLs: (([URL]) -> Void)?
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        registerForDraggedTypes([.fileURL])
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("RootView 不走 nib")
+    }
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        let canRead = sender.draggingPasteboard.canReadObject(
+            forClasses: [NSURL.self],
+            options: [.urlReadingFileURLsOnly: true]
+        )
+        return canRead ? .copy : []
+    }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        guard let urls = sender.draggingPasteboard.readObjects(
+            forClasses: [NSURL.self],
+            options: [.urlReadingFileURLsOnly: true]
+        ) as? [URL], !urls.isEmpty else { return false }
+        onDropURLs?(urls)
+        return true
+    }
+}
+
 /// 窗口根视图控制器：三栏分栏 + 底部状态栏。
 ///
 /// 状态栏横跨整个窗口宽度，所以它必须在分栏容器**外面** —— 这也是为什么需要这一层。
@@ -13,6 +47,10 @@ final class RootViewController: NSViewController {
     let splitView = NSSplitView()
     let statusBar = StatusBarView()
 
+    /// 拖文件/文件夹进窗口的回调，由窗口控制器接上 `openDropped`。
+    /// 根视图在 loadView 时才创建，所以回调存在控制器上，loadView 时桥接过去。
+    var onDropURLs: (([URL]) -> Void)?
+
     private var panes: [NSView] = []
     private var minimumWidths: [CGFloat] = []
     /// 每栏期望的折叠状态。作为唯一事实来源 —— 不去读 NSSplitView 的当前帧，
@@ -23,7 +61,9 @@ final class RootViewController: NSViewController {
     // MARK: - 生命周期
 
     override func loadView() {
-        view = NSView()
+        let root = RootView()
+        root.onDropURLs = { [weak self] urls in self?.onDropURLs?(urls) }
+        view = root
     }
 
     override func viewDidLoad() {
