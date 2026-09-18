@@ -366,9 +366,19 @@ final class MarkdownRenderer {
         out.append(markerText)
         out.append(content)
 
-        // 整项（含标记）统一段落样式；首行的 firstLineHeadIndent 让标记贴左
+        // 只补还没有段落样式的范围（审计 R-1）：原来对整项整铺，会把嵌套列表项
+        // 自己的悬挂缩进、代码块、表格的段落样式整个盖掉 —— 嵌套列表的层级缩进
+        // 就是这么丢的。改为填缝：简单列表项视觉不变 —— 标记在段首，而 TextKit
+        // 的段落布局取首字符的段落样式，标记自带的列表样式本来就生效；
+        // 多段落项的续段没有样式，补上后保持列表缩进。
         let range = NSRange(location: start, length: out.length - start)
-        out.addAttribute(.paragraphStyle, value: style, range: range)
+        var unstyled: [NSRange] = []
+        out.enumerateAttribute(.paragraphStyle, in: range, options: []) { value, subrange, _ in
+            if value == nil { unstyled.append(subrange) }
+        }
+        for subrange in unstyled {
+            out.addAttribute(.paragraphStyle, value: style, range: subrange)
+        }
     }
 
     private func renderThematicBreak(into out: NSMutableAttributedString, context: BlockContext) {
