@@ -18,6 +18,49 @@
 
 ## [未发布]
 
+## [0.4.0] - 2026-09-18
+
+把「快」重新变成真的，并补齐打开的入口。**另有 cc 全量审计的四条高危全部闭环。**
+
+### 新增
+
+- **渐进渲染** —— 首屏先渲染先显示，其余分片追加。1MB 文档的
+  **TTFR-冷开从 6800ms 降到 609–634ms**（中位 622ms，n=3，隔离 worktree 可复跑）
+- **`mum .` CLI** —— 终端里在当前目录打开
+- **⌘P 快速打开** —— 项目内文件模糊搜索
+- **拖拽打开** —— 文件 / 文件夹拖到窗口或 Dock 图标
+- **窗口到前台** —— `open` 后窗口必定在最前
+
+### 修复（全量审计的四条高危，全部由 cc 独立验收）
+
+- **D-1 退出丢未保存编辑** —— ⌘Q 与红灯 / ⌘W 六条退出路径汇到同一个确认入口
+- **D-2 非文本守卫被二进制穿透** —— `svgz` / `plist` / `lock` 类此前可被写坏；
+  解码与保存收进同一条路
+- **C-1 `FileWatcher` 停止路径 use-after-free** —— `passUnretained` 改为 `CallbackBox`，
+  stop 全部动作收进串行 queue
+- **R-2 `drawDecorations` 架空非连续排版** —— **这就是「5MB 卡 9 秒」的真凶**。
+  修后 5MB 首屏排版 **301.6ms**（全量上界 11.5s 不变，约 38 倍差），
+  **症状消除而不是把数字挪走**
+- **打字热路径全量排版** —— `show()` 重排不再计算文档高度（1MB 每敲一个字
+  812ms → 0.1ms 级）；这段是 dsh 在 0.3 做阅读位置时改坏的
+- `.mumenv` 在全新克隆上因 `GITHUB_PROXY` 未定义而失败（开源场景必踩）
+- 空状态两个布局 bug：跑到左下角且文字被切；两层空状态叠着显示
+
+### 工程
+
+- **`scripts/accept.sh`** —— 在干净 worktree 上跑验收（构建 / 自检 / 单测 / 打包），
+  用完自动清理
+- **`scripts/measure-ttfr.sh`** —— TTFR 判定数据的可复现测量，输出中位数 / 标准差 / 区间
+- **`scripts/make-bench-fixture.py`** —— 基准样本改为可重建，不再留大文件
+- **`docs/status.md`** —— 项目状态看板
+- 单元测试 **0 → 44 个**
+- `docs/` 收纳所有文档，根目录只留 `README` / `CHANGELOG` / `LICENSE` / `VERSION`
+
+### 未达标（如实记录）
+
+- **TTFR-冷开目标 ≤ 600ms，实测中位 622ms。** 差值落在测量噪声内，**但目标不移动** ——
+  记在 `docs/status.md` 与 `docs/metrics.md`，v0.5 继续追
+
 ### 修复
 
 - **大文档打开慢的真正主因** —— 打开 1 MB markdown 时窗口 5.2 秒才上屏，其中
@@ -234,7 +277,8 @@
   此前打开一个 `.ipa` 后敲字按 `⌘S`，会把文本写进那个二进制文件
 - 保存前比对磁盘修改时间，文件被外部改过时先询问，不再静默覆盖
 
-[未发布]: https://github.com/ice5kysl/MuM/compare/v0.3.0...HEAD
+[未发布]: https://github.com/ice5kysl/MuM/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/ice5kysl/MuM/releases/tag/v0.4.0
 [0.3.0]: https://github.com/ice5kysl/MuM/releases/tag/v0.3.0
 [0.2.0]: https://github.com/ice5kysl/MuM/releases/tag/v0.2.0
 [0.1.0]: https://github.com/ice5kysl/MuM/releases/tag/v0.1.0
