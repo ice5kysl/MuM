@@ -586,17 +586,25 @@ final class PreviewTextView: NSTextView {
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
-        drawDecorations()
+        drawDecorations(in: dirtyRect)
     }
 
-    private func drawDecorations() {
+    private func drawDecorations(in dirtyRect: NSRect) {
         guard let layoutManager, let textContainer, let textStorage, textStorage.length > 0 else { return }
 
-        let glyphRange = layoutManager.glyphRange(forBoundingRect: bounds, in: textContainer)
+        let origin = textContainerOrigin
+        // 只覆盖 dirtyRect 这一片（审计 R-2）：原先用整篇 bounds 取 glyphRange，
+        // **每次绘制都把全文排版一遍**，`allowsNonContiguousLayout` 被完全架空 ——
+        // 它就是 5MB 排版 9 秒的真凶。super.draw 本就已排版脏区，这里只是复用。
+        // 装饰有少量出血（引用竖线向下延一个段后间距、标题线贴段落底），
+        // 上下各放宽 24pt，免得滚动到边缘时缺线。
+        let visible = dirtyRect
+            .offsetBy(dx: -origin.x, dy: -origin.y)
+            .insetBy(dx: 0, dy: -24)
+        let glyphRange = layoutManager.glyphRange(forBoundingRect: visible, in: textContainer)
         let charRange = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
         guard charRange.length > 0 else { return }
 
-        let origin = textContainerOrigin
         let contentWidth = textContainer.size.width
 
         textStorage.enumerateAttributes(in: charRange, options: []) { attributes, range, _ in
@@ -629,9 +637,12 @@ final class PreviewTextView: NSTextView {
     /// 去掉范围末尾的换行符
     private func withoutTrailingNewlines(_ range: NSRange) -> NSRange {
         guard let textStorage else { return range }
-        let units = Array(textStorage.string.utf16)
+        // 直接按索引读，不许 Array(utf16) —— 那会把整篇文档复制一遍，
+        // 而这里每个属性段都会调一次（大文档下就是 O(段数 × 全文)）
+        let string = textStorage.string as NSString
         var length = range.length
-        while length > 0, range.location + length - 1 < units.count, units[range.location + length - 1] == 0x0A {
+        while length > 0, range.location + length - 1 < string.length,
+              string.character(at: range.location + length - 1) == 0x0A {
             length -= 1
         }
         return length > 0 ? NSRange(location: range.location, length: length) : range

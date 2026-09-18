@@ -63,6 +63,27 @@ enum RenderBench {
         let used = manager.usedRect(for: container)
         print(String(format: "排版   %8.1f ms   文档高 %.0f pt", layoutMS, used.height))
 
+        // 4) 首屏排版 —— 审计 R-2 之后每次绘制真正付的钱。
+        // 「排版」段是 ensureLayout 的全量上界，它不变；变的是实际绘制路径：
+        // drawDecorations 改用 dirtyRect 后，绘制只排可见区域。这里用一份全新的
+        // 排版系统（非连续排版，和预览区一致）量首屏 1200pt 的成本。
+        let visibleStorage = NSTextStorage(attributedString: attributed)
+        let visibleManager = PreviewLayoutManager()
+        visibleManager.allowsNonContiguousLayout = true
+        let visibleContainer = NSTextContainer(
+            size: NSSize(width: 780, height: CGFloat.greatestFiniteMagnitude))
+        visibleContainer.lineFragmentPadding = 0
+        visibleStorage.addLayoutManager(visibleManager)
+        visibleManager.addTextContainer(visibleContainer)
+
+        let t3 = Date()
+        let firstScreenGlyphs = visibleManager.glyphRange(
+            forBoundingRect: NSRect(x: 0, y: 0, width: 780, height: 1200),
+            in: visibleContainer)
+        _ = visibleManager.boundingRect(forGlyphRange: firstScreenGlyphs, in: visibleContainer)
+        let firstScreenMS = Date().timeIntervalSince(t3) * 1000
+        print(String(format: "首屏排版 %6.1f ms   只排可见区域（绘制路径实际成本，R-2 后）", firstScreenMS))
+
         print("")
         print(String(format: "合计   %8.1f ms", parseMS + renderMS + layoutMS))
         print("（对照：MuM 冷启动到窗口上屏 280ms。渲染层是用户滚动时才感受到的那部分。）")

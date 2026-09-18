@@ -70,6 +70,14 @@
   主线程（stop）和队列（scheduleFire）两边裸读写。改为：context 携带一个由
   stream 生命周期强持的回调盒子（弱指回 self），stop 的全部动作收进同一个串行
   队列 `sync` 执行 —— 在途回调天然排空后才释放资源，`pending` 只在队列上碰。
+- **5MB 文档一画就卡 9 秒的真凶（审计 R-2）** —— 预览区的 `drawDecorations`
+  用**整篇 `bounds`** 取 glyphRange：每次绘制都把全文强制排版一遍，
+  `allowsNonContiguousLayout` 被完全架空 —— 0.3 开的非连续排版从没真正生效过。
+  改为只覆盖 `dirtyRect`（转容器坐标，±24pt 出血包住装饰线）。`--bench` 新增
+  「首屏排版」段量绘制路径的真实成本：5MB 样本 **301ms vs 全量排版 11.3 秒**
+  （「排版」段是 `ensureLayout` 的全量上界测量，本就不变）。同路径顺带修掉
+  `withoutTrailingNewlines` 的 `Array(utf16)` 全文复制 —— 每个属性段一次
+  O（全文），大文档下是 O（段数 × 全文）。
 
 ### 新增
 
