@@ -150,6 +150,11 @@ final class MainWindowController: NSWindowController {
             if rect.width >= 480, rect.height >= 360, isOnAnyScreen(rect) {
                 window.setFrame(rect, display: true)
             }
+        } else {
+            // 没存过尺寸 → 用默认值。
+            // 必须显式设：RootViewController 现在只提供"最小"约束，
+            // 不再有"理想尺寸"，不设的话新装会开在最小值上。
+            window.setContentSize(MuMDesign.defaultWindowContentSize)
         }
 
         // 等首次上屏那轮布局过去之后再开始记录，避免把中间态尺寸存下来

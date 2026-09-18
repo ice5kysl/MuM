@@ -97,22 +97,25 @@ final class RootViewController: NSViewController {
         // 实测：AppKit 在每个显示周期都会从
         // __NSWindowGetDisplayCycleObserverForLayout → NSWindow.layoutIfNeeded →
         // _changeWindowFrameFromConstraintsIfNecessary 重算窗口尺寸。任何事后的
-        // setContentSize / setFrame 都会在下一帧被覆盖，而且它只取「刚好满足」的最小
-        // 尺寸 —— 低优先级（.defaultLow）的偏好会被直接忽略。
+        // setContentSize / setFrame 都会在下一帧被覆盖。
         //
-        // 所以用 .defaultHigh：没有别的约束竞争时它就是最终尺寸；
-        // 用户拖动窗口时，窗口自身的约束优先级更高，这条会让位。
-        let preferredWidth = view.widthAnchor.constraint(
-            equalToConstant: MuMDesign.defaultWindowContentSize.width
+        // ⚠️ 这里**只能用"最小"约束，不能用"等于"**。
+        //
+        // 我原来写的是 `widthAnchor == 1440 @.defaultHigh`，注释里还断言
+        // "用户拖动窗口时窗口自身的约束优先级更高，这条会让位" —— **那个假设是错的**。
+        // 750 优先级的等式仍然会被求解器优先满足，于是用户每拖一次，
+        // AppKit 下一帧就把窗口拉回 1440×900。表现就是**窗口完全拖不动**
+        // （ice 报的）。而我当时没有鼠标，从没拖过。
+        //
+        // 最小约束只保证"不塌陷"（那是我当初加它的原因），不干涉用户。
+        // 初始尺寸由 MainWindowController 显式 setContentSize 一次。
+        let minimumWidth = view.widthAnchor.constraint(
+            greaterThanOrEqualToConstant: MuMDesign.minWindowContentWidth
         )
-        preferredWidth.priority = .defaultHigh
-
-        let preferredHeight = view.heightAnchor.constraint(
-            equalToConstant: MuMDesign.defaultWindowContentSize.height
+        let minimumHeight = view.heightAnchor.constraint(
+            greaterThanOrEqualToConstant: MuMDesign.minWindowContentHeight
         )
-        preferredHeight.priority = .defaultHigh
-
-        NSLayoutConstraint.activate([preferredWidth, preferredHeight])
+        NSLayoutConstraint.activate([minimumWidth, minimumHeight])
     }
 
     // MARK: - 装配面板
