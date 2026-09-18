@@ -36,6 +36,10 @@ final class MainWindowController: NSWindowController {
     /// 路径上会被连调三次（init / 恢复 / 渲染回调）—— 输入没变就整个跳过。
     private var lastStatusFingerprint: Int?
     private var workspaceWatcher: FileWatcher?
+    /// openFileFromOutside 带动的项目切换，本次激活不许恢复该项目上次的文件 ——
+    /// 用户点的是指定的这个文件，先恢复旧的等于白付一次完整打开（读+渲染+关旧），
+    /// 脏文件时还会多弹一次确认框（E-2）。通知是同步发的，激活前立起、处理器里吃掉。
+    private var suppressNextWorkspaceRestore = false
 
 
     /// 用户偏好。设置面板改它，窗口控制器把它应用到排版和编辑器上。
@@ -302,9 +306,12 @@ final class MainWindowController: NSWindowController {
     // MARK: - 项目
 
     @objc private func activeWorkspaceChanged() {
+        // 吃掉标记要在脏检查之前：标记只对这一次通知有效，取消路径也不能留到下次
+        let restoresFile = !suppressNextWorkspaceRestore
+        suppressNextWorkspaceRestore = false
         if isDirty, !confirmDiscardIfNeeded() { return }
         closeCurrentFile()
-        applyWorkspace(WorkspaceStore.shared.active)
+        applyWorkspace(WorkspaceStore.shared.active, restoresFile: restoresFile)
         refreshChrome()
     }
 
@@ -371,8 +378,12 @@ final class MainWindowController: NSWindowController {
         if let index = store.workspaces.firstIndex(where: {
             file.path.hasPrefix($0.rootURL.path + "/")
         }) {
+            // 只有真的触发切换通知才立标记（同项目 activate 是 no-op，
+            // 立了会留下来吃掉下一次正经的恢复）
+            if index != store.activeIndex { suppressNextWorkspaceRestore = true }
             store.activate(index: index)
         } else {
+            suppressNextWorkspaceRestore = true
             store.open(url: file.deletingLastPathComponent())
         }
 
