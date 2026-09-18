@@ -28,6 +28,8 @@ final class MainWindowController: NSWindowController {
     private var loadedModificationDate: Date?
     /// 本次打开要恢复到的阅读位置。渲染是异步的，所以先存着，等 performRender 时用掉
     private var pendingScrollFraction: CGFloat?
+    /// 渐进渲染填充的代际：每次新打开/新渲染都 +1，过期的填充切片落地前自动放弃
+    private var progressiveGeneration = 0
     private var workspaceWatcher: FileWatcher?
 
 
@@ -353,6 +355,8 @@ final class MainWindowController: NSWindowController {
         guard standardized != currentFileURL else { return }
         guard confirmDiscardIfNeeded() else { return }
 
+        // 换文件：上一份文档可能还在渐进填充，让它作废
+        progressiveGeneration += 1
         saveReadingPosition()
         closeCurrentFile()
 
@@ -442,7 +446,7 @@ final class MainWindowController: NSWindowController {
         contentPane.editorViewController.setText(text)
         LaunchTimer.mark("    编辑器 setText 完成")
         pendingScrollFraction = WorkspaceStore.shared.readingPosition(for: url).map { CGFloat($0) }
-        renderPreview(immediately: true)
+        renderPreview(immediately: true, allowProgressive: true)
     }
 
     /// 优先 UTF-8，失败再让系统探测编码，最后用 Latin-1 兜底
@@ -471,13 +475,15 @@ final class MainWindowController: NSWindowController {
         renderPreview(immediately: false)
     }
 
-    private func renderPreview(immediately: Bool) {
+    /// - Parameter allowProgressive: 只有「打开文件」这条路径该传 true。
+    ///   打字重排和模式切换要精确保留滚动位置，走同步渲染。
+    private func renderPreview(immediately: Bool, allowProgressive: Bool = false) {
         renderWorkItem?.cancel()
 
         // 预览重排和状态栏的字数统计都放进同一个去抖窗口：
         // 两者都是 O(文档长度)，没必要每个按键都跑一遍
         let work = DispatchWorkItem { [weak self] in
-            self?.performRender()
+            self?.performRender(allowProgressive: allowProgressive)
             self?.updateStatusBar()
         }
         renderWorkItem = work
@@ -490,7 +496,10 @@ final class MainWindowController: NSWindowController {
         }
     }
 
-    private func performRender() {
+    private func performRender(allowProgressive: Bool = false) {
+        // 任何一次新渲染都让进行中的渐进填充作废
+        progressiveGeneration += 1
+
         guard let url = currentFileURL else { return }
         guard contentPane.mode != .write else { return }
         guard FileKind(url: url, isDirectory: false).isTextual else { return }
@@ -505,17 +514,13 @@ final class MainWindowController: NSWindowController {
         let restore = pendingScrollFraction
         pendingScrollFraction = nil
 
-        // 【原型】渐进渲染：大文档先渲染前 80 个顶层块立刻上屏（TTFR 的 R 在这里），
-        // 剩余部分紧随其后补齐。有保存的阅读位置时不走渐进 —— 恢复位置需要全文高度，
-        // 留到正式版处理。
-        if case .markdown = kind, text.count > 100_000, restore == nil {
-            let rest = renderer.renderProgressive(text, firstBlockCount: 80) { first in
-                contentPane.previewViewController.show(attributed: first, restoreFraction: nil)
-                LaunchTimer.mark("    渐进：首屏已写入（TTFR 的 R）")
-            }
-            contentPane.previewViewController.append(attributed: rest)
-            contentPane.previewViewController.setOutline(renderer.outline)
-            LaunchTimer.mark("    渐进：全文已补齐")
+        // 渐进渲染：大文档打开时先渲染前 80 个顶层块立刻上屏（TTFR 的 R 在这里），
+        // 余量切 ≤40ms 的薄片分次补齐，填充期间滚动保持可用。
+        // 回滚开关：defaults write sh.ice.mum MuM.disableProgressiveRender -bool true
+        // （bench 包是 sh.ice.mum.bench）。只改时机不改内容 —— 拼接结果与全量渲染逐字一致。
+        if allowProgressive, case .markdown = kind, text.count > 100_000,
+           !UserDefaults.standard.bool(forKey: "MuM.disableProgressiveRender") {
+            renderProgressively(renderer: renderer, text: text, restore: restore)
             return
         }
 
@@ -533,6 +538,38 @@ final class MainWindowController: NSWindowController {
 
         contentPane.previewViewController.show(attributed: attributed, restoreFraction: restore)
         LaunchTimer.mark("    预览已写入富文本")
+    }
+
+    /// 渐进渲染的填充循环：每片最多占主线程 40ms，片间让出主线程处理滚动和输入。
+    /// 代际不匹配（用户打开了别的文件 / 触发了新渲染）就悄悄停下。
+    private func renderProgressively(renderer: MarkdownRenderer, text: String, restore: CGFloat?) {
+        let session = ProgressiveRenderSession(renderer: renderer, markdown: text)
+        let first = session.renderFirst(count: 80)
+        // 新文档一律从顶部开始；保存的阅读位置等全文补齐后再还 ——
+        // 填充到一半时全文高度还是错的，按比例恢复会落错地方
+        contentPane.previewViewController.show(attributed: first, restoreFraction: 0)
+        LaunchTimer.mark("    渐进：首屏已写入（TTFR 的 R）")
+        fillProgressively(session: session, generation: progressiveGeneration, restore: restore)
+    }
+
+    private func fillProgressively(session: ProgressiveRenderSession, generation: Int, restore: CGFloat?) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, generation == self.progressiveGeneration else { return }
+            if let chunk = session.renderNext(timeBudget: 0.04) {
+                self.contentPane.previewViewController.append(attributed: chunk)
+            }
+            guard session.isFinished else {
+                self.fillProgressively(session: session, generation: generation, restore: restore)
+                return
+            }
+            LaunchTimer.mark("    渐进：全文已补齐")
+            self.contentPane.previewViewController.setOutline(session.outline)
+            // 填充期间用户没滚动过，才把保存的阅读位置还回去；动过就以用户为准
+            if let restore, restore > 0.001,
+               self.contentPane.previewViewController.scrollFraction() < 0.001 {
+                self.contentPane.previewViewController.restoreScrollFraction(restore)
+            }
+        }
     }
 
     // MARK: - 保存

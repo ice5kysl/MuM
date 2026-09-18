@@ -361,9 +361,10 @@ final class PreviewViewController: NSViewController {
 
     // MARK: - 内容切换
 
-    /// 渐进渲染的第二段：把剩余块拼到 textStorage 末尾。
-    /// 追加不重置滚动位置，用户看到的首屏保持不动。
+    /// 渐进渲染的填充片：拼到 textStorage 末尾。
+    /// 追加发生在文档尾部，不重排也不移动已显示的部分，用户看到的首屏保持不动。
     func append(attributed: NSAttributedString) {
+        cachedDocumentHeight = nil
         textView.textStorage?.append(attributed)
     }
 
@@ -373,19 +374,22 @@ final class PreviewViewController: NSViewController {
         showOnly(textScrollView)
         LaunchTimer.mark("    show: showOnly 完成")
 
-        // 重排时先记下当前位置，因为换 textStorage 会把滚动重置
-        let keptFraction: CGFloat? = restoreFraction == nil ? scrollFraction() : nil
-        LaunchTimer.mark("    show: scrollFraction 读取完成")
+        // 重排只需要"别跳"：记住绝对滚动位置就够，不需要文档高度 ——
+        // scrollFraction() 会 ensureLayout 整篇，打字时每 110ms 触发一次全量排版
+        // （1MB 实测 ≈812ms），热路径上不能要。比例只在跨次打开时用
+        // （文档可能变长变短），那时一次全量排版是值得的。
+        let keptOrigin: NSPoint? = restoreFraction == nil ? textScrollView.contentView.bounds.origin : nil
 
+        cachedDocumentHeight = nil
         textView.textStorage?.setAttributedString(attributed)
         LaunchTimer.mark("    show: setAttributedString 完成")
 
-        // 目标是顶部时别走 restoreScrollFraction：它要算 documentHeight，
-        // 而 documentHeight 会 ensureLayout 整篇 —— 冷打开一个 1MB 文档，
-        // 为了"滚到 y=0"先把全文排一遍（实测 ≈812ms，MUM_LAUNCH_TIMING=1 可复现）。
-        // 滚到顶部不需要知道文档高度。
-        if let target = restoreFraction ?? keptFraction, target > 0.001 {
-            restoreScrollFraction(target)
+        if let restoreFraction, restoreFraction > 0.001 {
+            restoreScrollFraction(restoreFraction)
+        } else if let keptOrigin, keptOrigin.y > 0.5 {
+            let clip = textScrollView.contentView
+            clip.scroll(to: keptOrigin)
+            textScrollView.reflectScrolledClipView(clip)
         } else {
             textView.scrollToBeginningOfDocument(nil)
         }
@@ -424,15 +428,32 @@ final class PreviewViewController: NSViewController {
     /// 上一个文档的。实测后果：恢复位置时算出的可滚动高度≈0（纹丝不动），
     /// 保存位置时算出的比例也永远偏小。
     /// 排版结果（`usedRect`）在 `ensureLayout` 之后立刻就是对的。
+    ///
+    /// 结果带缓存：`ensureLayout` 整篇是 O(文档) 的重操作（1MB ≈812ms），
+    /// 而编辑器滚动联动会连续询问 —— 内容不变高度就不会变。
+    /// 失效点：show()/append() 换内容、viewDidLayout() 改宽度。
+    private var cachedDocumentHeight: CGFloat?
+
     private var documentHeight: CGFloat {
+        if let cachedDocumentHeight { return cachedDocumentHeight }
         guard let manager = textView.layoutManager, let container = textView.textContainer else {
             return textView.frame.height
         }
         manager.ensureLayout(for: container)
-        return manager.usedRect(for: container).height + textView.textContainerInset.height * 2
+        let height = manager.usedRect(for: container).height + textView.textContainerInset.height * 2
+        cachedDocumentHeight = height
+        return height
     }
 
-    /// 返回 0…1 的滚动进度，用于在重新渲染后保持阅读位置
+    override func viewDidLayout() {
+        super.viewDidLayout()
+        // 宽度变了要重新折行，缓存的高度作废
+        cachedDocumentHeight = nil
+    }
+
+    /// 返回 0…1 的滚动进度。注意它会触发 documentHeight（首查时全量排版，有缓存）——
+    /// 调用点限于：保存阅读位置、渐进填充完成后的「用户动过没有」判断。
+    /// 打字重排保位置不需要它（show() 里记绝对 origin 就够）。
     func scrollFraction() -> CGFloat {
         let clip = textScrollView.contentView
         let scrollable = documentHeight - clip.bounds.height

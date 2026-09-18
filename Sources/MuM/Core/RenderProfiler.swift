@@ -31,11 +31,11 @@ enum RenderProfiler {
         guard enabled else { return body() }
 
         if segment == .inlines, inTable { return body() }
-        if segment == .tables {
-            let wasInTable = inTable
-            inTable = true
-            defer { inTable = wasInTable }
-        }
+
+        // 注意：defer 必须挂在函数作用域上，挂在 if 块里会在 body() 之前就恢复
+        let wasInTable = inTable
+        if segment == .tables { inTable = true }
+        defer { inTable = wasInTable }
 
         let t0 = Date()
         let result = body()

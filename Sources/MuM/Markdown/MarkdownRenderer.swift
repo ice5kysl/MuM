@@ -44,29 +44,6 @@ final class MarkdownRenderer {
         return output
     }
 
-    /// 【原型】渐进渲染：先渲染前 `firstBlockCount` 个顶层块并立刻回调上屏，
-    /// 剩余块作为第二段返回。切分只在顶层块边界发生，BlockContext 因此总是干净的
-    /// （嵌套内容都在块内部）。大纲在最后一段渲染完才完整。
-    func renderProgressive(
-        _ markdown: String,
-        firstBlockCount: Int,
-        onFirstChunk: (NSAttributedString) -> Void
-    ) -> NSAttributedString {
-        let document = RenderProfiler.time(.parse) { Document(parsing: markdown) }
-        let all = Array(document.children)
-        let cut = min(max(firstBlockCount, 0), all.count)
-
-        let first = NSMutableAttributedString()
-        renderBlocks(Array(all.prefix(cut)), into: first, context: BlockContext())
-        trimTrailingNewlines(first)
-        onFirstChunk(first)
-
-        let rest = NSMutableAttributedString()
-        renderBlocks(Array(all.dropFirst(cut)), into: rest, context: BlockContext())
-        trimTrailingNewlines(rest)
-        return rest
-    }
-
     /// 纯文本渲染（无扩展名的文本文件走这里）
     func renderPlainText(_ text: String) -> NSAttributedString {
         let style = paragraphStyle(indent: 0, spacingBefore: 0, spacingAfter: 0)
@@ -97,7 +74,8 @@ final class MarkdownRenderer {
 
     // MARK: - 块级上下文
 
-    private struct BlockContext {
+    /// fileprivate：渐进渲染会话（本文件末尾）要按顶层块逐片驱动渲染
+    fileprivate struct BlockContext {
         var indent: CGFloat = 0
         var listDepth = 0
         var quoteDepth = 0
@@ -143,7 +121,7 @@ final class MarkdownRenderer {
 
     // MARK: - 块级渲染
 
-    private func renderBlocks(_ blocks: [Markup], into out: NSMutableAttributedString, context: BlockContext) {
+    fileprivate func renderBlocks(_ blocks: [Markup], into out: NSMutableAttributedString, context: BlockContext) {
         for block in blocks {
             renderBlock(block, into: out, context: context)
         }
@@ -669,11 +647,74 @@ final class MarkdownRenderer {
         }
     }
 
-    private func trimTrailingNewlines(_ text: NSMutableAttributedString) {
+    fileprivate func trimTrailingNewlines(_ text: NSMutableAttributedString) {
         while text.length > 0 {
             let last = text.string.utf16[text.string.utf16.index(text.string.utf16.startIndex, offsetBy: text.length - 1)]
             guard last == 0x0A else { break }
             text.deleteCharacters(in: NSRange(location: text.length - 1, length: 1))
         }
+    }
+}
+
+/// 渐进渲染会话：`Document` 只解析一次，顶层块分片渲染。
+///
+/// 与 `render(_:)` 逐字等价的三条依据（验收约束「只改时机，不改内容」）：
+/// - 切分只发生在顶层块边界 —— 顶层块的 BlockContext 总是初值，渲染不携带跨块状态；
+/// - 尾部空行修剪只在最后一片做 —— 中间片结尾的 "\n" 是段落分隔符，
+///   提前删掉会把相邻两块粘成同一个段落；
+/// - 大纲 location 在片内是相对位置，交出前统一加上已产出长度，换算回全文绝对位置。
+final class ProgressiveRenderSession {
+
+    private let renderer: MarkdownRenderer
+    private let blocks: [Markup]
+    private let startedAt = Date()
+    private var nextIndex = 0
+    private var producedLength = 0
+
+    /// 已收集的标题，location 是全文绝对位置。填充完成前不完整，别拿去跳转。
+    private(set) var outline: [MarkdownRenderer.OutlineItem] = []
+
+    init(renderer: MarkdownRenderer, markdown: String) {
+        self.renderer = renderer
+        blocks = Array(RenderProfiler.time(.parse) { Document(parsing: markdown) }.children)
+    }
+
+    var isFinished: Bool { nextIndex >= blocks.count }
+
+    /// 首屏：渲染前 `count` 个顶层块。整个会话只该调一次。
+    func renderFirst(count: Int) -> NSAttributedString {
+        renderChunk(upTo: min(max(count, 1), blocks.count))
+    }
+
+    /// 填充片：在时间预算内尽量多渲染顶层块（至少一块，保证总能前进）。
+    /// 返回 nil 表示没有剩余块了。
+    func renderNext(timeBudget: TimeInterval) -> NSAttributedString? {
+        guard !isFinished else { return nil }
+        let deadline = Date().addingTimeInterval(timeBudget)
+        var end = nextIndex + 1
+        while end < blocks.count, Date() < deadline { end += 1 }
+        return renderChunk(upTo: end)
+    }
+
+    private func renderChunk(upTo end: Int) -> NSAttributedString {
+        let outlineStart = renderer.outline.count
+        let chunk = NSMutableAttributedString()
+        renderer.renderBlocks(Array(blocks[nextIndex..<end]), into: chunk, context: MarkdownRenderer.BlockContext())
+        nextIndex = end
+
+        // 只有最后一片才修剪尾部空行 —— 那是全文末尾；中间片尾的 "\n" 不能动
+        if isFinished {
+            renderer.trimTrailingNewlines(chunk)
+            RenderProfiler.report(totalMS: Date().timeIntervalSince(startedAt) * 1000)
+        }
+
+        if renderer.outline.count > outlineStart {
+            let base = producedLength
+            outline.append(contentsOf: renderer.outline[outlineStart...].map {
+                MarkdownRenderer.OutlineItem(level: $0.level, title: $0.title, location: $0.location + base)
+            })
+        }
+        producedLength += chunk.length
+        return chunk
     }
 }
