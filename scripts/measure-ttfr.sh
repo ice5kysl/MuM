@@ -30,6 +30,10 @@ SRC_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # 数字必须不受污染；worktree 从指定 ref 新建，量的是明确的提交。
 WT=$(mktemp -d /tmp/mum-measure.XXXXXX)
 rmdir "$WT"
+# 幂等自清理：上次被 SIGKILL 的残留 worktree 先拆掉，不依赖人记得（trap 可能没机会跑）
+for stale in $(git -C "$SRC_ROOT" worktree list --porcelain | awk '/^worktree \/tmp\/mum-measure\./ {print $2}'); do
+  git -C "$SRC_ROOT" worktree remove --force "$stale" 2>/dev/null || true
+done
 git -C "$SRC_ROOT" worktree add --detach "$WT" "$REF" >/dev/null 2>&1
 ROOT="$WT"
 APP="$ROOT/dist/MuM.app"
