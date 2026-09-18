@@ -5,12 +5,13 @@
 // 用代码画而不是塞一张位图：图标需要 16pt 到 1024pt 共 10 个尺寸，从矢量描述
 // 逐个尺寸渲染出来，小尺寸下笔画才不会糊成一团。
 //
-// 设计：深色圆角方块 + 居中的几何 M + 底部一道绿色横线。
+// 设计：黑色圆角方块 + 居中的纯白几何 M + 底部一道绿色横线。
 //
-// M 不用字体字形，而是用几段粗线画出来 —— 关键差别在**接头**：
-// 字体里的 M 是圆角设计（SF Rounded），顶角是圆的；这里用斜接（miter）接头，
-// 顶角是刀锋一样的尖点，端点也是平切。整体更硬、更有棱角。
+// M 不用字体字形，而是用几段粗线画出来 —— 笔画用圆角接头（半径半个笔画宽，
+// 只磨圆顶点，直边与平切端点保留），整体硬朗但不拉尖刺。
 // 底部横线用绿色（#2ECC4A），作为整个图标唯一的高饱和色。
+// 背景是纯黑系的微弱纵向渐变（ice 2026-09-19 要求对齐 Vme 图标的黑），
+// 顶部一道极弱高光防止死板。
 
 import AppKit
 
@@ -30,8 +31,8 @@ func drawIcon(in rect: NSRect) {
     let shape = NSBezierPath(roundedRect: body, xRadius: radius, yRadius: radius)
 
     let gradient = NSGradient(colors: [
-        NSColor(srgbRed: 0.196, green: 0.204, blue: 0.243, alpha: 1),
-        NSColor(srgbRed: 0.078, green: 0.082, blue: 0.106, alpha: 1),
+        NSColor(white: 0.14, alpha: 1),
+        NSColor(white: 0.0, alpha: 1),
     ])
     gradient?.draw(in: shape, angle: -90)
 
@@ -74,12 +75,13 @@ func drawIcon(in rect: NSRect) {
     NSColor.white.setStroke()
     mPath.stroke()
 
-    // 底部强调线
+    // 底部强调线。加粗到 0.06（ice 2026-09-19，对齐 Vme 图标的份量感），
+    // y 跟着厚度调，保持线的**中心**位置不变
     let barWidth = size * 0.44
-    let barHeight = max(size * 0.042, 1)
+    let barHeight = max(size * 0.060, 1)
     let bar = NSRect(
         x: body.midX - barWidth / 2,
-        y: body.minY + size * 0.190,
+        y: body.minY + size * 0.190 - (barHeight - size * 0.042) / 2,
         width: barWidth,
         height: barHeight
     )
