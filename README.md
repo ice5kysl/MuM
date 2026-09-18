@@ -54,8 +54,8 @@
 
 ## 先读这两份
 
-- **[VISION.md](VISION.md)** —— 为什么是这个定位，判断标准，明确不做的事
-- **[ROADMAP.md](ROADMAP.md)** —— 0.2 到 1.0 的版本计划与验收标准
+- **[VISION.md](docs/vision.md)** —— 为什么是这个定位，判断标准，明确不做的事
+- **[ROADMAP.md](docs/roadmap.md)** —— 0.2 到 1.0 的版本计划与验收标准
 
 下面这份 README 讲的是**怎么用、怎么构建**。
 
@@ -513,48 +513,56 @@ error: unable to open output file '.../ModuleCache/.../SwiftShims-....pcm'
 ## 目录结构
 
 ```
-Sources/MuM/
-├── main.swift                     入口；--selftest 分支在 NSApplication 之前
-├── App/
-│   ├── AppDelegate.swift          生命周期 + 菜单动作分发 + 菜单可用性
-│   └── MainMenu.swift             原生菜单栏与快捷键
-├── Core/
-│   ├── FileKind.swift             扩展名 → 文件类型 / 语言识别
-│   ├── FileNode.swift             文件树节点，子节点按需加载
-│   ├── FileTreeLoader.swift       目录扫描：噪音目录过滤 + 稳定排序
-│   ├── FileWatcher.swift          FSEvents 监听 + 去抖
-│   ├── Workspace.swift            一个打开的项目
-│   ├── WorkspaceStore.swift       多项目、激活项、持久化、上次阅读位置
-│   ├── MuMSettings.swift          用户偏好 + 持久化
-│   ├── ConcurrentCache.swift      加锁字典缓存
-│   └── Notifications.swift        通知名
-├── Markdown/
-│   ├── MarkdownRenderer.swift     AST → NSAttributedString（核心）
-│   ├── MarkdownTheme.swift        排版参数 + 自定义属性键
-│   ├── ReadingTheme.swift         阅读主题的纸色板
-│   └── CodeHighlighter.swift      数据驱动的轻量语法高亮
-├── UI/
-│   ├── DesignSystem.swift          尺寸与配色规范（动态颜色）
-│   ├── RootViewController.swift    三栏分栏 + 状态栏 + 布局开关组
-│   ├── ProjectSwitcherControl.swift 第 2 栏顶部的项目切换下拉
-│   ├── LayoutClusterView.swift     顶部常驻的布局开关（哪块模块开着，一眼可见）
-│   ├── ProjectsViewController.swift 第 1 栏：项目卡片列表
-│   ├── FileTreeViewController.swift 第 2 栏：目录树 + 过滤
-│   ├── ContentViewController.swift  第 3 栏：控件住进顶栏 + Write/Read/Preview
-│   ├── EditorViewController.swift   源码编辑
-│   ├── LineNumberRulerView.swift    行号栏
-│   ├── ReadingThemePicker.swift     阅读主题的预览卡片
-│   ├── SettingsPanelViewController.swift 设置面板（齿轮的 popover）
-│   ├── PreviewViewController.swift  预览（含装饰绘制）
-│   ├── PreviewLayoutManager.swift   代码块底色的自绘（在文字下方）
-│   ├── StatusBarView.swift          底部状态栏
-│   └── MainWindowController.swift   窗口与各栏的协调
-└── Debug/
-    ├── RendererSelfTest.swift     无界面自检（24 项属性断言）
-    └── SnapshotRenderer.swift     离屏窗口快照（--snapshot）
+MuM/
+├── README.md              入口（你在这里）
+├── CHANGELOG.md           每个版本改了什么、为什么原来不对
+├── LICENSE  VERSION       MIT；版本号唯一来源
+├── Package.swift          构建定义（没有 .xcodeproj）
+│
+├── docs/                  所有文档
+│   ├── vision.md              定位与判断标准 ← 先读这个
+│   ├── roadmap.md             版本计划与验收标准
+│   ├── metrics.md             指标体系（北极星：TTFR）
+│   ├── collaboration.md       三方协作规则
+│   ├── versions/              版本定义，每版一个文件
+│   ├── performance-baseline.md
+│   └── qa-log.md
+│
+├── Sources/MuM/           源码
+│   ├── App/                   生命周期、菜单
+│   ├── Core/                  文件树、工作区、设置、计时
+│   ├── Markdown/              解析与渲染（含阅读主题色板）
+│   ├── UI/                    窗口、三个面板、设置界面
+│   └── Debug/                 自检、离屏快照、性能基线
+│
+├── Tests/MuMTests/        单元测试（`swift test`）
+├── scripts/               构建、图标、样本生成
+├── Examples/demo/         示例项目（用 MuM 打开它）
+└── Resources/Info.plist   打包资源
 ```
 
----
+### 文件放哪：一条规则
+
+> **根目录只放"进门必看的"。其余按用途进各自的目录。**
+
+| 类型 | 去哪 | 例子 |
+| :--- | :--- | :--- |
+| 门面与约定 | 根目录 | `README.md`、`CHANGELOG.md`、`LICENSE`、`VERSION` |
+| 项目文档 | `docs/` | 定位、路线图、指标、协作规范 |
+| 版本定义 | `docs/versions/` | `v0.4.md` |
+| 可执行工具 | `scripts/` | 构建、图标生成、样本生成 |
+| 源码 | `Sources/MuM/<层>/` | 按 App / Core / Markdown / UI / Debug 分层 |
+| 测试 | `Tests/MuMTests/` | |
+| 示例内容 | `Examples/demo/` | 被 MuM 打开的样本项目 |
+
+**三条约束：**
+
+1. **根目录的 `*.md` 不超过 2 个**（README + CHANGELOG）。多出来的说明该进 `docs/`。
+2. **不留可重建的文件** —— 大样本、生成物用脚本产出（见 `scripts/make-bench-fixture.py`）。
+3. **不留临时产物** —— `/tmp` 里的测完就删；进程用完就关（见 `docs/collaboration.md`）。
+
+**新增文档时先问：** 它是"进门必看"吗？不是就进 `docs/`。文档变多时按**读者**分目录，
+不按文件类型分。
 
 ## 已知边界
 

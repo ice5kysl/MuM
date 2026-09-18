@@ -120,7 +120,7 @@
 
 - **`VERSION` 成为版本号唯一来源**（SemVer），构建时写入 `Info.plist`，
   并折算单调递增的 `CFBundleVersion`
-- **本文件（CHANGELOG）** 与 [VISION.md](VISION.md)、[ROADMAP.md](ROADMAP.md)
+- **本文件（CHANGELOG）** 与 [VISION.md](docs/vision.md)、[ROADMAP.md](docs/roadmap.md)
 - **GitHub Actions** —— 构建 + 24 项自检 + 打包 + 离屏快照。当前为手动触发：
   macOS runner 对私有仓库计费，自动触发会必然失败
 - **`.mumenv` 删掉 `HOME` 重定向** —— 它让 git / gh / UserDefaults 都找不到配置，
