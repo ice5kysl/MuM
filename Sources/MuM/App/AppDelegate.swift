@@ -33,6 +33,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         NSApp.activate(ignoringOtherApps: true)
 
+        // 窗口已上屏，再恢复内容。有外部打开请求（双击 / Dock 拖入）时优先它 ——
+        // 用户点的是那个文件，先恢复上次会话的遗留文件是白付一次加载和渲染
+        controller.restoreActiveWorkspace(skippingFileRestore: !pendingOpenURLs.isEmpty)
+
         // 补上窗口就绪之前到达的打开请求
         if !pendingOpenURLs.isEmpty {
             let urls = pendingOpenURLs

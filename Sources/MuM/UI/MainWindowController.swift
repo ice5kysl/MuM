@@ -30,6 +30,9 @@ final class MainWindowController: NSWindowController {
     private var pendingScrollFraction: CGFloat?
     /// 渐进渲染填充的代际：每次新打开/新渲染都 +1，过期的填充切片落地前自动放弃
     private var progressiveGeneration = 0
+    /// 状态栏上次更新的输入指纹。字数统计是 O(文档长度)，而 refreshChrome 在打开
+    /// 路径上会被连调三次（init / 恢复 / 渲染回调）—— 输入没变就整个跳过。
+    private var lastStatusFingerprint: Int?
     private var workspaceWatcher: FileWatcher?
 
 
@@ -87,8 +90,20 @@ final class MainWindowController: NSWindowController {
         wireCallbacks()
         observeWorkspace()
 
+        // 注意：内容恢复（读文件 + 渲染）不在这里做 —— 窗口先上屏，内容随后。
+        // 由 AppDelegate 在 showWindow 之后调 restoreActiveWorkspace。
+        refreshChrome()
+    }
+
+    /// 启动时的内容恢复（文件监听 + 上次的阅读位置）。
+    ///
+    /// 故意不在 init 里做：打开体验的第一笔画是窗口框架，不是文件内容 ——
+    /// cc 实测 showWindow 会被 init 里 1MB 文件的加载从 ~210ms 拖到 ~368ms。
+    /// - Parameter skippingFileRestore: 有外部打开请求（双击 / Dock 拖入）时传 true ——
+    ///   用户点的是那个文件，别先为上次会话的遗留文件白付一次加载和渲染。
+    func restoreActiveWorkspace(skippingFileRestore: Bool = false) {
         LaunchTimer.mark("  开始 applyWorkspace（读文件 + 渲染）")
-        applyWorkspace(WorkspaceStore.shared.active)
+        applyWorkspace(WorkspaceStore.shared.active, restoresFile: !skippingFileRestore)
         LaunchTimer.mark("  applyWorkspace 完成")
         refreshChrome()
     }
@@ -281,7 +296,7 @@ final class MainWindowController: NSWindowController {
         refreshChrome()
     }
 
-    private func applyWorkspace(_ workspace: Workspace?) {
+    private func applyWorkspace(_ workspace: Workspace?, restoresFile: Bool = true) {
         workspaceWatcher?.stop()
         workspaceWatcher = nil
 
@@ -295,7 +310,9 @@ final class MainWindowController: NSWindowController {
         watcher.start()
         workspaceWatcher = watcher
 
-        restoreReadingPosition(for: workspace)
+        if restoresFile {
+            restoreReadingPosition(for: workspace)
+        }
     }
 
     /// 切回一个项目时回到上次在读的那一篇；没有记录就退而求其次打开 README。
@@ -489,7 +506,10 @@ final class MainWindowController: NSWindowController {
         renderWorkItem = work
 
         if immediately {
-            DispatchQueue.main.async(execute: work)
+            // 打开路径同步跑：异步会让渲染排到窗口首帧之后（实测被挤掉 ≈127ms），
+            // 而 TTFR 的 R 就是这一次渲染 —— 它等不得。反正总阻塞时长一样，
+            // 同步只是把它从"一个 runloop 之后"挪到"现在"。
+            work.perform()
         } else {
             // 打字时每 110ms 才重排一次预览，输入永远优先
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.11, execute: work)
@@ -963,8 +983,19 @@ final class MainWindowController: NSWindowController {
     }
 
     private func updateStatusBar() {
-        LaunchTimer.mark("    updateStatusBar 开始")
         let workspace = WorkspaceStore.shared.active
+        let text = contentPane.editorViewController.text
+
+        var hasher = Hasher()
+        hasher.combine(workspace?.rootURL.path)
+        hasher.combine(currentFileURL?.path)
+        hasher.combine(text)
+        hasher.combine(contentPane.mode.title)
+        let fingerprint = hasher.finalize()
+        guard fingerprint != lastStatusFingerprint else { return }
+        lastStatusFingerprint = fingerprint
+
+        LaunchTimer.mark("    updateStatusBar 开始")
 
         var location: String?
         if let url = currentFileURL, let workspace {
@@ -987,10 +1018,14 @@ final class MainWindowController: NSWindowController {
         let text = contentPane.editorViewController.text
         guard !text.isEmpty else { return modeName }
 
-        let characters = text.unicodeScalars.lazy
-            .filter { !CharacterSet.whitespacesAndNewlines.contains($0) }
-            .count
-        let lines = text.components(separatedBy: "\n").count
+        // 单遍扫描，不做任何中间分配 —— 原先 components(separatedBy:) 会给 1MB
+        // 文档建一个 6.5 万个字符串的数组（单次 ≈40ms），打开路径上还要被连调三次
+        var characters = 0
+        var lines = 1
+        for scalar in text.unicodeScalars {
+            if scalar.value == 0x0A { lines += 1 }
+            if !CharacterSet.whitespacesAndNewlines.contains(scalar) { characters += 1 }
+        }
         return "\(formatted(characters)) 字 · \(formatted(lines)) 行 · \(modeName)"
     }
 
