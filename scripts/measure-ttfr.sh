@@ -50,6 +50,10 @@ cleanup() {
   launchctl unsetenv MUM_LAUNCH_TIMING 2>/dev/null || true
   if [ -f "$LOG.bak" ]; then defaults import "$DOMAIN" "$LOG.bak"; rm -f "$LOG.bak"; fi
   rm -f "$LOG" "$FIX"
+  # LaunchServices 注册同样是用完要收的：残留注册会让后续 open 按名/按 id 路由到
+  # 幽灵副本，污染别人和自己的后续测量（E-1 事故的根因之一）
+  LSREG='/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister'
+  "$LSREG" -u "$WT/dist/MuM.app" 2>/dev/null || true
   git -C "$SRC_ROOT" worktree remove --force "$WT" 2>/dev/null || true
 }
 trap cleanup EXIT
