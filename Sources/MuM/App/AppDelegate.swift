@@ -72,6 +72,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func open(_ urls: [URL], with controller: MainWindowController) {
+        // 打开必须把人带到窗口前。应用已在运行时，open 事件走的是这里而不是
+        // didFinishLaunching —— 那里面的激活不会再来一次，窗口可能还埋在后面。
+        controller.window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+
         for url in urls {
             var isDirectory: ObjCBool = false
             guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) else { continue }
