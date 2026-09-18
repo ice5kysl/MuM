@@ -1,6 +1,6 @@
 # 路线图
 
-定位与判断标准见 [VISION.md](VISION.md)。版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)，
+定位与判断标准见 [VISION.md](vision.md)。版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)，
 唯一来源是仓库根目录的 [`VERSION`](VERSION)。
 
 **当前：0.2.0。** 尚未到 1.0 —— 定位已清晰，但设置项结构仍可能变动。
