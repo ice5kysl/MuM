@@ -4,8 +4,9 @@
 #   TTFR-冷开：双击语义（app 未运行，open 带文件）→「渐进：首屏已写入」
 #   TTFR-热开：app 已运行后 open 文件 → readText 到 渐进首屏
 #
-# 用法：scripts/measure-ttfr.sh [大文件MB数，默认 1]
+# 用法：scripts/measure-ttfr.sh [大文件MB数，默认 1] [sha/tag，默认 HEAD]
 # 依赖：scripts/build-app.sh、scripts/make-bench-fixture.py
+# 规范（COLLABORATION）：判定性测量一律在隔离 worktree 跑 —— 与 accept.sh 同原则
 #
 # 环境说明（为什么这么绕）：
 # - 直接跑 .build/*/MuM 没有 bundle id，读的是另一个 defaults 域，文件打不开
@@ -23,12 +24,13 @@ if [ "$LOAD" -gt 4 ] && [ "${FORCE:-0}" != "1" ]; then
 fi
 
 MB="${1:-1}"
+REF="${2:-HEAD}"
 SRC_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # 判定测量在隔离 worktree 里做：共享树随时有别人的构建/未提交改动，
-# 数字必须不受污染；worktree 总是从当前 HEAD 新建，量的是明确的提交。
+# 数字必须不受污染；worktree 从指定 ref 新建，量的是明确的提交。
 WT=$(mktemp -d /tmp/mum-measure.XXXXXX)
 rmdir "$WT"
-git -C "$SRC_ROOT" worktree add --detach "$WT" HEAD >/dev/null 2>&1
+git -C "$SRC_ROOT" worktree add --detach "$WT" "$REF" >/dev/null 2>&1
 ROOT="$WT"
 APP="$ROOT/dist/MuM.app"
 DOMAIN=ai.mum.app
