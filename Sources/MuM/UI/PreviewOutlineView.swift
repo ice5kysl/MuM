@@ -35,6 +35,10 @@ final class PreviewOutlineView: NSViewController {
             button.target = self
             button.action = #selector(rowTapped(_:))
             stack.addArrangedSubview(button)
+            // stack 是 leading 对齐，行不会自动撑满 —— 必须显式钉宽，
+            // 否则每行只有按钮自测量的宽度（ice 实测：带缩进段落样式时
+            // H2/H3 行被量残，塌到只剩一个字符）
+            button.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         }
 
         let scrollView = NSScrollView()
@@ -65,6 +69,10 @@ final class PreviewOutlineView: NSViewController {
 }
 
 /// 大纲里的一行。按层级缩进，层级越深字越小越淡。
+///
+/// 不用 attributedTitle + 段落样式：NSButton 对带缩进段落样式的标题
+/// 自测量会算残（H2/H3 行塌到只剩一个字符）。标题交给真正的 NSTextField，
+/// 截断、缩进、颜色都归它管；按钮只负责点击和悬停。
 private final class OutlineRowButton: NSButton {
 
     init(item: MarkdownRenderer.OutlineItem) {
@@ -72,28 +80,30 @@ private final class OutlineRowButton: NSButton {
 
         isBordered = false
         bezelStyle = .inline
-        alignment = .left
+        title = ""
         toolTip = item.title
 
         let size: CGFloat = item.level == 1 ? 12.5 : (item.level == 2 ? 11.5 : 11)
         let weight: NSFont.Weight = item.level == 1 ? .semibold : .regular
-        let font = NSFont.systemFont(ofSize: size, weight: weight)
-        let color = item.level == 1 ? MuMDesign.primaryText : MuMDesign.secondaryText
 
-        // 缩进走段落样式，不是往标题前面塞空格 —— 空格在截断时会先被吃掉，缩进就没了
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.firstLineHeadIndent = CGFloat(item.level - 1) * 14 + 10
-        paragraph.headIndent = paragraph.firstLineHeadIndent
-        paragraph.lineBreakMode = .byTruncatingTail
-
-        attributedTitle = NSAttributedString(string: item.title, attributes: [
-            .font: font,
-            .foregroundColor: color,
-            .paragraphStyle: paragraph,
-        ])
+        let label = NSTextField(labelWithString: item.title)
+        label.font = NSFont.systemFont(ofSize: size, weight: weight)
+        label.textColor = item.level == 1 ? MuMDesign.primaryText : MuMDesign.secondaryText
+        label.lineBreakMode = .byTruncatingTail
+        // 不抢响应：点击和悬停都归按钮
+        label.refusesFirstResponder = true
+        label.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(label)
 
         translatesAutoresizingMaskIntoConstraints = false
-        heightAnchor.constraint(equalToConstant: item.level == 1 ? 26 : 22).isActive = true
+        NSLayoutConstraint.activate([
+            // 缩进是版式的一部分，直接算进 label 的左边距
+            label.leadingAnchor.constraint(
+                equalTo: leadingAnchor, constant: CGFloat(item.level - 1) * 14 + 10),
+            label.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -10),
+            label.centerYAnchor.constraint(equalTo: centerYAnchor),
+            heightAnchor.constraint(equalToConstant: item.level == 1 ? 26 : 22),
+        ])
     }
 
     required init?(coder: NSCoder) {
