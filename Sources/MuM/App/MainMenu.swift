@@ -13,7 +13,9 @@ enum MainMenuBuilder {
         let mainMenu = NSMenu()
 
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "关于 MuM", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        let aboutItem = NSMenuItem(title: "关于 MuM", action: #selector(AppDelegate.showAbout(_:)), keyEquivalent: "")
+        aboutItem.target = target
+        appMenu.addItem(aboutItem)
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "隐藏 MuM", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
 

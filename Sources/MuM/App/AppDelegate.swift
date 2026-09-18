@@ -96,6 +96,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MainMenuBuilder.rebuildProjectMenu(menuSet.projectMenu, target: self)
     }
 
+    // MARK: - 关于
+
+    /// 关于面板：系统标准面板 + 自定义 credits（项目链接、作者、许可证）。
+    /// 不造自己的关于窗口 —— 标准面板是 macOS 用户最熟悉的样子，
+    /// 版本号它自己会从 Info.plist 拿
+    @objc func showAbout(_ sender: Any?) {
+        let body = NSMutableAttributedString()
+
+        func append(_ text: String, link: String? = nil, size: CGFloat = 11, color: NSColor = .secondaryLabelColor) {
+            var attributes: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: size),
+                .foregroundColor: color,
+            ]
+            if let link, let url = URL(string: link) {
+                attributes[.link] = url
+                attributes[.foregroundColor] = NSColor.linkColor
+            }
+            body.append(NSAttributedString(string: text, attributes: attributes))
+        }
+
+        append("macOS 原生的 Markdown 阅读器 —— 阅读是目的\n\n", size: 12)
+        append("GitHub", link: "https://github.com/ice5kysl/MuM")
+        append(" · ")
+        append("作者 ice5kysl", link: "https://github.com/ice5kysl")
+        append(" · MIT License\n")
+
+        NSApp.orderFrontStandardAboutPanel(options: [.credits: body])
+    }
+
     // MARK: - 文件
 
     @objc func openFolder(_ sender: Any?) {
