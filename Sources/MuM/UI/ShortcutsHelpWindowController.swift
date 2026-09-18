@@ -22,6 +22,7 @@ final class ShortcutsHelpWindowController: NSWindowController {
             ("⌘S", "保存"),
             ("⌘R", "从磁盘重新载入"),
             ("⌘W", "关闭当前文件"),
+            ("⌘[ / ⌘]", "上一篇 / 下一篇（阅读历史）"),
             ("⇧⌘R", "刷新文件树"),
             ("⇧⌘J", "在访达中显示"),
         ]),

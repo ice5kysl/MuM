@@ -158,6 +158,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mainWindowController?.revealInFinder()
     }
 
+    @objc func goBack(_ sender: Any?) {
+        mainWindowController?.goBack()
+    }
+
+    @objc func goForward(_ sender: Any?) {
+        mainWindowController?.goForward()
+    }
+
 
     // MARK: - 项目切换
 
@@ -263,6 +271,12 @@ extension AppDelegate: NSMenuItemValidation {
              #selector(closeDocument(_:)),
              #selector(revealInFinder(_:)):
             return mainWindowController?.hasOpenDocument ?? false
+
+        case #selector(goBack(_:)):
+            return mainWindowController?.canGoBack ?? false
+
+        case #selector(goForward(_:)):
+            return mainWindowController?.canGoForward ?? false
 
         case #selector(toggleProjects(_:)):
             menuItem.state = (mainWindowController?.isProjectsVisible ?? false) ? .on : .off

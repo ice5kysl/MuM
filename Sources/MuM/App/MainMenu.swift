@@ -61,6 +61,9 @@ enum MainMenuBuilder {
         menu.addItem(item("刷新文件树", #selector(AppDelegate.refreshFileTree(_:)), "r", modifiers: [.command, .shift], target: target))
         menu.addItem(.separator())
         menu.addItem(item("在访达中显示", #selector(AppDelegate.revealInFinder(_:)), "j", modifiers: [.command, .shift], target: target))
+        menu.addItem(.separator())
+        menu.addItem(item("返回上一篇", #selector(AppDelegate.goBack(_:)), "[", target: target))
+        menu.addItem(item("前进下一篇", #selector(AppDelegate.goForward(_:)), "]", target: target))
 
         let holder = NSMenuItem(title: "文件", action: nil, keyEquivalent: "")
         holder.submenu = menu

@@ -419,10 +419,19 @@ final class MainWindowController: NSWindowController {
         }
     }
 
-    func open(url: URL) {
+    func open(url: URL, recordingHistory: Bool = true) {
         let standardized = url.standardizedFileURL
         guard standardized != currentFileURL else { return }
         guard confirmDiscardIfNeeded() else { return }
+
+        // 浏览器范式：从 A 走到 B，A 进后退栈，前进栈清空。
+        // 所有打开路径都记 —— 不管从文件树、⌘P、全局搜索还是文档链接进来，
+        // "回去"的语义应该一致
+        if recordingHistory, let current = currentFileURL {
+            backStack.append(current)
+            if backStack.count > 100 { backStack.removeFirst() }
+            forwardStack.removeAll()
+        }
 
         // 换文件：上一份文档可能还在渐进填充，让它作废
         progressiveGeneration += 1
@@ -634,6 +643,42 @@ final class MainWindowController: NSWindowController {
                self.contentPane.previewViewController.scrollFraction() < 0.001 {
                 self.contentPane.previewViewController.restoreScrollFraction(restore)
             }
+        }
+    }
+
+    // MARK: - 前进 / 后退
+
+    /// 阅读动线的历史：链接跳转、文件树点击、搜索结果，全都在一条线上。
+    /// 不做 tab —— tab 是"同时对照多个文档"的界面，和文件树职责重叠；
+    /// "读过想回去"用浏览器范式的前进/后退覆盖，零常驻 chrome
+    private var backStack: [URL] = []
+    private var forwardStack: [URL] = []
+
+    var canGoBack: Bool { !backStack.isEmpty }
+    var canGoForward: Bool { !forwardStack.isEmpty }
+
+    func goBack() {
+        guard let target = backStack.last else { return }
+        let previous = currentFileURL
+        backStack.removeLast()
+        if let previous { forwardStack.append(previous) }
+        open(url: target, recordingHistory: false)
+        // 脏文件确认被取消（或打开失败）→ 没走成，把栈还原
+        if currentFileURL != target {
+            if let previous { forwardStack.removeAll(where: { $0 == previous }) }
+            backStack.append(target)
+        }
+    }
+
+    func goForward() {
+        guard let target = forwardStack.last else { return }
+        let previous = currentFileURL
+        forwardStack.removeLast()
+        if let previous { backStack.append(previous) }
+        open(url: target, recordingHistory: false)
+        if currentFileURL != target {
+            if let previous { backStack.removeAll(where: { $0 == previous }) }
+            forwardStack.append(target)
         }
     }
 

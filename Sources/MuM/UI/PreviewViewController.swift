@@ -250,6 +250,9 @@ final class PreviewViewController: NSViewController {
         textView.isEditable = false
         textView.isSelectable = true
         textView.isRichText = true
+        // 链接点击走 clickedOnLink（内部打开 .md，外部链接交系统）——
+        // 之前漏了这条线，代理方法写了却从没接过，点击全走了系统默认
+        textView.delegate = self
         textView.drawsBackground = true
         textView.backgroundColor = .textBackgroundColor
         textView.textContainerInset = NSSize(width: 28, height: 24)
