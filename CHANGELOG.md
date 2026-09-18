@@ -18,6 +18,29 @@
 
 ## [未发布]
 
+## [0.4.1] - 2026-09-18
+
+### 修复
+
+- **窗口不能拖动改变大小**（dsh 引入）—— 为了让窗口不塌陷加了
+  `widthAnchor == 1440 @.defaultHigh`，注释里断言「用户拖动时这条会让位」。
+  **那个假设是错的**：750 优先级的等式仍被求解器优先满足，AppKit 每个显示周期
+  把窗口拉回 1440×900。改成最小约束，初始尺寸由 `showWindow` 显式设一次
+- **R-1 嵌套列表段落样式被覆盖** —— `renderListItem` 在整项范围铺段落样式，
+  把嵌套项 / 代码块 / 表格自己的样式盖掉。改为只补无样式范围
+- **E-2 open 到非激活项目时白付一次旧文件打开** —— 跳过该次会话恢复
+
+### 工程
+
+- `accept.sh` cleanup 补 `lsregister` 注销 —— E-1（幽灵实例）根因防复发
+- R-1 加了 5 条回归锚点（pre-fix 失败 / post-fix 全绿，双向验证）
+- 单元测试 44 → 49
+
+### 验证方式
+
+cc 用 **CGWindowList** 实测窗口尺寸（新装 1440×900 / 尺寸恢复），
+**在没有鼠标的情况下验了可自动化的部分**；真实拖动仍留待人工确认。
+
 ### 修复
 
 - **嵌套列表的层级缩进被外层列表项盖掉（审计 R-1）** —— `renderListItem` 末尾对
@@ -292,7 +315,8 @@
   此前打开一个 `.ipa` 后敲字按 `⌘S`，会把文本写进那个二进制文件
 - 保存前比对磁盘修改时间，文件被外部改过时先询问，不再静默覆盖
 
-[未发布]: https://github.com/ice5kysl/MuM/compare/v0.4.0...HEAD
+[未发布]: https://github.com/ice5kysl/MuM/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/ice5kysl/MuM/releases/tag/v0.4.1
 [0.4.0]: https://github.com/ice5kysl/MuM/releases/tag/v0.4.0
 [0.3.0]: https://github.com/ice5kysl/MuM/releases/tag/v0.3.0
 [0.2.0]: https://github.com/ice5kysl/MuM/releases/tag/v0.2.0
