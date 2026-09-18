@@ -37,7 +37,7 @@ done
 git -C "$SRC_ROOT" worktree add --detach "$WT" "$REF" >/dev/null 2>&1
 ROOT="$WT"
 APP="$ROOT/dist/MuM.app"
-DOMAIN=ai.mum.app
+DOMAIN=mum.jiker.ai
 LOG=$(mktemp /tmp/mum-ttfr.XXXXXX)
 FIX=$(mktemp /tmp/mum-fix.XXXXXX.md)
 COMMIT=$(git -C "$ROOT" rev-parse --short HEAD)
