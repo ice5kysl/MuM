@@ -31,6 +31,10 @@ REF="${1:-main}"
 WT="${TMPDIR:-/tmp}/mum-accept-$$"
 
 cleanup() {
+    # 打包产物先从 LaunchServices 注销再删目录（E-1 事故根因：残留注册会让
+    # open -a 按名/按 id 把事件路由到幽灵副本，污染后续所有人的测量）
+    LSREG='/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister'
+    [ -e "$WT/dist/MuM.app" ] && "$LSREG" -u "$WT/dist/MuM.app" 2>/dev/null || true
     git -C "$ROOT" worktree remove --force "$WT" 2>/dev/null || rm -rf "$WT"
     git -C "$ROOT" worktree prune 2>/dev/null || true
 }
