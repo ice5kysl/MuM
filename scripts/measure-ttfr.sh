@@ -67,12 +67,22 @@ echo "==> 预热（构建后首开，LaunchServices 注册开销，不计入）"
 open -a "$APP" --stderr "$LOG" "$FIX"; sleep 5; pkill -f "$WT"; sleep 1
 
 echo "==> 冷开 ×3"
+RS=""
 for i in 1 2 3; do
   : > "$LOG"
   open -a "$APP" --stderr "$LOG" "$FIX"
   sleep 8; pkill -f "$WT"; sleep 1
-  echo "冷开 run$i: 窗口 $(mark 'showWindow 返回')ms  首屏R $(mark '渐进：首屏已写入')ms"
+  r=$(mark '渐进：首屏已写入')
+  echo "冷开 run$i: 窗口 $(mark 'showWindow 返回')ms  首屏R ${r}ms"
+  RS="$RS $r"
 done
+# 判定按区间不按单点（dsh 2026-09-18 要求）：给出中位数与标准差
+python3 - $RS <<'PYEOF'
+import statistics, sys
+xs = [float(x) for x in sys.argv[1:] if x]
+if len(xs) >= 2:
+    print(f"冷开统计: 中位 {statistics.median(xs):.1f}ms  σ {statistics.stdev(xs):.1f}ms  区间 [{min(xs):.0f}, {max(xs):.0f}]ms  (n={len(xs)})")
+PYEOF
 
 echo "==> 热开 ×1（app 已运行后 open 另一文件）"
 FIX2="${FIX%.md}-2.md"; cp "$FIX" "$FIX2"   # 大文件副本：空开恢复的是原文件，开副本才走完整 open 链
