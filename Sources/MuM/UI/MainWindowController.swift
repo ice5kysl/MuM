@@ -850,6 +850,33 @@ final class MainWindowController: NSWindowController {
         fileTreeViewController.focusFilter()
     }
 
+    // MARK: - 快速打开（⌘P）
+
+    /// 按项目缓存的文件索引：换项目重建，面板每次打开时后台刷新
+    private var quickOpenIndexes: [String: QuickOpenIndex] = [:]
+    private var quickOpenPanel: QuickOpenPanel?
+
+    func showQuickOpen() {
+        guard let window, let workspace = WorkspaceStore.shared.active else { return }
+
+        let rootPath = workspace.rootURL.path
+        let index = quickOpenIndexes[rootPath] ?? QuickOpenIndex()
+        quickOpenIndexes[rootPath] = index
+
+        // 每次打开都后台重扫：1 万文件约百毫秒，面板先用旧缓存，扫完换新
+        index.rebuild(root: workspace.rootURL) { [weak self, weak index] _ in
+            guard let self, let index, self.quickOpenIndexes[rootPath] === index else { return }
+            self.quickOpenPanel?.indexDidUpdate()
+        }
+
+        let panel = quickOpenPanel ?? QuickOpenPanel()
+        quickOpenPanel = panel
+        panel.onOpen = { [weak self] url in
+            self?.open(url: url)
+        }
+        panel.present(over: window, index: index)
+    }
+
     func refreshFileTree() {
         fileTreeViewController.refreshPreservingExpansion()
     }

@@ -198,6 +198,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mainWindowController?.focusFileFilter()
     }
 
+    @objc func showQuickOpen(_ sender: Any?) {
+        mainWindowController?.showQuickOpen()
+    }
+
     // MARK: - 帮助
 
     @objc func showHelp(_ sender: Any?) {
@@ -212,7 +216,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
           ⇧⌘W         关闭当前项目
 
         文件
-          ⌘P          聚焦文件过滤框
+          ⌘P          快速打开（按名字模糊搜索项目内文件）
           ⌘S          保存
           ⌘R          从磁盘重新载入
           ⌘W          关闭当前文件
@@ -284,7 +288,8 @@ extension AppDelegate: NSMenuItemValidation {
             return mainWindowController?.hasOpenDocument ?? false
 
         case #selector(refreshFileTree(_:)),
-             #selector(focusFileFilter(_:)):
+             #selector(focusFileFilter(_:)),
+             #selector(showQuickOpen(_:)):
             return WorkspaceStore.shared.count > 0
 
         default:
