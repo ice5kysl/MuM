@@ -13,7 +13,7 @@ final class AboutWindowController: NSWindowController {
 
     init() {
         let window = AboutWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 300, height: 320),
+            contentRect: NSRect(x: 0, y: 0, width: 300, height: 340),
             styleMask: [.titled, .closable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -68,10 +68,17 @@ final class AboutWindowController: NSWindowController {
         version.textColor = MuMDesign.tertiaryText
         version.translatesAutoresizingMaskIntoConstraints = false
 
-        let tagline = NSTextField(labelWithString: "macOS 原生的 Markdown 阅读器")
+        // 定位语必须与 VISION.md 一字不差 —— 三根支柱（快/原生/多项目）
+        // 和"阅读是目的"是产品的全部自我认知，关于窗口没有资格改写它
+        let tagline = NSTextField(labelWithString: "快、原生、多项目的 Markdown 阅读器")
         tagline.font = NSFont.systemFont(ofSize: 12)
         tagline.textColor = MuMDesign.secondaryText
         tagline.translatesAutoresizingMaskIntoConstraints = false
+
+        let motto = NSTextField(labelWithString: "阅读是目的，不是编辑的副产品")
+        motto.font = NSFont.systemFont(ofSize: 12)
+        motto.textColor = MuMDesign.tertiaryText
+        motto.translatesAutoresizingMaskIntoConstraints = false
 
         // 链接行：GitHub 仓库 · 作者 · 许可证（许可证链到仓库里的 LICENSE）
         let links = NSStackView(views: [
@@ -90,6 +97,7 @@ final class AboutWindowController: NSWindowController {
         content.addSubview(name)
         content.addSubview(version)
         content.addSubview(tagline)
+        content.addSubview(motto)
         content.addSubview(links)
         NSLayoutConstraint.activate([
             icon.topAnchor.constraint(equalTo: content.topAnchor, constant: 56),
@@ -106,7 +114,10 @@ final class AboutWindowController: NSWindowController {
             tagline.topAnchor.constraint(equalTo: version.bottomAnchor, constant: 28),
             tagline.centerXAnchor.constraint(equalTo: content.centerXAnchor),
 
-            links.topAnchor.constraint(equalTo: tagline.bottomAnchor, constant: 12),
+            motto.topAnchor.constraint(equalTo: tagline.bottomAnchor, constant: 4),
+            motto.centerXAnchor.constraint(equalTo: content.centerXAnchor),
+
+            links.topAnchor.constraint(equalTo: motto.bottomAnchor, constant: 12),
             links.centerXAnchor.constraint(equalTo: content.centerXAnchor),
         ])
         return content
