@@ -297,6 +297,10 @@ final class MainWindowController: NSWindowController {
             self.open(url: url)
             return true
         }
+
+        contentPane.previewViewController.onGlobalSearchSelection = { [weak self] query in
+            self?.showGlobalSearch(prefill: query)
+        }
     }
 
     private func observeWorkspace() {
@@ -970,7 +974,7 @@ final class MainWindowController: NSWindowController {
     /// 命中定位跑在填充完成之前会找不到后半篇的命中
     private var forceFullRenderForNextOpen = false
 
-    func showGlobalSearch() {
+    func showGlobalSearch(prefill: String? = nil) {
         guard let window else { return }
         let workspaces = WorkspaceStore.shared.workspaces
         guard !workspaces.isEmpty else { return }
@@ -982,7 +986,7 @@ final class MainWindowController: NSWindowController {
         }
         panel.present(over: window, scopes: workspaces.map {
             GlobalSearchEngine.Scope(root: $0.rootURL, name: $0.name)
-        })
+        }, prefilledQuery: prefill)
     }
 
     /// 点中一条搜索结果：必要时切到命中所在的项目，打开文件；

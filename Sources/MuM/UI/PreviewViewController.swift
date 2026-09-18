@@ -27,6 +27,8 @@ final class PreviewViewController: NSViewController {
 
     /// 点链接时优先在 MuM 内部处理的回调（比如跳到另一个 Markdown 文件）
     var onOpenInternalLink: ((URL) -> Bool)?
+    /// 选中文字 → 「在所有项目中搜索」，由窗口控制器接到全局搜索面板
+    var onGlobalSearchSelection: ((String) -> Void)?
 
     /// 预览用的文本视图。不叫 contentView 是为了不和 NSWindow.contentView 混淆。
     var previewTextView: PreviewTextView { textView }
@@ -281,6 +283,17 @@ final class PreviewViewController: NSViewController {
         findBar.onPrevious = { [weak self] in self?.findPrevious() }
         findBar.onClose = { [weak self] in self?.hideFindBar() }
         view.addSubview(findBar)
+
+        // 选中文字的快捷操作：选词直接喂给两级查找
+        textView.onFindInDocument = { [weak self] query in
+            guard let self else { return }
+            self.showFindBar()
+            self.findBar.setQuery(query)
+            self.runFind(query)
+        }
+        textView.onGlobalSearch = { [weak self] query in
+            self?.onGlobalSearchSelection?(query)
+        }
 
         findBarHeight = findBar.heightAnchor.constraint(equalToConstant: 0)
         textScrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -558,6 +571,10 @@ private func makePreviewTextView() -> PreviewTextView {
 /// 拿到段落矩形后直接画，比嵌套 NSTextBlock 或改用 Web 视图都更轻。
 final class PreviewTextView: NSTextView {
 
+    /// 选中文字的快捷操作回调，由 PreviewViewController 接线
+    var onFindInDocument: ((String) -> Void)?
+    var onGlobalSearch: ((String) -> Void)?
+
     /// 正文最大宽度，超出后居中留白
     var maxContentWidth: CGFloat = 780 {
         didSet { updateContainerWidth() }
@@ -597,6 +614,72 @@ final class PreviewTextView: NSTextView {
         let available = bounds.width - inset.width * 2
         let x = inset.width + max(0, (available - containerWidth) / 2)
         return NSPoint(x: x, y: inset.height)
+    }
+
+    // MARK: - 选中文字的快捷操作
+
+    /// 右键菜单：复制 + 把选词喂给两级查找（文档内 / 全局）。
+    /// 不加浮动工具条 —— 安静的工具不该在选中时往外蹦 chrome
+    override func menu(for event: NSEvent) -> NSMenu? {
+        selectionMenu(selectedText: currentSelectedText())
+    }
+
+    /// 拆出来给单测：菜单内容与事件无关
+    func selectionMenu(selectedText: String?) -> NSMenu {
+        let menu = NSMenu()
+        menu.addItem(withTitle: "拷贝", action: #selector(NSText.copy(_:)), keyEquivalent: "")
+        menu.addItem(withTitle: "全选", action: #selector(NSText.selectAll(_:)), keyEquivalent: "")
+
+        guard let query = Self.searchQuery(from: selectedText) else { return menu }
+        menu.addItem(.separator())
+
+        let findItem = NSMenuItem(
+            title: "在文档中查找「\(Self.shortTitle(query))」",
+            action: #selector(findInDocumentAction(_:)), keyEquivalent: "")
+        findItem.target = self
+        findItem.representedObject = query
+        menu.addItem(findItem)
+
+        let globalItem = NSMenuItem(
+            title: "在所有项目中搜索「\(Self.shortTitle(query))」",
+            action: #selector(globalSearchAction(_:)), keyEquivalent: "")
+        globalItem.target = self
+        globalItem.representedObject = query
+        menu.addItem(globalItem)
+        return menu
+    }
+
+    @objc private func findInDocumentAction(_ sender: NSMenuItem) {
+        guard let query = sender.representedObject as? String else { return }
+        onFindInDocument?(query)
+    }
+
+    @objc private func globalSearchAction(_ sender: NSMenuItem) {
+        guard let query = sender.representedObject as? String else { return }
+        onGlobalSearch?(query)
+    }
+
+    private func currentSelectedText() -> String? {
+        let range = selectedRange()
+        let length = (string as NSString).length
+        guard range.length > 0, range.location + range.length <= length else { return nil }
+        return (string as NSString).substring(with: range)
+    }
+
+    /// 选词变成搜索词：折叠空白（多行选择变一行）、去首尾，过长截断
+    static func searchQuery(from selection: String?, limit: Int = 100) -> String? {
+        guard let selection else { return nil }
+        let collapsed = selection
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        guard !collapsed.isEmpty else { return nil }
+        return collapsed.count <= limit ? collapsed : String(collapsed.prefix(limit))
+    }
+
+    /// 菜单标题里的选词：12 字符封顶
+    static func shortTitle(_ query: String) -> String {
+        query.count <= 12 ? query : String(query.prefix(11)) + "…"
     }
 
     // MARK: - 绘制装饰

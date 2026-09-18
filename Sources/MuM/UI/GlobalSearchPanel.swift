@@ -54,7 +54,8 @@ final class GlobalSearchPanel: NSPanel {
 
     /// 在父窗口上居中弹出。scopes 是当前所有打开的项目，关掉面板后这份清单
     /// 可能已经过时，所以每次弹出都由调用方重新传入。
-    func present(over parent: NSWindow, scopes: [GlobalSearchEngine.Scope]) {
+    /// prefilledQuery：选中文字右键搜索等路径带来的现成查询词，立即开搜
+    func present(over parent: NSWindow, scopes: [GlobalSearchEngine.Scope], prefilledQuery: String? = nil) {
         self.scopes = scopes
         included = Array(repeating: true, count: scopes.count)
         rebuildScopeChips()
@@ -66,12 +67,17 @@ final class GlobalSearchPanel: NSPanel {
             y: frame.midY - self.frame.height / 2 + frame.height * 0.15
         ))
 
-        field.stringValue = ""
+        field.stringValue = prefilledQuery ?? ""
         resetResults()
         updateStatus()
         parent.makeFirstResponder(field)
         makeKeyAndOrderFront(nil)
         parent.makeFirstResponder(field)
+
+        if prefilledQuery != nil {
+            // 预填就不等 150ms 去抖：用户的意图已经很明确
+            restartSearch()
+        }
     }
 
     override func close() {
