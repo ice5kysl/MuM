@@ -56,6 +56,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         true
     }
 
+    /// ⌘Q / 菜单退出：有未保存修改时先确认，和关窗（windowShouldClose）同一条路径。
+    /// 原来这里没人守 —— confirmDiscardIfNeeded 只挂在 open/close/reload/mode 四处，
+    /// ⌘Q 直接全丢（审计 D-1）。
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard let controller = mainWindowController else { return .terminateNow }
+        return controller.confirmDiscardIfNeeded() ? .terminateNow : .terminateCancel
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         mainWindowController?.saveReadingPosition()
     }

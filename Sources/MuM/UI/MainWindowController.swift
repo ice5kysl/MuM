@@ -26,6 +26,8 @@ final class MainWindowController: NSWindowController {
     /// 上次从磁盘读取（或写入）时该文件的修改时间。
     /// 保存前拿它和磁盘现状比一次，避免静默覆盖别人在外面做的修改。
     private var loadedModificationDate: Date?
+    /// 读入时实际使用的编码。保存写回同一种 —— 不能把 GBK 文件悄悄转成 UTF-8
+    private var loadedEncoding: String.Encoding = .utf8
     /// 本次打开要恢复到的阅读位置。渲染是异步的，所以先存着，等 performRender 时用掉
     private var pendingScrollFraction: CGFloat?
     /// 渐进渲染填充的代际：每次新打开/新渲染都 +1，过期的填充切片落地前自动放弃
@@ -68,6 +70,10 @@ final class MainWindowController: NSWindowController {
         window.tabbingMode = .disallowed
 
         super.init(window: window)
+
+        // 关窗要过未保存确认 —— 红灯/⌘W 走 windowShouldClose，⌘Q 走
+        // AppDelegate 的 applicationShouldTerminate，两边汇到同一个 confirmDiscardIfNeeded
+        window.delegate = self
 
         // 拖文件/文件夹进窗口 = 打开。根视图是拖拽落点（NSWindow 的拖拽方法
         // 是协议扩展实现，子类重写不到），这里只负责把 URL 接进来。
@@ -472,12 +478,21 @@ final class MainWindowController: NSWindowController {
     }
 
     private func loadTextFile(url: URL, kind: FileKind) {
-        guard let text = readText(at: url) else {
+        // 先取 mtime 再读内容（顺序不能反）：读取中途文件被改的话，
+        // 基线必须落在改动之前，⌘S 的冲突检测才兜得住（审计 D-6）
+        let mtime = try? FileManager.default
+            .attributesOfItem(atPath: url.path)[.modificationDate] as? Date
+
+        guard let decoded = TextDecoding.decode(url: url) else {
+            // 读不了或判定为二进制：进安全空状态，编辑器必须不可编辑 ——
+            // 否则对着空编辑器敲字再 ⌘S，会把文本盖到读不出来的原文件上（审计 D-8）
             contentPane.previewViewController.showMessage(
                 symbol: "exclamationmark.triangle",
-                title: "无法读取文件",
+                title: "无法以文本读取",
                 subtitle: url.lastPathComponent
             )
+            contentPane.editorViewController.setText("")
+            contentPane.editorViewController.setEditable(false)
             currentFileURL = url
             contentPane.mode = .read
             return
@@ -485,30 +500,14 @@ final class MainWindowController: NSWindowController {
 
         currentFileURL = url
         isDirty = false
-        loadedModificationDate = try? FileManager.default
-            .attributesOfItem(atPath: url.path)[.modificationDate] as? Date
+        loadedModificationDate = mtime
+        loadedEncoding = decoded.encoding
         LaunchTimer.mark("    readText 完成")
         contentPane.editorViewController.setEditable(true)
-        contentPane.editorViewController.setText(text)
+        contentPane.editorViewController.setText(decoded.text)
         LaunchTimer.mark("    编辑器 setText 完成")
         pendingScrollFraction = WorkspaceStore.shared.readingPosition(for: url).map { CGFloat($0) }
         renderPreview(immediately: true, allowProgressive: true)
-    }
-
-    /// 优先 UTF-8，失败再让系统探测编码，最后用 Latin-1 兜底
-    private func readText(at url: URL) -> String? {
-        if let text = try? String(contentsOf: url, encoding: .utf8) {
-            return text
-        }
-        var encoding: UInt = 0
-        if let text = try? NSString(contentsOf: url, usedEncoding: &encoding) {
-            return text as String
-        }
-        if let data = try? Data(contentsOf: url),
-           let fallback = String(data: data, encoding: .isoLatin1) {
-            return fallback
-        }
-        return nil
     }
 
     // MARK: - 渲染预览
@@ -707,19 +706,35 @@ final class MainWindowController: NSWindowController {
         guard currentKind?.isTextual ?? false else { return }
 
         // 文件在别处被改过？先问一句，别静默盖掉。
-        if let loaded = loadedModificationDate,
-           let onDisk = try? FileManager.default.attributesOfItem(atPath: url.path)[.modificationDate] as? Date,
-           onDisk > loaded {
-            let alert = NSAlert()
-            alert.messageText = "「\(url.lastPathComponent)」在磁盘上已被修改"
-            alert.informativeText = "保存会用编辑器里的内容覆盖磁盘上的版本，那部分改动会丢失。"
-            alert.addButton(withTitle: "仍然覆盖")
-            alert.addButton(withTitle: "取消")
-            guard alert.runModal() == .alertFirstButtonReturn else { return }
+        // 用 != 不用 >：git checkout / rsync -a 会把 mtime 回写到过去（审计 D-4）。
+        // mtime 读不出来也不能放行 —— 静默失效等于没有守卫（审计 D-5）：
+        // 文件被删/不可读时保存会重建它，同样要先打招呼。
+        if let loaded = loadedModificationDate {
+            let onDisk = try? FileManager.default
+                .attributesOfItem(atPath: url.path)[.modificationDate] as? Date
+            let conflict = onDisk.map { $0 != loaded } ?? true
+            if conflict {
+                let alert = NSAlert()
+                alert.messageText = "「\(url.lastPathComponent)」在磁盘上已被修改"
+                alert.informativeText = onDisk == nil
+                    ? "磁盘上的版本已被删除或无法读取，保存会用编辑器里的内容重新写入。"
+                    : "保存会用编辑器里的内容覆盖磁盘上的版本，那部分改动会丢失。"
+                alert.addButton(withTitle: "仍然写入")
+                alert.addButton(withTitle: "取消")
+                guard alert.runModal() == .alertFirstButtonReturn else { return }
+            }
         }
 
+        // 原子写会换 inode，POSIX 权限要先记下来再还回去
+        let posix = try? FileManager.default
+            .attributesOfItem(atPath: url.path)[.posixPermissions] as? NSNumber
+
         do {
-            try contentPane.editorViewController.text.write(to: url, atomically: true, encoding: .utf8)
+            // 用读入时的编码写回，不做静默转码
+            try contentPane.editorViewController.text.write(to: url, atomically: true, encoding: loadedEncoding)
+            if let posix {
+                try? FileManager.default.setAttributes([.posixPermissions: posix], ofItemAtPath: url.path)
+            }
             isDirty = false
             loadedModificationDate = try? FileManager.default
                 .attributesOfItem(atPath: url.path)[.modificationDate] as? Date
@@ -751,11 +766,14 @@ final class MainWindowController: NSWindowController {
         currentFileURL = nil
         currentKind = nil
         loadedModificationDate = nil
+        loadedEncoding = .utf8
         isDirty = false
         contentPane.editorViewController.setText("")
     }
 
-    private func confirmDiscardIfNeeded() -> Bool {
+    /// 未保存修改的确认。开/关/重载/切模式/关窗/退出六条路都汇到这里；
+    /// 返回 true = 可以继续（已保存或用户放弃），false = 用户取消
+    func confirmDiscardIfNeeded() -> Bool {
         guard isDirty, let url = currentFileURL else { return true }
 
         let alert = NSAlert()
@@ -789,8 +807,10 @@ final class MainWindowController: NSWindowController {
 
     private func handleExternalChange() {
         guard let url = currentFileURL else { return }
-        guard let disk = try? String(contentsOf: url, encoding: .utf8) else { return }
-        guard disk != contentPane.editorViewController.text else { return } // 我们自己的写入
+        // 与打开路径同一个守卫：外部改成二进制就停更，留在当前内容
+        // （旧逻辑只认 UTF-8，非 UTF-8 改动会被静默忽略，还会绕过二进制判定）
+        guard let decoded = TextDecoding.decode(url: url) else { return }
+        guard decoded.text != contentPane.editorViewController.text else { return } // 我们自己的写入
 
         let kind = FileKind(url: url, isDirectory: false)
 
@@ -1096,5 +1116,16 @@ final class MainWindowController: NSWindowController {
         alert.informativeText = detail
         alert.addButton(withTitle: "好")
         alert.runModal()
+    }
+}
+
+// MARK: - NSWindowDelegate
+
+extension MainWindowController: NSWindowDelegate {
+
+    /// 点红灯 / ⌘W 关窗：有未保存修改时先问。⌘Q 不走这里，
+    /// 走 AppDelegate 的 applicationShouldTerminate —— 两边同一个确认框。
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        confirmDiscardIfNeeded()
     }
 }
