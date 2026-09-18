@@ -33,7 +33,7 @@ if [ -f "$PWD/.mumenv.local" ]; then
     . "$PWD/.mumenv.local"
 fi
 
-if [ -n "$GITHUB_PROXY" ]; then
+if [ -n "${GITHUB_PROXY:-}" ]; then
     export GIT_CONFIG_COUNT=1
     export GIT_CONFIG_KEY_0="http.https://github.com.proxy"
     export GIT_CONFIG_VALUE_0="$GITHUB_PROXY"
