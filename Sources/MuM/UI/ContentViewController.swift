@@ -61,7 +61,10 @@ final class ContentViewController: NSViewController {
         didSet { titleLeadingConstraint?.constant = titleLeadingInset }
     }
     private let splitView = NSSplitView()
-    private let emptyState = NSView()
+    // 用带底色的视图而不是裸 NSView —— 它的职责是**盖住**整栏，
+    // 包括底下预览区那句「无文件」提示。裸 NSView 是透明的，
+    // 两层空状态会叠在一起显示（真实发生过）。
+    private let emptyState = PaneBackgroundView(color: MuMDesign.paneBackground)
     private let emptyIcon = NSImageView()
     private let emptyTitle = NSTextField(labelWithString: "")
     private let emptySubtitle = NSTextField(labelWithString: "")
@@ -228,6 +231,10 @@ final class ContentViewController: NSViewController {
         stack.setCustomSpacing(14, after: emptyIcon)
         stack.translatesAutoresizingMaskIntoConstraints = false
 
+        // ⚠️ 必须关掉 autoresizing 约束。不关的话它会和下面四条约束打架，
+        // 视图停在 0×0、原点在左下角，子元素居中于一个空盒子 ——
+        // 整块空状态跑到内容区左下角、文字被左边缘切掉（真实发生过）。
+        emptyState.translatesAutoresizingMaskIntoConstraints = false
         emptyState.addSubview(stack)
         view.addSubview(emptyState)
         NSLayoutConstraint.activate([
