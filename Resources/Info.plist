@@ -7,7 +7,7 @@
 	<key>CFBundleExecutable</key>
 	<string>MuM</string>
 	<key>CFBundleIdentifier</key>
-	<string>mum.jiker.ai</string>
+	<string>ai.jiker.mum</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>

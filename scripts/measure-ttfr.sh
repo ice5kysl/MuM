@@ -11,7 +11,7 @@
 # 环境说明（为什么这么绕）：
 # - 直接跑 .build/*/MuM 没有 bundle id，读的是另一个 defaults 域，文件打不开
 # - 必须经 launchd 的 open 启动（Finder 双击同款路径）
-# - 测量写 ai.mum.app 用户域 —— 全程 export/import 备份还原，结束不留 /tmp 产物
+# - 测量写 ai.jiker.mum 用户域 —— 全程 export/import 备份还原，结束不留 /tmp 产物
 # - 构建后第一开有 LaunchServices 注册开销，先做一次不计入的预热
 set -euo pipefail
 
@@ -37,7 +37,7 @@ done
 git -C "$SRC_ROOT" worktree add --detach "$WT" "$REF" >/dev/null 2>&1
 ROOT="$WT"
 APP="$ROOT/dist/MuM.app"
-DOMAIN=mum.jiker.ai
+DOMAIN=ai.jiker.mum
 LOG=$(mktemp /tmp/mum-ttfr.XXXXXX)
 FIX=$(mktemp /tmp/mum-fix.XXXXXX.md)
 COMMIT=$(git -C "$ROOT" rev-parse --short HEAD)
