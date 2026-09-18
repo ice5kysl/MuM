@@ -227,39 +227,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - 帮助
 
+    private var shortcutsHelpController: ShortcutsHelpWindowController?
+
     @objc func showHelp(_ sender: Any?) {
-        let alert = NSAlert()
-        alert.messageText = "MuM 快捷键"
-        alert.informativeText = """
-        项目
-          ⌘O          打开项目文件夹
-          ⌘1 … ⌘9     切换到第 N 个项目
-          ⇧⌘[ / ⇧⌘]   上一个 / 下一个项目
-          ⌥⌘[ / ⌥⌘]   把当前项目左移 / 右移（固化 ⌘数字 的位置）
-          ⇧⌘W         关闭当前项目
-
-        文件
-          ⌘P          快速打开（按名字模糊搜索项目内文件）
-          ⇧⌘F         全局搜索（跨所有项目搜文件名和内容）
-          ⌘S          保存
-          ⌘R          从磁盘重新载入
-          ⌘W          关闭当前文件
-          ⇧⌘R         刷新文件树
-          ⇧⌘J         在访达中显示
-
-        呈现方式
-          ⌥⌘1         Write — 写 Markdown 源码
-          ⌥⌘2         Read — 阅读渲染结果
-          ⌥⌘3         Preview — 源码与渲染并排对照
-
-        面板
-          ⌘0          显示 / 隐藏项目列表
-          ⌥⌘0         显示 / 隐藏目录树
-          ⌘+ / ⌘-     预览字号
-          ⌃⌘F         全屏幕
-        """
-        alert.addButton(withTitle: "好")
-        alert.runModal()
+        let controller = shortcutsHelpController ?? ShortcutsHelpWindowController()
+        shortcutsHelpController = controller
+        controller.present(relativeTo: mainWindowController?.window)
     }
 }
 
