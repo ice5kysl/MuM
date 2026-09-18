@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""生成 MuM 性能基线用的 Markdown 样本：混合标题/段落/代码块/列表/表格/引用。"""
+"""生成 MuM 性能基线用的 Markdown 样本：混合标题/段落/代码块/列表/表格/引用。
+
+两种用法：
+  make-bench-fixture.py <MB> <out.md>                  单个大文件（渲染/TTFR 基准）
+  make-bench-fixture.py corpus <outdir> <项目数> <每项目文件数>
+      多项目语料（全局搜索基准，v0.5 验收 1/2/3 条）。约 5% 的文件里埋入
+      稀有词 XYZZYMUM，位置由文件序号确定性决定，方便和 `grep -r` 对拍。
+"""
 import sys
 
 UNIT = """## 第 {i} 节：阅读体验与排版细节
@@ -39,6 +46,9 @@ func restoreScrollPosition(for url: URL) {{
 """
 
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "corpus":
+        make_corpus(sys.argv[2], int(sys.argv[3]), int(sys.argv[4]))
+        return
     target_mb = float(sys.argv[1])
     out_path = sys.argv[2]
     target = int(target_mb * 1024 * 1024)
@@ -53,6 +63,37 @@ def main():
     with open(out_path, "w", encoding="utf-8") as f:
         f.write("".join(parts))
     print(f"{out_path}: {size/1024/1024:.2f} MB, {i} 节")
+
+
+def make_corpus(outdir, projects, files_per_project):
+    """全局搜索基准语料：projects 个项目 × files_per_project 个小 Markdown 文件。
+
+    稀有词 XYZZYMUM 埋在每个项目里序号 % 20 == 0 的文件（5%）中，
+    命中行号 = 3，位置完全确定 —— 对拍：
+      grep -rn XYZZYMUM <outdir> | wc -l   应等于  projects * ceil(files_per_project / 20)
+    """
+    import os
+    os.makedirs(outdir, exist_ok=True)
+    planted = 0
+    for p in range(projects):
+        project_dir = os.path.join(outdir, f"project-{p:02d}")
+        os.makedirs(project_dir, exist_ok=True)
+        for f in range(files_per_project):
+            lines = [
+                f"# project-{p:02d} 文档 {f}",
+                "",
+                "这是全局搜索基准语料里的普通一段，不含任何稀有词。",
+                "MuM 是 macOS 原生 Markdown 阅读器，阅读是目的。",
+                "",
+            ]
+            if f % 20 == 0:
+                # 插到第 3 行（0 起算下标 2），与上面的"第 3 行"约定一致
+                lines.insert(2, f"稀有词 XYZZYMUM 埋在 project-{p:02d} 的文档 {f} 里。")
+                planted += 1
+            with open(os.path.join(project_dir, f"doc-{f:05d}.md"), "w", encoding="utf-8") as out:
+                out.write("\n".join(lines))
+    total = projects * files_per_project
+    print(f"{outdir}: {projects} 项目 × {files_per_project} 文件 = {total} 个，埋词 {planted} 处")
 
 if __name__ == "__main__":
     main()

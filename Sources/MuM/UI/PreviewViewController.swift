@@ -125,6 +125,20 @@ final class PreviewViewController: NSViewController {
     func findNext() { step(by: 1) }
     func findPrevious() { step(by: -1) }
 
+    /// 全局搜索定位：显示查找条、填入查询、直接跳到文件里第 occurrence 处命中。
+    /// 与 ⌘F 的手动查找同一条路径（同一套高亮），只是起点由搜索结果指定。
+    func reveal(query: String, occurrence: Int) {
+        showFindBar()
+        findBar.setQuery(query)
+        runFind(query)
+        guard !findMatches.isEmpty else { return }
+        // 渲染文本与源文件的命中数可能不一致（Markdown 语法字符不进渲染结果），
+        // occurrence 越界就落在最后一处 —— 落错一处比什么都不显示好
+        currentMatchIndex = min(max(occurrence - 1, 0), findMatches.count - 1)
+        highlightMatches()
+        scrollToCurrentMatch()
+    }
+
     private func step(by delta: Int) {
         guard !findMatches.isEmpty else { return }
         currentMatchIndex = (currentMatchIndex + delta + findMatches.count) % findMatches.count

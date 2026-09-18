@@ -18,6 +18,11 @@ if CommandLine.arguments.contains("--bench") {
     exit(RenderBench.run(arguments: CommandLine.arguments))
 }
 
+// 全局搜索性能基线：`MuM --bench-search <语料目录> <查询词>`
+if CommandLine.arguments.contains("--bench-search") {
+    exit(SearchBench.run(arguments: CommandLine.arguments))
+}
+
 // 离屏快照：`MuM --snapshot out.png`，不需要屏幕点亮
 if CommandLine.arguments.contains("--snapshot")
     || CommandLine.arguments.contains("--snapshot-settings") {

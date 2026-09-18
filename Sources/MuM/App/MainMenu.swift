@@ -84,6 +84,7 @@ enum MainMenuBuilder {
         menu.addItem(item("过滤文件…", #selector(AppDelegate.focusFileFilter(_:)), "", target: target))
         menu.addItem(.separator())
         menu.addItem(item("在预览中查找…", #selector(AppDelegate.showPreviewFind(_:)), "f", target: target))
+        menu.addItem(item("全局搜索…", #selector(AppDelegate.showGlobalSearch(_:)), "f", modifiers: [.command, .shift], target: target))
         menu.addItem(item("文档大纲…", #selector(AppDelegate.showOutline(_:)), "o", modifiers: [.command, .shift], target: target))
         menu.addItem(item("查找下一处", #selector(AppDelegate.findNext(_:)), "g", target: target))
         menu.addItem(item("查找上一处", #selector(AppDelegate.findPrevious(_:)), "g", modifiers: [.command, .shift], target: target))

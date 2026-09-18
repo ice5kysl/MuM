@@ -128,6 +128,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mainWindowController?.showPreviewFind()
     }
 
+    @objc func showGlobalSearch(_ sender: Any?) {
+        mainWindowController?.showGlobalSearch()
+    }
+
     @objc func showOutline(_ sender: Any?) {
         mainWindowController?.showOutline()
     }
@@ -226,6 +230,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         文件
           ⌘P          快速打开（按名字模糊搜索项目内文件）
+          ⇧⌘F         全局搜索（跨所有项目搜文件名和内容）
           ⌘S          保存
           ⌘R          从磁盘重新载入
           ⌘W          关闭当前文件
@@ -298,7 +303,8 @@ extension AppDelegate: NSMenuItemValidation {
 
         case #selector(refreshFileTree(_:)),
              #selector(focusFileFilter(_:)),
-             #selector(showQuickOpen(_:)):
+             #selector(showQuickOpen(_:)),
+             #selector(showGlobalSearch(_:)):
             return WorkspaceStore.shared.count > 0
 
         default:

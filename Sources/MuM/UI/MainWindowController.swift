@@ -583,7 +583,7 @@ final class MainWindowController: NSWindowController {
         // 余量切 ≤40ms 的薄片分次补齐，填充期间滚动保持可用。
         // 回滚开关：defaults write sh.ice.mum MuM.disableProgressiveRender -bool true
         // （bench 包是 sh.ice.mum.bench）。只改时机不改内容 —— 拼接结果与全量渲染逐字一致。
-        if allowProgressive, case .markdown = kind, text.count > 100_000,
+        if allowProgressive, !forceFullRenderForNextOpen, case .markdown = kind, text.count > 100_000,
            !UserDefaults.standard.bool(forKey: "MuM.disableProgressiveRender") {
             renderProgressively(renderer: renderer, text: text, restore: restore)
             return
@@ -916,6 +916,61 @@ final class MainWindowController: NSWindowController {
 
     func refreshFileTree() {
         fileTreeViewController.refreshPreservingExpansion()
+    }
+
+    // MARK: - 全局搜索（⌘⇧F）
+
+    private var globalSearchPanel: GlobalSearchPanel?
+    /// 定位搜索命中时，下一次打开不走渐进渲染 —— 渐进填充是后台分片的，
+    /// 命中定位跑在填充完成之前会找不到后半篇的命中
+    private var forceFullRenderForNextOpen = false
+
+    func showGlobalSearch() {
+        guard let window else { return }
+        let workspaces = WorkspaceStore.shared.workspaces
+        guard !workspaces.isEmpty else { return }
+
+        let panel = globalSearchPanel ?? GlobalSearchPanel()
+        globalSearchPanel = panel
+        panel.onOpen = { [weak self] query, hit in
+            self?.openSearchHit(hit, query: query)
+        }
+        panel.present(over: window, scopes: workspaces.map {
+            GlobalSearchEngine.Scope(root: $0.rootURL, name: $0.name)
+        })
+    }
+
+    /// 点中一条搜索结果：必要时切到命中所在的项目，打开文件；
+    /// 内容命中再定位到那一处 —— 搜索的终点不是文件列表，是"我已经在读那段话了"。
+    private func openSearchHit(_ hit: GlobalSearchEngine.Hit, query: String) {
+        let store = WorkspaceStore.shared
+        guard let index = store.workspaces.firstIndex(where: {
+            hit.fileURL.path.hasPrefix($0.rootURL.path + "/")
+        }) else { return }
+
+        // 与 openFileFromOutside 同理：切项目不该白付一次旧文件恢复（E-2）
+        if index != store.activeIndex {
+            suppressNextWorkspaceRestore = true
+            store.activate(index: index)
+        }
+
+        if hit.kind == .content {
+            forceFullRenderForNextOpen = true
+        }
+        open(url: hit.fileURL)
+        forceFullRenderForNextOpen = false
+
+        guard hit.kind == .content else { return }
+
+        // 查找高亮跑在渲染结果上：纯编辑模式下预览里可能还是旧内容，
+        // 临时切到阅读模式 —— 不动 preferredMode，看完切回去还是原来的习惯
+        if contentPane.mode == .write {
+            contentPane.mode = .read
+            renderPreview(immediately: true)
+            refreshChrome()
+        }
+        guard canFindInPreview else { return }
+        contentPane.previewViewController.reveal(query: query, occurrence: hit.occurrence)
     }
 
     func revealInFinder() {
