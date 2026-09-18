@@ -266,4 +266,74 @@ final class GlobalSearchEngine {
         }
         return found
     }
+
+    // MARK: - 展示用上下文
+
+    /// 把原始命中行变成列表里能读的一行上下文。
+    ///
+    /// 原始行常常很长、带行首缩进和成串空白（表格、对齐的 Markdown），整行铺进
+    /// 结果列表就是一堵字墙。处理：折叠连续空白为一个空格、去掉首尾空白；
+    /// 仍太长就以命中为中心开窗，两端补省略号。
+    ///
+    /// 返回清理后的文本与命中词在其中的新位置（高亮用）。位置靠逐字符的
+    /// 下标映射搬过去，不能重新搜 —— 一行里可能有多个相同命中（"second NEEDLE
+    /// and needle again"），重搜会把所有行都高亮成第一处。
+    static func displayContext(
+        line: String,
+        match: NSRange?,
+        maxLength: Int = 120
+    ) -> (text: String, matchRange: NSRange?) {
+        let ns = line as NSString
+
+        // map[i] = 原始下标 i 在清理后文本里的位置（UTF-16）
+        var map = [Int](repeating: 0, count: ns.length + 1)
+        var cleaned = ""
+        var outIndex = 0
+        var pendingSpace = false
+        cleaned.reserveCapacity(ns.length)
+        for i in 0..<ns.length {
+            let ch = ns.character(at: i)
+            if ch == 0x20 || ch == 0x09 || ch == 0x0A || ch == 0x0D {
+                // 行首空白直接丢；行中的串成一串，最后只补一个
+                pendingSpace = pendingSpace || outIndex > 0
+                map[i] = outIndex
+                continue
+            }
+            if pendingSpace {
+                cleaned.append(" ")
+                outIndex += 1
+                pendingSpace = false
+            }
+            map[i] = outIndex
+            cleaned.append(Character(UnicodeScalar(ch) ?? UnicodeScalar(0xFFFD)!))
+            outIndex += 1
+        }
+        map[ns.length] = outIndex
+
+        var text = cleaned
+        guard let match, match.location != NSNotFound,
+              match.location + match.length <= ns.length else {
+            return (text, nil)
+        }
+
+        var location = map[match.location]
+        let length = max(map[match.location + match.length] - location, 1)
+
+        // 以命中为中心开窗（全程 UTF-16 下标，与 NSRange 一致）
+        let cns = text as NSString
+        if cns.length > maxLength {
+            var start = max(0, location - maxLength / 2)
+            let end = min(cns.length, start + maxLength)
+            start = max(0, end - maxLength)
+            text = cns.substring(with: NSRange(location: start, length: end - start))
+            location -= start
+            if start > 0 {
+                text = "…" + text
+                location += 1
+            }
+            if end < cns.length { text += "…" }
+        }
+
+        return (text, NSRange(location: location, length: length))
+    }
 }

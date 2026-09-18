@@ -176,7 +176,7 @@ final class GlobalSearchPanel: NSPanel {
         if query.isEmpty {
             statusLabel.stringValue = "在 \(scopes.count) 个项目中搜索文件名和内容"
         } else if searching {
-            statusLabel.stringValue = "搜索中… 已扫 \(filesScanned) 个文件（Esc 停止）"
+            statusLabel.stringValue = "搜索中… 已扫 \(filesScanned) 个文件（Esc 关闭）"
         } else {
             var parts = ["\(hits.count) 条结果 · 共扫 \(filesScanned) 个文件"]
             if skippedLarge > 0 {
@@ -206,7 +206,11 @@ final class GlobalSearchPanel: NSPanel {
             chip.tag = index
             chip.state = included[index] ? .on : .off
             chip.font = MuMDesign.rowSubtitle
+            chip.controlSize = .small
             chip.contentTintColor = MuMDesign.secondaryText
+            if index < 9 {
+                chip.toolTip = "⌥\(index + 1) 切换这个项目"
+            }
             scopeStack.addArrangedSubview(chip)
         }
     }
@@ -216,6 +220,24 @@ final class GlobalSearchPanel: NSPanel {
         included[sender.tag] = sender.state == .on
         // 范围变了立即重搜 —— 收窄是搜索动作的一部分，不该要用户再敲一下回车
         restartSearch()
+    }
+
+    /// ⌥1…⌥9 切换对应项目的开关：收窄范围也不依赖鼠标。
+    /// 面板是 key window 时数字键在输入框里是打字，加 ⌥ 才不冲突。
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if event.modifierFlags.contains(.option),
+           let chars = event.charactersIgnoringModifiers,
+           let char = chars.first,
+           let digit = Int(String(char)),
+           digit >= 1, digit <= 9 {
+            let index = digit - 1
+            guard scopes.indices.contains(index) else { return true }
+            included[index].toggle()
+            rebuildScopeChips()
+            restartSearch()
+            return true
+        }
+        return super.performKeyEquivalent(with: event)
     }
 
     // MARK: - 打开
@@ -254,7 +276,7 @@ final class GlobalSearchPanel: NSPanel {
         tableView.headerView = nil
         tableView.rowSizeStyle = .custom
         tableView.rowHeight = 44
-        tableView.intercellSpacing = NSSize(width: 0, height: 1)
+        tableView.intercellSpacing = NSSize(width: 0, height: 4)
         tableView.target = self
         tableView.doubleAction = #selector(tableDoubleClick(_:))
         tableView.dataSource = self
@@ -329,15 +351,10 @@ final class GlobalSearchPanel: NSPanel {
         onOpen?(currentQuery, hit)
     }
 
-    /// Esc：搜索进行中先停搜索（结果保留），不在搜索就关面板
+    /// Esc：关闭面板。close 里会取消进行中的搜索 —— 先停再关的两段式
+    /// 反直觉（ice 实测按 Esc 面板不消失），关闭本身就是"立即停"
     override func cancelOperation(_ sender: Any?) {
-        if searching {
-            cancelSearch()
-            updateStatus()
-            emptyLabel.isHidden = !hits.isEmpty
-        } else {
-            close()
-        }
+        close()
     }
 }
 
@@ -349,7 +366,7 @@ extension GlobalSearchPanel: NSSearchFieldDelegate {
         scheduleSearch()
     }
 
-    /// 输入框里的特殊键：↑↓ 挪给列表，Esc 停搜索/关面板
+    /// 输入框里的特殊键：↑↓ 挪给列表，Esc 关面板
     func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
         switch commandSelector {
         case #selector(NSResponder.moveUp(_:)):
@@ -438,7 +455,10 @@ private final class GlobalSearchRowView: NSTableCellView {
 
         case .content:
             titleLabel.stringValue = "\(projectName) › \(hit.relativePath) · 第 \(hit.lineNumber) 行"
-            detailLabel.attributedStringValue = highlighted(line: hit.lineText, match: hit.matchRangeInLine)
+            // 原始行整行铺进来是一堵字墙：折叠空白、以命中为中心开窗
+            let context = GlobalSearchEngine.displayContext(
+                line: hit.lineText, match: hit.matchRangeInLine)
+            detailLabel.attributedStringValue = highlighted(line: context.text, match: context.matchRange)
         }
     }
 

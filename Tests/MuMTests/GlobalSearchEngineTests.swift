@@ -175,6 +175,44 @@ final class GlobalSearchEngineTests: XCTestCase {
         XCTAssertFalse(summary.wasCancelled)
     }
 
+    // MARK: - 展示用上下文（结果行不能是一堵字墙）
+
+    func testDisplayContextCollapsesWhitespace() {
+        let line = "    **成本**(deepseek-chat 级，约  \\$0.0015/次)：  "
+        let (text, range) = GlobalSearchEngine.displayContext(
+            line: line, match: NSRange(location: 11, length: 8))
+        XCTAssertEqual(text, "**成本**(deepseek-chat 级，约 \\$0.0015/次)：",
+                       "行首缩进与行尾空白去掉，连续空白折叠")
+        XCTAssertEqual(range.map { (text as NSString).substring(with: $0) }, "deepseek")
+    }
+
+    func testDisplayContextPicksTheRightOccurrence() {
+        // 一行里多个相同命中：位置必须按下标映射搬，重搜会全高亮成第一处
+        let line = "second NEEDLE and needle again"
+        let second = (line as NSString).range(of: "needle", options: .backwards)
+        let (text, range) = GlobalSearchEngine.displayContext(line: line, match: second)
+        XCTAssertEqual(text, line)
+        XCTAssertEqual(range.map { (text as NSString).substring(with: $0) }, "needle")
+        XCTAssertEqual(range?.location, second.location)
+    }
+
+    func testDisplayContextWindowsLongLinesAroundMatch() {
+        let line = String(repeating: "前", count: 200) + "needle" + String(repeating: "后", count: 200)
+        let match = NSRange(location: 200, length: 6)
+        let (text, range) = GlobalSearchEngine.displayContext(line: line, match: match, maxLength: 60)
+        XCTAssertLessThan(text.count, 70, "长行要开窗，不能整行铺进列表")
+        XCTAssertTrue(text.hasPrefix("…"))
+        XCTAssertTrue(text.hasSuffix("…"))
+        XCTAssertEqual(range.map { (text as NSString).substring(with: $0) }, "needle",
+                       "开窗后命中词仍在窗口里且位置正确")
+    }
+
+    func testDisplayContextWithoutMatch() {
+        let (text, range) = GlobalSearchEngine.displayContext(line: "  hello  world ", match: nil)
+        XCTAssertEqual(text, "hello world")
+        XCTAssertNil(range)
+    }
+
     // MARK: - 工具
 
     private func makeProject(_ name: String) -> URL {
