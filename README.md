@@ -386,6 +386,23 @@ cp -R dist/MuM.app /Applications/        # 建议放这里，见下
 只在第 1 种里设了 Markdown 一种。把 `.txt` 和源代码也一并抢过来是越界的 ——
 那些类型用户多半已经有别的主力工具，而声明（出现在「打开方式」里）已经够用了。
 
+### 命令行入口：`mum`
+
+```bash
+ln -sf /Applications/MuM.app/Contents/Resources/mum /usr/local/bin/mum
+
+mum .            # 把当前目录作为项目打开
+mum README.md    # 打开单个文件
+```
+
+脚本本体住在 bundle 里（`Contents/Resources/mum`），跟应用同版本发布。
+它走 LaunchServices（`open -a`）：应用没在跑就拉起，在跑就把打开事件递给
+现有实例 —— 不会出现第二个进程、第二个 Dock 图标。
+
+**为什么在 `Resources` 而不是 `MacOS`**：macOS 默认文件系统大小写不敏感，
+`Contents/MacOS/mum` 和主二进制 `Contents/MacOS/MuM` 是同一个文件 ——
+放进去会直接覆盖掉应用本体（踩过，勿试）。
+
 验证当前绑定：
 
 ```bash

@@ -68,6 +68,12 @@ if [ -f "$ROOT/Resources/AppIcon.icns" ]; then
   cp "$ROOT/Resources/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
 fi
 
+# `mum` 命令行入口：本体随 bundle 发布，用户软链到 PATH 即可（见 README）。
+# 放在 Resources 而不是 MacOS：macOS 默认大小写不敏感，`MacOS/mum` 和主二进制
+# `MacOS/MuM` 是同一个文件 —— 拷过去会把二进制覆盖掉（踩过，勿移）。
+cp "$ROOT/scripts/mum" "$APP/Contents/Resources/mum"
+chmod +x "$APP/Contents/Resources/mum"
+
 # 未签名的 app 在 Apple Silicon 上无法启动，ad-hoc 签名即可满足本机运行
 echo "==> ad-hoc 签名"
 codesign --force --sign - --timestamp=none "$APP" >/dev/null 2>&1 || echo "    (签名失败，可能无法启动)"

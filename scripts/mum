@@ -1,0 +1,23 @@
+#!/bin/bash
+# mum — MuM 的命令行入口
+#
+#   mum .            把当前目录作为项目打开
+#   mum README.md    打开单个文件
+#
+# 本体住在 app bundle 里（Contents/Resources/mum），跟应用同版本发布。
+# 不放 Contents/MacOS：大小写不敏感文件系统上 mum 与主二进制 MuM 同名。
+# 建议软链到 PATH：
+#   ln -sf /Applications/MuM.app/Contents/Resources/mum /usr/local/bin/mum
+set -euo pipefail
+
+# 经软链调用时 BASH_SOURCE 是链接本身，先解析到真实路径再找 bundle
+SOURCE="$(realpath "${BASH_SOURCE[0]}")"
+BUNDLE="$(cd "$(dirname "$SOURCE")/../.." && pwd)"
+
+TARGET="${1:-.}"
+# open 按调用方的 cwd 解析相对路径；这里先绝对化，语义不依赖运行目录
+[[ "$TARGET" = /* ]] || TARGET="$PWD/$TARGET"
+
+# 走 LaunchServices：应用没在跑就拉起，在跑就把打开事件递给现有实例 ——
+# 不会出现第二个进程、第二个 Dock 图标
+exec open -a "$BUNDLE" "$TARGET"
