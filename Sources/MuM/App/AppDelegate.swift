@@ -70,6 +70,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// 从访达双击 / `open -a MuM <路径>` 打开
     func application(_ application: NSApplication, open urls: [URL]) {
+        LaunchTimer.mark("AppDelegate 收到 open 事件（\(urls.count) 个 URL）")
         // 打开事件可能早于 applicationDidFinishLaunching 到达，那时窗口还没建好。
         // 不排队的话这些路径会被静默丢掉 —— 表现就是"双击文件没反应，只弹出上次的文档"。
         guard let controller = mainWindowController else {

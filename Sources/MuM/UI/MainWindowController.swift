@@ -382,6 +382,7 @@ final class MainWindowController: NSWindowController {
     /// 外部打开的统一入口（双击 / `open -a` / Dock 拖入 / 窗口拖入）：
     /// 文件夹开成项目，文件走 openFileFromOutside（它会处理「不属于任何项目」的情况）。
     func openIncoming(_ url: URL) {
+        LaunchTimer.mark("openIncoming: \(url.lastPathComponent)")
         var isDirectory: ObjCBool = false
         guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) else { return }
 
