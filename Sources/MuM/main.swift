@@ -34,6 +34,12 @@ if CommandLine.arguments.contains("--uitest") {
     exit(UITestRunner.run(arguments: CommandLine.arguments))
 }
 
+// headless 子命令（给 agent 用）：`MuM render|outline|search|check …`
+// prohibited 策略：无窗口、无 Dock 图标、无 UI 激活。返回 nil 表示不是子命令，继续正常启动。
+if let code = Headless.run(arguments: CommandLine.arguments) {
+    exit(code)
+}
+
 // 离屏快照：`MuM --snapshot out.png`，不需要屏幕点亮
 if CommandLine.arguments.contains("--snapshot")
     || CommandLine.arguments.contains("--snapshot-settings") {

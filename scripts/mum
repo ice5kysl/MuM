@@ -3,6 +3,7 @@
 #
 #   mum .            把当前目录作为项目打开
 #   mum README.md    打开单个文件
+#   mum render|outline|search|check …   headless 子命令（给 agent 用，不拉起 app）
 #
 # 本体住在 app bundle 里（Contents/Resources/mum），跟应用同版本发布。
 # 不放 Contents/MacOS：大小写不敏感文件系统上 mum 与主二进制 MuM 同名。
@@ -13,6 +14,14 @@ set -euo pipefail
 # 经软链调用时 BASH_SOURCE 是链接本身，先解析到真实路径再找 bundle
 SOURCE="$(realpath "${BASH_SOURCE[0]}")"
 BUNDLE="$(cd "$(dirname "$SOURCE")/../.." && pwd)"
+
+# headless 子命令：直接调 bundle 里的二进制（prohibited 策略，
+# 无窗口、无 Dock 图标、无 UI 激活），不经 LaunchServices 拉起 app
+case "${1:-}" in
+  render|outline|search|check)
+    exec "$BUNDLE/Contents/MacOS/MuM" "$@"
+    ;;
+esac
 
 TARGET="${1:-.}"
 # open 按调用方的 cwd 解析相对路径；这里先绝对化，语义不依赖运行目录

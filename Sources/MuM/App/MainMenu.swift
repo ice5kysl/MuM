@@ -58,6 +58,8 @@ enum MainMenuBuilder {
         menu.addItem(item("从磁盘重新载入", #selector(AppDelegate.reloadDocument(_:)), "r", target: target))
         menu.addItem(item("关闭当前文件", #selector(AppDelegate.closeDocument(_:)), "w", target: target))
         menu.addItem(.separator())
+        menu.addItem(item("导出…", #selector(AppDelegate.exportDocument(_:)), "e", modifiers: [.command, .shift], target: target))
+        menu.addItem(.separator())
         menu.addItem(item("刷新文件树", #selector(AppDelegate.refreshFileTree(_:)), "r", modifiers: [.command, .shift], target: target))
         menu.addItem(.separator())
         menu.addItem(item("在访达中显示", #selector(AppDelegate.revealInFinder(_:)), "j", modifiers: [.command, .shift], target: target))

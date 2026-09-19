@@ -24,6 +24,7 @@ enum UITestRunner {
         ("find", "文档内查找"),
         ("outline", "大纲"),
         ("search", "全局搜索"),
+        ("export", "导出（⌘⇧E）"),
     ]
 
     static func run(arguments: [String]) -> Int32 {
@@ -105,6 +106,7 @@ enum UITestRunner {
             case "find": scenarioFind(controller, docURL, check)
             case "outline": scenarioOutline(controller, docURL, check)
             case "search": scenarioSearch(controller, docURL, check)
+            case "export": scenarioExport(controller, docURL, check)
             default: break
             }
             checkers.append(check)
@@ -388,6 +390,48 @@ enum UITestRunner {
         check.waitFor("reveal：文档内查找高亮就位", expected: "查找条打开且命中 >0", timeout: 10,
                       condition: { c.isFindingInPreview && c.debugPreview.debugFindMatchCount > 0 },
                       actual: { "isFinding=\(c.isFindingInPreview)，命中 \(c.debugPreview.debugFindMatchCount)" })
+    }
+
+    // MARK: - 场景七：导出（⌘⇧E）
+    //
+    // 走 ⌘⇧E 保存面板落定后的同一条路径（exportRenderedOrThrow），但写到
+    // 临时目录的确定性路径 —— 测试进程不弹 NSSavePanel。断言产物非空且
+    // 文件签名正确（PNG 魔数 / %PDF），最后清理临时文件。
+
+    private static func scenarioExport(_ c: MainWindowController, _ doc: URL, _ check: Checker) {
+        guard openAndRender(c, doc, check) else { return }
+        check.expect(c.canExport, "有打开文档时可导出", expected: "canExport", actual: "不可导出")
+
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("mum-uitest-export-\(ProcessInfo.processInfo.processIdentifier)")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let png = dir.appendingPathComponent("导出.png")
+        check.expect(c.debugExport(to: png), "导出 PNG 成功",
+                     expected: "写入成功", actual: "debugExport 返回 false")
+        check.expect(fileMatches(png.path, magic: [0x89, 0x50, 0x4E, 0x47], minBytes: 1000).ok,
+                     "PNG 非空且签名正确", expected: "‰PNG 头 + >1KB",
+                     actual: fileMatches(png.path, magic: [0x89, 0x50, 0x4E, 0x47], minBytes: 1000).detail)
+
+        let pdf = dir.appendingPathComponent("导出.pdf")
+        check.expect(c.debugExport(to: pdf), "导出 PDF 成功",
+                     expected: "写入成功", actual: "debugExport 返回 false")
+        check.expect(fileMatches(pdf.path, magic: [0x25, 0x50, 0x44, 0x46], minBytes: 1000).ok,
+                     "PDF 非空且签名正确", expected: "%PDF 头 + >1KB",
+                     actual: fileMatches(pdf.path, magic: [0x25, 0x50, 0x44, 0x46], minBytes: 1000).detail)
+    }
+
+    /// 断言产物：存在、够大、魔数对。返回（结果, 读回描述）
+    private static func fileMatches(
+        _ path: String, magic: [UInt8], minBytes: Int
+    ) -> (ok: Bool, detail: String) {
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else {
+            return (false, "文件不存在")
+        }
+        let head = Array(data.prefix(magic.count))
+        let ok = data.count >= minBytes && head == magic
+        return (ok, "\(data.count) 字节，头部 \(head.map { String(format: "%02X", $0) }.joined())")
     }
 
     // MARK: - 控件驱动与断言助手

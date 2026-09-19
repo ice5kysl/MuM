@@ -128,6 +128,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mainWindowController?.closeDocument()
     }
 
+    @objc func exportDocument(_ sender: Any?) {
+        mainWindowController?.exportDocument()
+    }
+
     @objc func refreshFileTree(_ sender: Any?) {
         mainWindowController?.refreshFileTree()
     }
@@ -266,6 +270,9 @@ extension AppDelegate: NSMenuItemValidation {
 
         case #selector(saveDocument(_:)):
             return mainWindowController?.hasOpenDocument ?? false
+
+        case #selector(exportDocument(_:)):
+            return mainWindowController?.canExport ?? false
 
         case #selector(reloadDocument(_:)),
              #selector(closeDocument(_:)),

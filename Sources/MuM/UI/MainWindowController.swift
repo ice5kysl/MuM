@@ -663,6 +663,59 @@ final class MainWindowController: NSWindowController {
         }
     }
 
+    // MARK: - 导出（⌘⇧E）
+
+    /// 当前文档可导出：有打开的文本文件（图片 / PDF 没有"导出渲染结果"这回事）
+    var canExport: Bool { hasOpenDocument && (currentKind?.isTextual ?? false) }
+
+    /// ⌘⇧E：导出当前文档的渲染结果。保存面板只管"存到哪、什么格式"，
+    /// 渲染走 DocumentRenderer —— 与 headless `MuM render` 同一个入口。
+    func exportDocument() {
+        guard canExport, let window, let url = currentFileURL else { return }
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.png, .pdf]
+        panel.nameFieldStringValue = url.deletingPathExtension().lastPathComponent + ".png"
+        panel.beginSheetModal(for: window) { [weak self] response in
+            guard response == .OK, let output = panel.url else { return }
+            self?.exportRendered(to: output)
+        }
+    }
+
+    /// 面板落定后的实际导出。导出编辑器里的当前内容（含未保存改动）—— 所见即所得。
+    private func exportRendered(to output: URL) {
+        do {
+            try exportRenderedOrThrow(to: output)
+        } catch {
+            presentError(message: "导出失败", detail: error.localizedDescription)
+        }
+    }
+
+    /// 诊断用（UITestRunner）：导出到确定性路径，不弹保存面板，成败用返回值说话
+    /// （失败时不能走 presentError —— 测试进程里弹模态框会永远等不到点击）
+    func debugExport(to output: URL) -> Bool {
+        (try? exportRenderedOrThrow(to: output)) != nil
+    }
+
+    /// 导出参数：跟随当前的阅读主题与排版设置；明暗跟随 app 当前外观（dark 留 nil）
+    private func exportRenderedOrThrow(to output: URL) throws {
+        guard let kind = currentKind else { return }
+        var options = DocumentRenderer.Options()
+        options.readingTheme = settings.readingTheme
+        options.fontSize = settings.previewFontSize
+        options.lineSpacing = settings.lineSpacing
+        options.blockSpacing = settings.blockSpacing
+        options.letterSpacing = settings.letterSpacing
+        options.previewFont = settings.previewFont
+        options.width = CGFloat(settings.readingWidth.rawValue)
+        try DocumentRenderer.write(
+            text: contentPane.editorViewController.text,
+            kind: kind,
+            baseURL: currentFileURL?.deletingLastPathComponent(),
+            to: output,
+            options: options
+        )
+    }
+
     // MARK: - 前进 / 后退
 
     /// 阅读动线的历史：链接跳转、文件树点击、搜索结果，全都在一条线上。
