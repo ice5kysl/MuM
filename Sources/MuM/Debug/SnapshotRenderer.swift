@@ -9,6 +9,12 @@ import AppKit
 enum SnapshotRenderer {
 
     static func run(arguments: [String]) -> Int32 {
+        // 单独渲染关于窗口：排版改动（定位语/释义行）用它核对，不用打开 app 点菜单
+        if let flagIndex = arguments.firstIndex(of: "--snapshot-about"),
+           flagIndex + 1 < arguments.count {
+            return snapshotAbout(to: arguments[flagIndex + 1], dark: arguments.contains("--dark"))
+        }
+
         // 单独渲染设置面板：齿轮在底栏，锁屏 / 无鼠标时点不到，用它来核对面板布局
         if let flagIndex = arguments.firstIndex(of: "--snapshot-settings"),
            flagIndex + 1 < arguments.count {
@@ -183,6 +189,44 @@ enum SnapshotRenderer {
 
         print("已渲染 \(Int(content.bounds.width))×\(Int(content.bounds.height)) → \(outputURL.path)")
         return 0
+    }
+
+    /// 把关于窗口单独渲染成 PNG（含真实 app 图标与版本号）
+    private static func snapshotAbout(to path: String, dark: Bool) -> Int32 {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.accessory)
+        let pinned = NSAppearance(named: dark ? .darkAqua : .aqua)
+
+        let controller = AboutWindowController()
+        guard let window = controller.window, let content = window.contentView else {
+            FileHandle.standardError.write("无法建立关于窗口\n".data(using: .utf8)!)
+            return 1
+        }
+        // 三层钉外观（同主快照的教训）：layer-backed 视图的缓存 CGColor 要
+        // effectiveAppearance 真实变化一次才重算
+        app.appearance = pinned
+        window.appearance = pinned
+        func pinAppearance(_ view: NSView) {
+            view.appearance = pinned
+            view.subviews.forEach(pinAppearance)
+        }
+        pinAppearance(content)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.2))
+        content.layoutSubtreeIfNeeded()
+
+        guard let rep = content.bitmapImageRepForCachingDisplay(in: content.bounds) else { return 1 }
+        pinned?.performAsCurrentDrawingAppearance {
+            content.cacheDisplay(in: content.bounds, to: rep)
+        }
+        guard let data = rep.representation(using: .png, properties: [:]) else { return 1 }
+        do {
+            try data.write(to: URL(fileURLWithPath: path))
+            print("关于窗口 \(Int(content.bounds.width))×\(Int(content.bounds.height)) → \(path)")
+            return 0
+        } catch {
+            FileHandle.standardError.write("写入失败：\(error.localizedDescription)\n".data(using: .utf8)!)
+            return 1
+        }
     }
 
     /// 把设置面板单独渲染成 PNG

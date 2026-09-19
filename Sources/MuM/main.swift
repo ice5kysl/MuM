@@ -40,9 +40,10 @@ if let code = Headless.run(arguments: CommandLine.arguments) {
     exit(code)
 }
 
-// 离屏快照：`MuM --snapshot out.png`，不需要屏幕点亮
+// 离屏快照：`MuM --snapshot out.png`（/ --snapshot-settings / --snapshot-about），不需要屏幕点亮
 if CommandLine.arguments.contains("--snapshot")
-    || CommandLine.arguments.contains("--snapshot-settings") {
+    || CommandLine.arguments.contains("--snapshot-settings")
+    || CommandLine.arguments.contains("--snapshot-about") {
     exit(SnapshotRenderer.run(arguments: CommandLine.arguments))
 }
 

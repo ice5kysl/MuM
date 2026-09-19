@@ -13,7 +13,7 @@ final class AboutWindowController: NSWindowController {
 
     init() {
         let window = AboutWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 300, height: 340),
+            contentRect: NSRect(x: 0, y: 0, width: 300, height: 368),
             styleMask: [.titled, .closable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -68,13 +68,27 @@ final class AboutWindowController: NSWindowController {
         version.textColor = MuMDesign.tertiaryText
         version.translatesAutoresizingMaskIntoConstraints = false
 
-        // 定位语必须与 VISION.md 一字不差 —— 三根支柱（快/原生/多项目）
-        // 和"阅读是目的"是产品的全部自我认知，关于窗口没有资格改写它
-        let tagline = NSTextField(labelWithString: "快、原生、多项目的 Markdown 阅读器")
+        // 名字释义：MuM = Multi-project Markdown（v0.6 定位升级后，
+        // 多项目从功能升进了名字）
+        let backronym = NSTextField(labelWithString: "Multi-project Markdown")
+        backronym.font = NSFont.systemFont(ofSize: 10)
+        backronym.textColor = MuMDesign.tertiaryText
+        backronym.translatesAutoresizingMaskIntoConstraints = false
+
+        // 定位语必须与 VISION.md 一字不差 —— 它是产品的全部自我认知，
+        // 关于窗口没有资格改写它（v0.6：reader → engine，给人也给 agent）。
+        // 破折号前后拆成两行：窄窗里整句折行的断点不可控（实测"agent 用"会孤行）
+        let tagline = NSTextField(labelWithString: "快、原生的 Markdown 引擎")
         tagline.font = NSFont.systemFont(ofSize: 12)
         tagline.textColor = MuMDesign.secondaryText
         tagline.translatesAutoresizingMaskIntoConstraints = false
 
+        let audience = NSTextField(labelWithString: "给人用，也给 agent 用")
+        audience.font = NSFont.systemFont(ofSize: 12)
+        audience.textColor = MuMDesign.secondaryText
+        audience.translatesAutoresizingMaskIntoConstraints = false
+
+        // 「阅读是目的」保留，它管"给人"那一半
         let motto = NSTextField(labelWithString: "阅读是目的，不是编辑的副产品")
         motto.font = NSFont.systemFont(ofSize: 12)
         motto.textColor = MuMDesign.tertiaryText
@@ -95,8 +109,10 @@ final class AboutWindowController: NSWindowController {
 
         content.addSubview(icon)
         content.addSubview(name)
+        content.addSubview(backronym)
         content.addSubview(version)
         content.addSubview(tagline)
+        content.addSubview(audience)
         content.addSubview(motto)
         content.addSubview(links)
         NSLayoutConstraint.activate([
@@ -108,13 +124,19 @@ final class AboutWindowController: NSWindowController {
             name.topAnchor.constraint(equalTo: icon.bottomAnchor, constant: 16),
             name.centerXAnchor.constraint(equalTo: content.centerXAnchor),
 
-            version.topAnchor.constraint(equalTo: name.bottomAnchor, constant: 4),
+            backronym.topAnchor.constraint(equalTo: name.bottomAnchor, constant: 2),
+            backronym.centerXAnchor.constraint(equalTo: content.centerXAnchor),
+
+            version.topAnchor.constraint(equalTo: backronym.bottomAnchor, constant: 4),
             version.centerXAnchor.constraint(equalTo: content.centerXAnchor),
 
-            tagline.topAnchor.constraint(equalTo: version.bottomAnchor, constant: 28),
+            tagline.topAnchor.constraint(equalTo: version.bottomAnchor, constant: 24),
             tagline.centerXAnchor.constraint(equalTo: content.centerXAnchor),
 
-            motto.topAnchor.constraint(equalTo: tagline.bottomAnchor, constant: 4),
+            audience.topAnchor.constraint(equalTo: tagline.bottomAnchor, constant: 2),
+            audience.centerXAnchor.constraint(equalTo: content.centerXAnchor),
+
+            motto.topAnchor.constraint(equalTo: audience.bottomAnchor, constant: 10),
             motto.centerXAnchor.constraint(equalTo: content.centerXAnchor),
 
             links.topAnchor.constraint(equalTo: motto.bottomAnchor, constant: 12),
