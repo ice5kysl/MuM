@@ -18,6 +18,42 @@
 
 ## [未发布]
 
+## [0.6.0] - 2026-09-19
+
+**能交给别人 —— 第一次，第二个人可以自己装上它。**
+
+在此之前我们做了五个版本，从来没有第二个人用过它。这一版补的是成熟度里
+那「半级」：能交付。
+
+### 新增
+
+- **导出（⌘⇧E）** —— 把当前这篇存成图 / PDF，用当前的阅读主题、宽度、字号，
+  **所见即所得**。不提供格式选择器、页边距、页眉页脚 —— 它是「把眼前看到的
+  原样带走」，不是排版工具
+- **headless CLI（给 agent 用）** —— `mum render / outline / search / check`，
+  全 `--json` + 有意义的退出码 + **无窗口**（`activationPolicy(.prohibited)`）。
+  与导出**共用同一个正文渲染入口**
+- **落地页 mum.jiker.ai** —— 中英双语，单文件静态页，无追踪脚本
+
+### 工程
+
+- **签名 + 公证进常规构建** —— 公司 Developer ID 证书 + `notarytool`，全链路实测通过。
+  签名身份从环境读（`MUM_SIGN_IDENTITY` / `MUM_NOTARY_PROFILE`），**不入库**
+- **仓库公开** —— 敏感信息全历史扫描（gitleaks 117 commits 无泄漏 + 定向扫描零命中），
+  并把签名身份从**全部历史**中清洗后强推
+- **CI 自动化** —— GitHub Actions 对 public 仓库免费（含 macOS runner），
+  当初改手动触发的成本顾虑消失
+- `--uitest` —— 应用内自驱动 UI 测试，**零权限**、确定性等待、可进 CI。
+  7 场景 58 步全绿，**负向验证精确到步**（故意改坏一处，测试必须失败）
+- 三条硬规矩写进 `docs/collaboration.md`：**禁止 `git add -A`**（三个 agent 共用
+  一个工作目录）、**用完的东西必须收拾干净**、**文件所有权按目录划**
+
+### 未达标（如实记录）
+
+- **TTFR-冷开 @1MB：目标 ≤600 ms，实测中位 622 ms。** 目标不移动，继续追
+- **v0.5.1 的滚动帧率从未测量** —— 定义写了、工具交了（`--bench scroll`）、
+  cc 判了双口径，但**测量本身漏了**。记在这里，不装作做过
+
 ## [0.5.0] - 2026-09-18
 
 「找得到」—— 把「多项目」这根支柱真正立起来。
@@ -371,7 +407,8 @@ cc 用 **CGWindowList** 实测窗口尺寸（新装 1440×900 / 尺寸恢复）�
   此前打开一个 `.ipa` 后敲字按 `⌘S`，会把文本写进那个二进制文件
 - 保存前比对磁盘修改时间，文件被外部改过时先询问，不再静默覆盖
 
-[未发布]: https://github.com/ice5kysl/MuM/compare/v0.5.0...HEAD
+[未发布]: https://github.com/ice5kysl/MuM/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/ice5kysl/MuM/releases/tag/v0.6.0
 [0.5.0]: https://github.com/ice5kysl/MuM/releases/tag/v0.5.0
 [0.4.1]: https://github.com/ice5kysl/MuM/releases/tag/v0.4.1
 [0.4.0]: https://github.com/ice5kysl/MuM/releases/tag/v0.4.0
