@@ -18,12 +18,14 @@ enum MuMDesign {
 
     // MARK: - 尺寸
 
-    static let projectsPaneWidth: CGFloat = 218
-    static let projectsPaneMinWidth: CGFloat = 196
+    // 前两栏是导航不是内容：默认宽度收紧，把面积让给阅读区（ice 2026-09-19：
+    // 「有点宽，第三栏面积有点小」）。min 跟着收窄，但别把项目名/文件名压没
+    static let projectsPaneWidth: CGFloat = 188
+    static let projectsPaneMinWidth: CGFloat = 168
     static let projectsPaneMaxWidth: CGFloat = 300
 
-    static let treePaneWidth: CGFloat = 250
-    static let treePaneMinWidth: CGFloat = 214
+    static let treePaneWidth: CGFloat = 216
+    static let treePaneMinWidth: CGFloat = 190
     static let treePaneMaxWidth: CGFloat = 420
 
     /// 内容栏的最小宽度：低于这个数，并排对照就没法看了
