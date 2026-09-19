@@ -93,4 +93,4 @@ echo "TTFR 等指标要用 bundle 内的二进制："
 echo "  $WT/dist/MuM.app/Contents/MacOS/MuM"
 echo "直接跑 .build/release/MuM 没有 bundle id，读的是另一个 defaults 域 —— 会得到假结果。"
 echo
-echo "（popover / 模式切换 / 查找 / 大纲 / 导出已由 --uitest 覆盖；颜色、间距、字形这类"长得对不对"仍须人工截图核对。）"
+echo "（popover / 模式切换 / 查找 / 大纲 / 导出已由 --uitest 覆盖；颜色、间距、字形这类「长得对不对」仍须人工截图核对。）"
