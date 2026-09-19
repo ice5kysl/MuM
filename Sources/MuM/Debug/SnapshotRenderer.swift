@@ -27,10 +27,24 @@ enum SnapshotRenderer {
         // AppKit 的视图体系需要 NSApplication 存在才能工作，但不需要 run()
         let app = NSApplication.shared
         app.setActivationPolicy(.accessory)
-        // 必须钉住外观：进程没有真实窗口时，`.labelColor` 这类语义色可能解析成白色，
-        // 于是白底白字 —— 离屏图看着"文字全丢了"，其实只是颜色解析跑偏。
-        // 传 `--dark` 可以渲染暗色版本。
-        app.appearance = NSAppearance(named: arguments.contains("--dark") ? .darkAqua : .aqua)
+        // 外观必须钉住（--dark 出暗色），但**不能在这里设**：
+        // MainWindowController.init 里的 applySettings 会按用户偏好把 NSApp.appearance
+        // 重置为 nil（跟随系统），把这里设的冲掉 —— 这就是 --dark 曾与浅色逐字节相同
+        // 的原因。真正的钉外观在窗口内容全部就绪之后（下方出图前）。
+        let pinnedAppearance = NSAppearance(
+            named: arguments.contains("--dark") ? .darkAqua : .aqua
+        )!
+
+        // --open 会写工作区偏好（CLI 二进制的 defaults 域是进程名，与 app 不共享）。
+        // 快照再还原：跑一次带 --open 的快照不该污染下一次不带 --open 的空状态快照。
+        let defaults = UserDefaults.standard
+        let savedDefaults = defaults.dictionaryRepresentation().filter { $0.key.hasPrefix("MuM.") }
+        defer {
+            for key in defaults.dictionaryRepresentation().keys where key.hasPrefix("MuM.") {
+                defaults.removeObject(forKey: key)
+            }
+            for (key, value) in savedDefaults { defaults.set(value, forKey: key) }
+        }
 
         let controller = MainWindowController()
         guard let window = controller.window, let content = window.contentView else {
@@ -44,6 +58,28 @@ enum SnapshotRenderer {
         // 再执行折叠 —— 这才是用户实际操作的顺序。反过来在首次布局前就折起一栏，
         // NSSplitView 还没有任何位置信息，会把空间分错。
         RunLoop.main.run(until: Date().addingTimeInterval(0.4))
+
+        // 给快照一个有内容的现场：`--open <目录> [文件]`。
+        // 目录作为项目打开（通知会带动文件树与恢复路径），再打开指定文件
+        // （默认 README.md），等预览渲染完再往下走。
+        if let openIndex = arguments.firstIndex(of: "--open"), openIndex + 1 < arguments.count {
+            let dir = URL(fileURLWithPath: arguments[openIndex + 1]).standardizedFileURL
+            if WorkspaceStore.shared.open(url: dir) == nil {
+                FileHandle.standardError.write("打不开项目目录：\(dir.path)\n".data(using: .utf8)!)
+                return 1
+            }
+            RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+            // 下一个参数是文件名；是别的 flag 就用默认 README.md
+            let file = openIndex + 2 < arguments.count && !arguments[openIndex + 2].hasPrefix("--")
+                ? arguments[openIndex + 2]
+                : "README.md"
+            let fileURL = dir.appendingPathComponent(file)
+            if FileManager.default.fileExists(atPath: fileURL.path) {
+                controller.open(url: fileURL)
+            }
+            // 渲染 + 文件树填充都有一段异步，跑够再出图
+            RunLoop.main.run(until: Date().addingTimeInterval(0.6))
+        }
 
         // 模拟弹出文档大纲：`--outline`
         if arguments.contains("--outline") {
@@ -90,6 +126,21 @@ enum SnapshotRenderer {
         // 的话快照里只会看到 PreviewViewController 的初始占位文字。
         RunLoop.main.run(until: Date().addingTimeInterval(0.5))
 
+        // 钉外观要放在所有会调 applySettings 的操作（init / --toggle-lines 等）之后，
+        // 否则会被它们重置。app + window + 逐视图三层都钉：
+        // layer-backed 视图的背景色在 updateLayer 时按 effectiveAppearance 解析并缓存
+        // 成 CGColor，必须让 effectiveAppearance 真实变化一次，缓存才会重算；
+        // 钉完跑一轮 runloop 让 updateLayer 落地。
+        app.appearance = pinnedAppearance
+        window.appearance = pinnedAppearance
+        func pinAppearance(_ view: NSView) {
+            view.appearance = pinnedAppearance
+            view.needsDisplay = true
+            for subview in view.subviews { pinAppearance(subview) }
+        }
+        pinAppearance(content)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.2))
+
         // 不走 orderFront，所以手动把布局推完：先让视图树布局，再给控制器一次机会
         // 摆好分隔线（朴素 NSSplitView 的位置是在 viewDidLayout 里设的）。
         content.layoutSubtreeIfNeeded()
@@ -102,7 +153,11 @@ enum SnapshotRenderer {
             FileHandle.standardError.write("无法创建位图\n".data(using: .utf8)!)
             return 1
         }
-        content.cacheDisplay(in: content.bounds, to: rep)
+        // 动态色在绘制时才解析，解析依据是"当前绘制外观" —— 离屏窗口的
+        // effectiveAppearance 链不可靠，钉死它，--dark 才真的暗
+        pinnedAppearance.performAsCurrentDrawingAppearance {
+            content.cacheDisplay(in: content.bounds, to: rep)
+        }
 
         guard let data = rep.representation(using: .png, properties: [:]) else {
             FileHandle.standardError.write("无法编码 PNG\n".data(using: .utf8)!)
