@@ -11,7 +11,9 @@ MIT
 > 签名并公证，双击即开 —— 不需要右键绕过 Gatekeeper。
 > macOS 14+ · 1.6 MB
 
-![MuM 的排版：中文标题、右对齐的数字表、引用竖线、语法高亮的代码块](docs/images/hero-light.png)
+![MuM 主窗口：左侧项目与文件树，右侧排版好的 Markdown 文档](docs/images/app.png)
+
+![MuM 渲染出来的样子：中文标题、右对齐的数字表、引用竖线、语法高亮的代码块](docs/images/hero-light.png)
 
 *上面这张图是 MuM 自己的渲染结果 —— 用 `mum render --png` 生成的，不是截图。*
 
