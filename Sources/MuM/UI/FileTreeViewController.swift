@@ -184,22 +184,27 @@ final class FileTreeViewController: NSViewController {
         let menu = NSMenu()
         // target=nil 走响应链，最终到 AppDelegate 的对应动作（与菜单栏同一动作）
         let newFile = NSMenuItem(title: "新建文件", action: #selector(AppDelegate.newDocument(_:)), keyEquivalent: "")
+        newFile.image = Self.menuIcon("doc.badge.plus")
         menu.addItem(newFile)
         let newFolder = NSMenuItem(title: "新建文件夹", action: #selector(AppDelegate.newFolder(_:)), keyEquivalent: "")
+        newFolder.image = Self.menuIcon("folder.badge.plus")
         menu.addItem(newFolder)
 
         menu.addItem(.separator())
         let reveal = NSMenuItem(title: "在访达中显示", action: #selector(revealProject), keyEquivalent: "")
         reveal.target = self
+        reveal.image = Self.finderIcon
         menu.addItem(reveal)
 
         let refresh = NSMenuItem(title: "刷新文件树", action: #selector(refreshTapped), keyEquivalent: "")
         refresh.target = self
+        refresh.image = Self.menuIcon("arrow.clockwise")
         menu.addItem(refresh)
 
         menu.addItem(.separator())
         let close = NSMenuItem(title: "关闭当前项目", action: #selector(closeProject), keyEquivalent: "")
         close.target = self
+        close.image = Self.menuIcon("xmark.circle")
         menu.addItem(close)
         return menu
     }
@@ -231,21 +236,36 @@ final class FileTreeViewController: NSViewController {
         let menu = NSMenu()
 
         if row >= 0, outlineView.item(atRow: row) is FileNode {
-            menu.addItem(contextItem("新建文件", #selector(contextNewFile)))
-            menu.addItem(contextItem("新建文件夹", #selector(contextNewFolder)))
-            menu.addItem(contextItem("重命名…", #selector(contextRename)))
+            menu.addItem(contextItem("新建文件", #selector(contextNewFile), icon: Self.menuIcon("doc.badge.plus")))
+            menu.addItem(contextItem("新建文件夹", #selector(contextNewFolder), icon: Self.menuIcon("folder.badge.plus")))
+            menu.addItem(contextItem("重命名…", #selector(contextRename), icon: Self.menuIcon("pencil")))
             menu.addItem(.separator())
-            menu.addItem(contextItem("在访达中显示", #selector(contextRevealInFinder)))
+            menu.addItem(contextItem("在访达中显示", #selector(contextRevealInFinder), icon: Self.finderIcon))
         } else {
-            menu.addItem(contextItem("新建文件", #selector(contextNewFileAtRoot)))
-            menu.addItem(contextItem("新建文件夹", #selector(contextNewFolderAtRoot)))
+            menu.addItem(contextItem("新建文件", #selector(contextNewFileAtRoot), icon: Self.menuIcon("doc.badge.plus")))
+            menu.addItem(contextItem("新建文件夹", #selector(contextNewFolderAtRoot), icon: Self.menuIcon("folder.badge.plus")))
         }
         return menu
     }
 
-    private func contextItem(_ title: String, _ action: Selector) -> NSMenuItem {
+    /// 菜单项的小图标：功能一眼可辨（ice 2026-09-19）。SF Symbol 统一 12pt
+    private static func menuIcon(_ name: String) -> NSImage? {
+        let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .regular)
+        return NSImage(systemSymbolName: name, accessibilityDescription: nil)?
+            .withSymbolConfiguration(config)
+    }
+
+    /// 「在访达中显示」用 Finder 自己的图标
+    private static let finderIcon: NSImage? = {
+        let icon = NSWorkspace.shared.icon(forFile: "/System/Library/CoreServices/Finder.app")
+        icon.size = NSSize(width: 14, height: 14)
+        return icon
+    }()
+
+    private func contextItem(_ title: String, _ action: Selector, icon: NSImage? = nil) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
         item.target = self
+        item.image = icon
         return item
     }
 
@@ -547,6 +567,19 @@ extension FileTreeViewController: NSOutlineViewDelegate {
         let cell = outlineView.makeView(withIdentifier: cellIdentifier, owner: self) as? FileTreeCellView
             ?? FileTreeCellView(identifier: cellIdentifier)
         cell.configure(with: node, showsParentPath: isFiltering)
+        // 行尾悬停 ···：选中该行并弹出与右键一致的菜单
+        cell.onHoverMenu = { [weak self] anchor in
+            guard let self else { return }
+            let row = self.outlineView.row(forItem: node)
+            if row >= 0, !self.outlineView.selectedRowIndexes.contains(row) {
+                self.outlineView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
+            }
+            self.contextMenu(forRow: row)?.popUp(
+                positioning: nil,
+                at: NSPoint(x: 0, y: anchor.bounds.height + 2),
+                in: anchor
+            )
+        }
         return cell
     }
 
@@ -593,6 +626,11 @@ final class FileTreeCellView: NSTableCellView {
     private let iconView = NSImageView()
     private let nameLabel = NSTextField(labelWithString: "")
     private let pathLabel = NSTextField(labelWithString: "")
+    /// 悬停行尾出现的 ···：文件管理动作的行内入口（菜单内容与右键一致）
+    private let hoverButton = NSButton()
+    /// 悬停 ··· 被点：交回控制器弹该节点的菜单（它管选中与菜单内容）
+    var onHoverMenu: ((NSView) -> Void)?
+    private var rowTrackingArea: NSTrackingArea?
 
     /// 当前展示的节点（行内重命名时要拿它做落盘）
     private(set) var node: FileNode?
@@ -628,9 +666,22 @@ final class FileTreeCellView: NSTableCellView {
         pathLabel.lineBreakMode = .byTruncatingHead
         pathLabel.isHidden = true
 
+        // 悬停 ···：默认藏着，鼠标进出行才现身（tracking area 见 updateTrackingAreas）。
+        // 行内入口比栏头 ··· 近得多 —— 要操作的就是这一行
+        hoverButton.image = NSImage(systemSymbolName: "ellipsis", accessibilityDescription: "更多操作")
+        hoverButton.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 11, weight: .regular)
+        hoverButton.isBordered = false
+        hoverButton.bezelStyle = .inline
+        hoverButton.contentTintColor = MuMDesign.secondaryText
+        hoverButton.isHidden = true
+        hoverButton.target = self
+        hoverButton.action = #selector(hoverMenuTapped)
+        hoverButton.translatesAutoresizingMaskIntoConstraints = false
+
         addSubview(iconView)
         addSubview(nameLabel)
         addSubview(pathLabel)
+        addSubview(hoverButton)
 
         NSLayoutConstraint.activate([
             iconView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 2),
@@ -641,11 +692,16 @@ final class FileTreeCellView: NSTableCellView {
             nameLabel.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 6),
             nameLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
             // 编辑态下文本框要能撑到行尾（平时被 pathLabel 或截断约束收住）
-            nameLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -4),
+            nameLabel.trailingAnchor.constraint(lessThanOrEqualTo: hoverButton.leadingAnchor, constant: -2),
 
             pathLabel.leadingAnchor.constraint(equalTo: nameLabel.trailingAnchor, constant: 6),
-            pathLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -4),
+            pathLabel.trailingAnchor.constraint(lessThanOrEqualTo: hoverButton.leadingAnchor, constant: -4),
             pathLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+
+            hoverButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -4),
+            hoverButton.centerYAnchor.constraint(equalTo: centerYAnchor),
+            hoverButton.widthAnchor.constraint(equalToConstant: 18),
+            hoverButton.heightAnchor.constraint(equalToConstant: 16),
         ])
     }
 
@@ -666,6 +722,37 @@ final class FileTreeCellView: NSTableCellView {
         }
 
         toolTip = node.url.path
+        // 复用的单元格可能还带着上一行的悬停态
+        hoverButton.isHidden = true
+    }
+
+    // MARK: - 悬停 ···
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let rowTrackingArea { removeTrackingArea(rowTrackingArea) }
+        // inVisibleRect：跟随可见区域自动调整，单元格复用/行高变化都不用重挂
+        let area = NSTrackingArea(
+            rect: .zero,
+            options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        rowTrackingArea = area
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        // 重命名编辑态下不抢戏
+        hoverButton.isHidden = editing
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        hoverButton.isHidden = true
+    }
+
+    @objc private func hoverMenuTapped() {
+        onHoverMenu?(hoverButton)
     }
 
     // MARK: - 行内重命名
