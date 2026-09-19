@@ -32,8 +32,8 @@
   a{color:inherit}
   :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
 
-  nav{display:flex;align-items:center;gap:10px;padding-block:26px}
-  nav .name{font-weight:600;font-size:16px;letter-spacing:.01em}
+  nav{display:flex;align-items:center;gap:11px;padding-block:38px}
+  nav .name{font-weight:600;font-size:17px;letter-spacing:.01em}
   nav .sp{flex:1}
   nav a.link{color:var(--dim);text-decoration:none;font-size:13.5px;padding:5px 9px;border-radius:7px;transition:color .2s}
   nav a.link:hover{color:var(--fg)}
@@ -121,7 +121,7 @@
     position:relative;max-height:400px;overflow:hidden;border-radius:12px;
     border:1px solid var(--line);margin-top:20px;background:#fff;
   }
-  .peek img{display:block;width:100%;height:auto}
+  .peek img{display:block;width:620px;max-width:100%;height:auto;margin:0 auto}
   .peek::after{
     content:"";position:absolute;inset:auto 0 0 0;height:120px;
     background:linear-gradient(to bottom,transparent,#fff);
@@ -140,7 +140,7 @@
 <body>
 
 <nav class="wrap">
-  <svg width="26" height="26" viewBox="0 0 30 30" aria-hidden="true">
+  <svg width="32" height="32" viewBox="0 0 30 30" aria-hidden="true">
     <rect width="30" height="30" rx="7" fill="#1c1c1e"/>
     <path d="M11.3 17.7V9.15l3.7 4.95L18.7 9.15v8.55" fill="none" stroke="#fff" stroke-width="1.75" stroke-linecap="butt" stroke-linejoin="round"/>
     <rect class="cursor" x="9.3" y="19.35" width="11.4" height="1.5" rx="0.6" fill="#2ecc4a"/>
@@ -166,7 +166,7 @@
     <div class="cta">
       <a class="btn" href="https://github.com/ice5kysl/MuM/releases/download/v0.6.0/MuM-0.6.0.dmg">Download for macOS</a>
       <a class="btn ghost" href="https://github.com/ice5kysl/MuM">Source · MIT</a>
-      <span class="meta">v0.5.0 · macOS 14+ · 3.2 MB</span>
+      <span class="meta">v0.6.0 · macOS 14+ · 3.2 MB</span>
     </div>
     <p class="note">Signed and notarized. Double-click to open — no Gatekeeper dance.</p>
   </div>
