@@ -1,4 +1,7 @@
 # 性能基线：怎么量的
+> ⚠️ **这是 0.3 时代的方法论记录 —— 里面的数字是当时的（含 1MB 排版 1s、5MB 9s 那些问题）。**
+> `applyWorkspace` 778ms、"小文件 280ms" 都是那时的实测，**不是当前值**。
+> 当前值看 [status.md](../status.md) 和 [baseline.md](baseline.md)。
 
 > 从 README 拆出（它 595 行太长了）。内容一字未改。
 

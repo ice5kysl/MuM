@@ -35,7 +35,7 @@ MIT
 
 短到没有启动画面这回事。`MUM_LAUNCH_TIMING=1` 可以自己打一遍。
 
-**Native.** 2.8 MB，全程没有 Web 引擎 —— Markdown 走 cmark-gfm 解析成 `NSAttributedString`，
+**Native.** 3.4 MB，全程没有 Web 引擎 —— Markdown 走 cmark-gfm 解析成 `NSAttributedString`，
 排版和绘制都在 AppKit 里自己写。这不是性能优化，是**架构选择**：没有 Web 进程，就没有
 白屏、没有字体回退、没有滚动不同步。代价是每个排版效果都得自己实现（引用块竖线、
 分隔线、代码块底色、GFM 表格都是手绘的）。
