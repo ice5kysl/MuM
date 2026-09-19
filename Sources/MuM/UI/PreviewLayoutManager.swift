@@ -88,9 +88,13 @@ final class PreviewLayoutManager: NSLayoutManager {
 
     /// 去掉范围末尾的换行符 —— 算进去的话会多出一行的底色
     private func withoutTrailingNewlines(_ range: NSRange, in storage: NSTextStorage) -> NSRange {
-        let units = Array(storage.string.utf16)
+        // 直接按索引读，不许 Array(utf16) —— 那会把整篇文档复制一遍，
+        // 而这里每个代码块、每次 drawBackground 都会调一次（大文档下就是 O(块数 × 全文)，
+        // 5MB 样本滚动时主线程 40% 烧在这个复制上，sample 实测）
+        let string = storage.string as NSString
         var length = range.length
-        while length > 0, range.location + length - 1 < units.count, units[range.location + length - 1] == 0x0A {
+        while length > 0, range.location + length - 1 < string.length,
+              string.character(at: range.location + length - 1) == 0x0A {
             length -= 1
         }
         return NSRange(location: range.location, length: length)
