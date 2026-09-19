@@ -15,6 +15,7 @@
 
 import AppKit
 
+// 默认写到 .build/ —— 别把中间产物丢在仓库根（那会变成未跟踪文件）
 let outputDirectory = CommandLine.arguments.count > 1
     ? CommandLine.arguments[1]
     : FileManager.default.currentDirectoryPath
@@ -49,11 +50,11 @@ func drawIcon(in rect: NSRect) {
     // M 字形 —— 几何绘制，斜接尖角。
     // 笔画宽度必须明显小于字面宽度的 1/4，否则四段笔画会互相吃掉，
     // 中间那个 V 填实，整个字就糊成一个三角块了。
-    let stroke = size * 0.078
-    let mWidth = size * 0.345
-    let mHeight = size * 0.390
+    let stroke = size * 0.058
+    let mWidth = size * 0.248
+    let mHeight = size * 0.285
     let centerX = body.midX
-    let bottom = body.minY + size * 0.285
+    let bottom = body.minY + size * 0.402
     let top = bottom + mHeight
     let left = centerX - mWidth / 2
     let right = centerX + mWidth / 2
@@ -77,16 +78,16 @@ func drawIcon(in rect: NSRect) {
 
     // 底部强调线。加粗到 0.06（ice 2026-09-19，对齐 Vme 图标的份量感），
     // y 跟着厚度调，保持线的**中心**位置不变
-    let barWidth = size * 0.44
-    let barHeight = max(size * 0.060, 1)
+    let barWidth = size * 0.62
+    let barHeight = max(size * 0.024, 1)
     let bar = NSRect(
         x: body.midX - barWidth / 2,
-        y: body.minY + size * 0.190 - (barHeight - size * 0.042) / 2,
+        y: body.minY + size * 0.300,
         width: barWidth,
         height: barHeight
     )
     NSColor(srgbRed: 0.180, green: 0.800, blue: 0.290, alpha: 1).setFill()   // #2ECC4A
-    NSBezierPath(roundedRect: bar, xRadius: barHeight / 2, yRadius: barHeight / 2).fill()
+    NSBezierPath(roundedRect: bar, xRadius: barHeight * 0.4, yRadius: barHeight * 0.4).fill()
 }
 
 func renderPNG(pixels: Int) -> Data? {
