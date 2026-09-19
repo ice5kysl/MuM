@@ -26,11 +26,14 @@ jobs:
       - name: 构建
         run: swift build
 
-      - name: 单元测试（28 用例，含性能基线）
+      - name: 单元测试
         run: swift test
 
       - name: 渲染层自检（24 项断言）
         run: .build/debug/MuM --selftest
+
+      - name: 应用内自驱动 UI 测试（6 场景，零权限）
+        run: .build/debug/MuM --uitest all
 
       - name: 打包
         run: ./scripts/build-app.sh debug
@@ -40,7 +43,7 @@ jobs:
           dist/MuM.app/Contents/MacOS/MuM --snapshot /tmp/mum.png
           test -s /tmp/mum.png
 
-# 两点说明：
+# 三点说明：
 #
 # 1. 这里**不用** .mumenv。它存在的理由是"受限沙箱里 ~/Library 不可写"，
 #    那是本地开发环境的约束，GitHub runner 上不存在，反而会把 HOME 重定向掉。
@@ -48,7 +51,7 @@ jobs:
 # 2. --snapshot 不是凑数：它把整个窗口离屏渲染一遍，
 #    任何视图层级的崩溃（约束冲突、越界、绘制异常）都会让这一步失败。
 #
-# 3. swift test 覆盖单元层：FileKind 识别表、ConcurrentCache、FileNode/FileTreeLoader、
-#    WorkspaceStore 全部状态迁移，以及大文档性能基线（数字见 docs/performance-baseline.md）。
-#    仍有的盲区：open(url:) / 模式切换 / 折叠这些 UI 交互状态逻辑 ——
-#    本仓库至今出现过的两个真 bug 都落在那里，补测试是下一步。
+# 3. --uitest 是应用内自驱动 UI 测试：让应用程序化触发自己的动作再断言状态，
+#    覆盖设置面板 / popover / 模式切换 / 查找 / 大纲 / 全局搜索。
+#    零权限（不需要 Accessibility），屏外窗口运行，适合 CI。
+#    仍有的盲区：颜色/间距/字形这类"长得对不对"—— 那是人工手册的范围。

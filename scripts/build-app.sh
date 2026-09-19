@@ -8,16 +8,31 @@
 # 合并冲突。
 #
 # 用法：
-#   ./scripts/build-app.sh            # release 构建
+#   ./scripts/build-app.sh            # release 构建（ad-hoc 签名，本机用）
 #   ./scripts/build-app.sh debug      # debug 构建
+#   ./scripts/build-app.sh release --sign        # 发版构建：Developer ID 签名 + 公证 + 装订
+#   ./scripts/build-app.sh release --sign --dmg  # 再出一个装订过的 DMG
 #   ./scripts/run.sh                  # 构建并启动
+#
+# --sign 的身份与公证凭据从 .mumenv.local 读（不入库，见 .mumenv.local.example）；
+# 没配就带清楚的话失败，不会静默产出未签名的包。
 
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-CONFIG="${1:-release}"
+CONFIG="release"
+SIGN=0
+DMG=0
+for arg in "$@"; do
+  case "$arg" in
+    debug|release) CONFIG="$arg" ;;
+    --sign) SIGN=1 ;;
+    --dmg) DMG=1 ;;
+    *) echo "未知参数：${arg}（用法：build-app.sh [debug|release] [--sign] [--dmg]）" >&2; exit 2 ;;
+  esac
+done
 APP="$ROOT/dist/MuM.app"
 
 # 沙箱内构建所需：把 SwiftPM / clang 的缓存重定向到工作区
@@ -74,9 +89,21 @@ fi
 cp "$ROOT/scripts/mum" "$APP/Contents/Resources/mum"
 chmod +x "$APP/Contents/Resources/mum"
 
-# 未签名的 app 在 Apple Silicon 上无法启动，ad-hoc 签名即可满足本机运行
-echo "==> ad-hoc 签名"
-codesign --force --sign - --timestamp=none "$APP" >/dev/null 2>&1 || echo "    (签名失败，可能无法启动)"
+if [ "$SIGN" = "1" ]; then
+  # 发版签名：身份/凭据在本机配置里（gitignored），先载进来
+  if [ -f "$ROOT/.mumenv.local" ]; then
+    # shellcheck disable=SC1091
+    source "$ROOT/.mumenv.local"
+  fi
+  DMG_FLAG=""
+  [ "$DMG" = "1" ] && DMG_FLAG="--dmg"
+  # sign-release.sh 里对缺配置是带清楚的话直接失败（:? 而不是静默降级）
+  "$ROOT/scripts/sign-release.sh" "$APP" $DMG_FLAG
+else
+  # 未签名的 app 在 Apple Silicon 上无法启动，ad-hoc 签名即可满足本机运行
+  echo "==> ad-hoc 签名（本机运行用；出发版包：$0 $CONFIG --sign，身份配置见 .mumenv.local.example）"
+  codesign --force --sign - --timestamp=none "$APP" >/dev/null 2>&1 || echo "    (签名失败，可能无法启动)"
 
-SIZE="$(du -sh "$APP" | cut -f1)"
-echo "==> 完成：${APP}（${SIZE}）"
+  SIZE="$(du -sh "$APP" | cut -f1)"
+  echo "==> 完成：${APP}（${SIZE}）"
+fi
