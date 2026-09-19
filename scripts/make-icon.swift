@@ -54,7 +54,7 @@ func drawIcon(in rect: NSRect) {
     let mWidth = size * 0.248
     let mHeight = size * 0.285
     let centerX = body.midX
-    let bottom = body.minY + size * 0.402
+    let bottom = body.minY + size * 0.432
     let top = bottom + mHeight
     let left = centerX - mWidth / 2
     let right = centerX + mWidth / 2
@@ -79,10 +79,10 @@ func drawIcon(in rect: NSRect) {
     // 底部强调线。加粗到 0.06（ice 2026-09-19，对齐 Vme 图标的份量感），
     // y 跟着厚度调，保持线的**中心**位置不变
     let barWidth = size * 0.62
-    let barHeight = max(size * 0.024, 1)
+    let barHeight = max(size * 0.034, 1)
     let bar = NSRect(
         x: body.midX - barWidth / 2,
-        y: body.minY + size * 0.300,
+        y: body.minY + size * 0.330,
         width: barWidth,
         height: barHeight
     )
