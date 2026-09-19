@@ -8,123 +8,226 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MuM — 快、原生的 Markdown 引擎</title>
 <meta name="description" content="A fast, native Markdown engine — for humans and agents. 快、原生的 Markdown 引擎，给人用，也给 agent 用。">
+<link rel="alternate" hreflang="zh-CN" href="/">
+<link rel="alternate" hreflang="en" href="/en/">
+<meta property="og:title" content="MuM — 快、原生的 Markdown 引擎">
+<meta property="og:description" content="没有 Web 引擎，没有插件系统，没有账号。打开就是读。">
+<meta property="og:image" content="/assets/app-dark.png">
 <style>
+  /* 纸感暖灰：MuM 是阅读工具，页面本身就是第一份样品 */
   :root{
-    --bg:#faf9f7; --fg:#1c1c1e; --dim:#6b6b70; --line:#e4e2de;
-    --accent:#2ecc4a; --code:#f2f0ec;
+    --bg:#faf9f7; --fg:#1c1c1e; --dim:#6f6e73; --line:#e6e4df;
+    --accent:#23a03c; --code:#f1efeb; --panel:#17181c;
   }
   @media (prefers-color-scheme:dark){
-    :root{ --bg:#1c1c1e; --fg:#f2f2f4; --dim:#9a9aa0; --line:#323236;
-           --accent:#2ecc4a; --code:#252528; }
+    :root{ --bg:#17171a; --fg:#f4f3f1; --dim:#9b9aa0; --line:#2c2c31;
+           --accent:#34c759; --code:#222226; --panel:#101014; }
   }
   *{box-sizing:border-box}
   body{
     margin:0; background:var(--bg); color:var(--fg);
-    font:16px/1.7 -apple-system,BlinkMacSystemFont,"SF Pro SC","PingFang SC",system-ui,sans-serif;
+    font:16px/1.75 -apple-system,BlinkMacSystemFont,"SF Pro SC","PingFang SC",system-ui,sans-serif;
     -webkit-font-smoothing:antialiased;
   }
-  .wrap{max-width:680px;margin:0 auto;padding:72px 24px 96px}
-  .lang{position:absolute;top:20px;right:24px;font-size:13px}
-  .lang a{color:var(--dim);text-decoration:none;padding:4px 8px;border-radius:6px}
-  .lang a[aria-current]{color:var(--fg);background:var(--code)}
-  .lang a:hover{color:var(--fg)}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 32px}
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
 
-  .mark{display:flex;align-items:center;gap:12px;margin-bottom:40px}
-  .mark svg{display:block}
+  /* ── 顶栏 ── */
+  nav{display:flex;align-items:center;gap:10px;padding:26px 0}
+  nav .name{font-weight:600;font-size:16px;letter-spacing:.01em}
+  nav .sp{flex:1}
+  nav a.link{color:var(--dim);text-decoration:none;font-size:13.5px;padding:5px 9px;border-radius:7px;transition:color .2s}
+  nav a.link:hover{color:var(--fg)}
+  nav a.link[aria-current]{color:var(--fg);background:var(--code)}
+
   .cursor{transform-box:fill-box;transform-origin:center;animation:breathe 2.4s ease-in-out infinite}
   @keyframes breathe{0%,100%{opacity:.66;transform:scaleX(.94)}50%{opacity:1;transform:scaleX(1)}}
   @media (prefers-reduced-motion:reduce){.cursor{animation:none;opacity:1}}
-  .mark span{font-weight:600;font-size:17px;letter-spacing:.01em}
 
-  h1{font-size:34px;line-height:1.25;margin:0 0 20px;letter-spacing:-.02em;font-weight:600}
-  h1 .sub{display:block;color:var(--dim);font-size:19px;font-weight:400;margin-top:10px;letter-spacing:0}
-  p.lead{font-size:17px;color:var(--dim);margin:0 0 40px}
+  /* ── Hero：左对齐，右侧留白是刻意的 ── */
+  .hero{padding:64px 0 0}
+  .hero .inner{max-width:640px}
+  h1{font-size:42px;line-height:1.18;margin:0 0 18px;letter-spacing:-.025em;font-weight:650}
+  h1 .sub{display:block;color:var(--dim);font-size:21px;font-weight:400;margin-top:12px;letter-spacing:0}
+  .lead{font-size:16.5px;color:var(--dim);margin:0 0 36px;max-width:56ch}
 
-  .dl{display:flex;flex-wrap:wrap;align-items:center;gap:16px;margin:0 0 12px}
+  .cta{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-bottom:12px}
   .btn{
     display:inline-block;background:var(--fg);color:var(--bg);text-decoration:none;
-    padding:12px 24px;border-radius:10px;font-weight:500;font-size:15px;
+    padding:12px 26px;border-radius:10px;font-weight:500;font-size:15px;
+    transition:opacity .15s,transform .15s;
   }
   .btn:hover{opacity:.85}
-  .meta{font-size:13px;color:var(--dim)}
+  .btn:active{transform:scale(.97)}
+  .btn.ghost{background:none;color:var(--fg);border:1px solid var(--line)}
+  .btn.ghost:hover{border-color:var(--dim);opacity:1}
+  .meta{font-size:13px;color:var(--dim);font-variant-numeric:tabular-nums}
+  .note{font-size:13px;color:var(--dim);margin:0 0 56px}
 
-  hr{border:0;border-top:1px solid var(--line);margin:56px 0}
+  /* ── 产品截图：真图，明暗跟随系统 ── */
+  .shot{margin:0 0 72px}
+  .shot img{
+    display:block;width:100%;height:auto;border-radius:14px;
+    border:1px solid var(--line);
+    box-shadow:0 24px 64px -24px rgba(28,28,30,.25);
+  }
+  @media (prefers-color-scheme:dark){
+    .shot img{box-shadow:0 24px 64px -24px rgba(0,0,0,.6)}
+  }
 
-  h2{font-size:15px;font-weight:600;margin:0 0 14px;letter-spacing:.01em}
-  ul.list{list-style:none;padding:0;margin:0 0 40px}
-  ul.list li{padding:0 0 10px;color:var(--dim);font-size:15px}
-  ul.list li b{color:var(--fg);font-weight:500}
+  /* ── 数字条：等宽数字 + 分隔线，不用卡片 ── */
+  .nums{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:24px;
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+    padding:32px 0;margin-bottom:72px;
+  }
+  .nums .n{
+    font:600 30px/1.2 ui-monospace,"SF Mono",Menlo,monospace;
+    font-variant-numeric:tabular-nums;letter-spacing:-.01em;
+  }
+  .nums .n small{font-size:16px;font-weight:500;color:var(--dim);margin-left:2px}
+  .nums .l{font-size:13px;color:var(--dim);margin-top:4px}
+  @media (max-width:720px){.nums{grid-template-columns:repeat(2,1fr)}}
 
-  table{width:100%;border-collapse:collapse;font-size:14px;margin:0 0 40px}
-  th,td{text-align:left;padding:9px 0;border-bottom:1px solid var(--line)}
-  th{color:var(--dim);font-weight:400}
-  td:last-child,th:last-child{text-align:right;color:var(--fg);font-variant-numeric:tabular-nums}
+  /* ── 内容节：小标签 + 分隔行列表 ── */
+  section{margin-bottom:72px}
+  h2{
+    font-size:13px;font-weight:600;color:var(--dim);margin:0 0 8px;
+    letter-spacing:.12em;
+  }
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:0 48px}
+  @media (max-width:720px){.cols{grid-template-columns:1fr}}
+  .feat{list-style:none;padding:0;margin:0}
+  .feat li{padding:15px 0;border-top:1px solid var(--line);font-size:15px;color:var(--dim)}
+  .feat li b{color:var(--fg);font-weight:550}
+  kbd{
+    font:12.5px ui-monospace,"SF Mono",Menlo,monospace;
+    background:var(--code);border:1px solid var(--line);border-bottom-width:2px;
+    border-radius:5px;padding:1px 6px;white-space:nowrap;
+  }
 
-  .foot{font-size:13px;color:var(--dim);line-height:1.9}
-  .foot a{color:var(--dim)}
+  /* ── 终端块：永远是暗的 ── */
+  .term{
+    background:var(--panel);border-radius:12px;padding:22px 24px;
+    font:13.5px/1.8 ui-monospace,"SF Mono",Menlo,monospace;
+    color:#c9c9cf;overflow-x:auto;margin:20px 0 8px;
+    border:1px solid rgba(0,0,0,.2);
+  }
+  .term .p{color:var(--accent);user-select:none}
+  .term .c{color:#f4f3f1}
+  .term .o{color:#8b8b92}
+  .term pre{margin:0;white-space:pre}
+
+  /* ── 渲染样例：长图局部 + 底部渐隐 ── */
+  .peek{
+    position:relative;max-height:400px;overflow:hidden;border-radius:12px;
+    border:1px solid var(--line);margin-top:20px;background:#fff;
+  }
+  .peek img{display:block;width:100%;height:auto}
+  .peek::after{
+    content:"";position:absolute;inset:auto 0 0 0;height:120px;
+    background:linear-gradient(to bottom,transparent,#fff);
+  }
+  .cap{font-size:13px;color:var(--dim);margin-top:10px}
+
+  footer{
+    border-top:1px solid var(--line);padding:28px 0 56px;
+    font-size:13.5px;color:var(--dim);
+  }
+  footer a{color:var(--dim);text-decoration:none;border-bottom:1px solid var(--line);transition:color .2s}
+  footer a:hover{color:var(--fg)}
+  footer .dot{margin:0 10px;opacity:.5}
 </style>
 </head>
 <body>
-<nav class="lang">
-  <a href="/" aria-current="page">中文</a><a href="/en/">English</a>
+
+<nav class="wrap">
+  <svg width="26" height="26" viewBox="0 0 30 30" aria-hidden="true">
+    <rect width="30" height="30" rx="7" fill="#1c1c1e"/>
+    <path d="M11.3 16.1V8.7l3.7 4.4L18.7 8.7v7.4" fill="none" stroke="#fff"
+          stroke-width="1.75" stroke-linecap="butt" stroke-linejoin="round"/>
+    <rect class="cursor" x="9.5" y="18.6" width="11" height="1.5" rx="0.6" fill="#2ecc4a"/>
+  </svg>
+  <span class="name">MuM</span>
+  <span class="sp"></span>
+  <a class="link" href="/" aria-current="page">中文</a>
+  <a class="link" href="/en/">English</a>
+  <a class="link" href="https://github.com/ice5kysl/MuM">GitHub</a>
 </nav>
 
-<div class="wrap">
-  <div class="mark">
-    <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">
-      <rect width="30" height="30" rx="7" fill="#1c1c1e"/>
-      <path d="M11.3 16.1V8.7l3.7 4.4L18.7 8.7v7.4" fill="none" stroke="#fff"
-            stroke-width="1.75" stroke-linecap="butt" stroke-linejoin="round"/>
-      <rect class="cursor" x="9.5" y="18.6" width="11" height="1.5" rx="0.6" fill="var(--accent)"/>
-    </svg>
-    <span>MuM</span>
+<header class="hero wrap">
+  <div class="inner">
+    <h1>快、原生的 Markdown 引擎。
+      <span class="sub">给人用，也给 agent 用。</span>
+    </h1>
+    <p class="lead">
+      没有 Web 引擎，没有插件系统，没有账号。3.2 MB 的 AppKit 应用，打开就是读；
+      同一套排版引擎，也能在命令行里给 agent 出图。
+    </p>
+    <div class="cta">
+      <a class="btn" href="https://github.com/ice5kysl/MuM/releases/latest">下载 macOS 版</a>
+      <a class="btn ghost" href="https://github.com/ice5kysl/MuM">源码 · MIT</a>
+      <span class="meta">v0.5.0 · macOS 14+ · 3.2 MB</span>
+    </div>
+    <p class="note">签名并公证，双击即开，不需要右键绕过 Gatekeeper。</p>
   </div>
 
-  <h1>A fast, native Markdown engine.
-    <span class="sub">给人用，也给 agent 用。</span>
-  </h1>
-
-  <p class="lead">
-    没有 Web 引擎，没有插件系统，没有账号。打开就是读。
-  </p>
-
-  <div class="dl">
-    <a class="btn" href="https://github.com/ice5kysl/MuM/releases/latest">下载 macOS 版</a>
-    <span class="meta">v0.5.0 · 2026-09-18 · macOS 14+ · 3 MB</span>
+  <div class="shot">
+    <picture>
+      <source srcset="/assets/app-dark.png" media="(prefers-color-scheme: dark)">
+      <img src="/assets/app-light.png" alt="MuM 主窗口：左侧项目与文件树，右侧排版好的 Markdown 文档" width="2880" height="1800">
+    </picture>
   </div>
-  <p class="meta">签名并公证，双击即开，不需要右键绕过 Gatekeeper。</p>
+</header>
 
-  <hr>
+<main class="wrap">
 
-  <h2>它快在哪</h2>
-  <table>
-    <tr><th></th><th>MuM</th></tr>
-    <tr><td>冷启动到窗口上屏</td><td>280 ms</td></tr>
-    <tr><td>1 MB 文档打开到可读</td><td>622 ms</td></tr>
-    <tr><td>5 MB 文档首屏排版</td><td>302 ms</td></tr>
-    <tr><td>安装包</td><td>3 MB</td></tr>
-  </table>
+  <div class="nums">
+    <div><div class="n">210<small>ms</small></div><div class="l">冷启动到窗口上屏</div></div>
+    <div><div class="n">493<small>ms</small></div><div class="l">1 MB 文档打开到可读</div></div>
+    <div><div class="n">3.2<small>MB</small></div><div class="l">安装包</div></div>
+    <div><div class="n">0</div><div class="l">Web 引擎</div></div>
+  </div>
 
-  <h2>给人用</h2>
-  <ul class="list">
-    <li><b>多项目</b> —— 同时开着几个项目，⌘1…⌘9 秒切。项目回答「我在哪」。</li>
-    <li><b>读得进去</b> —— 记忆阅读位置、⌘F 查找、文档大纲、跨项目搜索。</li>
-    <li><b>排版按中文调过</b> —— 行距、标点、中英混排间距都是实测出来的。</li>
-  </ul>
+  <section>
+    <h2>给人用</h2>
+    <ul class="feat cols">
+      <li><b>多项目</b> —— 几个项目同时开着，<kbd>⌘1</kbd>…<kbd>⌘9</kbd> 秒切。项目回答「我在哪」。</li>
+      <li><b>读得进去</b> —— 记住上次读到哪，<kbd>⌘F</kbd> 查找，<kbd>⌘⇧O</kbd> 大纲，阅读历史 <kbd>⌘[</kbd> <kbd>⌘]</kbd> 来回跳。</li>
+      <li><b>找得到</b> —— <kbd>⌘⇧F</kbd> 跨所有项目搜文件名和内容，边搜边出，不用等扫完。</li>
+      <li><b>排版按中文调过</b> —— 行距、标点挤压、中英混排间距，都是实测出来的数值。</li>
+      <li><b>导出</b> —— <kbd>⌘⇧E</kbd> 把当前文档出成 PNG 长图或分页 PDF。</li>
+      <li><b>安静</b> —— 无账号、无上报、无插件商店。工具不该比内容更吵。</li>
+    </ul>
+  </section>
 
-  <h2>给 agent 用</h2>
-  <ul class="list">
-    <li><b>无窗口出图</b> —— <code>mum render --png</code>，同一套排版引擎。</li>
-    <li><b>结构化输出</b> —— outline / search 输出 <code>--json</code>，退出码有意义。</li>
-  </ul>
+  <section>
+    <h2>给 agent 用</h2>
+    <ul class="feat">
+      <li><b>无窗口出图</b> —— 同一套手写排版引擎（CJK 间距、代码高亮、阅读主题），命令行直接出 PNG / PDF。</li>
+    </ul>
+    <div class="term"><pre><span class="p">$</span> <span class="c">mum render README.md --png cover.png</span>
+<span class="o">已渲染 README.md → cover.png（768 KB）</span>
 
-  <hr>
+<span class="p">$</span> <span class="c">mum outline README.md --json</span>
+<span class="o">[
+  { "level": 1, "location": 0, "title": "MuM 渲染自检" },
+  { "level": 2, "location": 52, "title": "一、标题层级" }
+]</span></pre></div>
+    <div class="peek">
+      <img src="/assets/render-example.png" alt="mum render 的输出：一张排好版的长图（局部）">
+    </div>
+    <p class="cap"><code>mum render</code> 的输出（局部）：一张排好版的长图。outline / search / check 输出稳定 JSON，退出码 0/1/2/3/4 分类，agent 不用解析文本。</p>
+  </section>
 
-  <p class="foot">
-    <a href="https://github.com/ice5kysl/MuM">源码</a> ·
-    <a href="https://github.com/ice5kysl/MuM/blob/main/CHANGELOG.md">更新日志</a> ·
-    MIT
-  </p>
-</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <a href="https://github.com/ice5kysl/MuM">源码</a><span class="dot">·</span><a href="https://github.com/ice5kysl/MuM/blob/main/CHANGELOG.md">更新日志</a><span class="dot">·</span>MIT<span class="dot">·</span><a href="https://github.com/ice5kysl">ice5kysl</a>
+  </div>
+</footer>
+
 </body>
 </html>
