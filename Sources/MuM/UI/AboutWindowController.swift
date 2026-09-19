@@ -94,9 +94,11 @@ final class AboutWindowController: NSWindowController {
         motto.textColor = MuMDesign.tertiaryText
         motto.translatesAutoresizingMaskIntoConstraints = false
 
-        // 链接行：GitHub 仓库 · 作者 · 许可证（许可证链到仓库里的 LICENSE）
+        // 链接行：GitHub 仓库 · 反馈 · 作者 · 许可证（许可证链到仓库里的 LICENSE）
         let links = NSStackView(views: [
             LinkButton(title: "GitHub", url: "https://github.com/ice5kysl/MuM"),
+            separatorDot(),
+            LinkButton(title: "反馈", url: "https://github.com/ice5kysl/MuM/issues/new/choose"),
             separatorDot(),
             LinkButton(title: "ice5kysl", url: "https://github.com/ice5kysl"),
             separatorDot(),

@@ -214,6 +214,11 @@ enum MainMenuBuilder {
         item.target = NSApp.delegate as? AppDelegate
         menu.addItem(item)
 
+        // 反馈入口：开源项目的生命线，放帮助菜单（macOS 惯例位置）
+        let feedback = NSMenuItem(title: "反馈问题或建议…", action: #selector(AppDelegate.showFeedback(_:)), keyEquivalent: "")
+        feedback.target = NSApp.delegate as? AppDelegate
+        menu.addItem(feedback)
+
         let holder = NSMenuItem(title: "帮助", action: nil, keyEquivalent: "")
         holder.submenu = menu
         return holder

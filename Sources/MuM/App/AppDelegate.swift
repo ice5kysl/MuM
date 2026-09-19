@@ -254,6 +254,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         shortcutsHelpController = controller
         controller.present(relativeTo: mainWindowController?.window)
     }
+
+    /// 帮助 → 反馈问题或建议…：打开 GitHub issues 的模板选择页
+    @objc func showFeedback(_ sender: Any?) {
+        NSWorkspace.shared.open(URL(string: "https://github.com/ice5kysl/MuM/issues/new/choose")!)
+    }
 }
 
 // MARK: - 菜单可用性
