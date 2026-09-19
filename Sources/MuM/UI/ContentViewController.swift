@@ -167,6 +167,10 @@ final class ContentViewController: NSViewController {
         moreButton.contentTintColor = MuMDesign.secondaryText
         moreButton.toolTip = "导出与更多操作"
         moreButton.translatesAutoresizingMaskIntoConstraints = false
+        // NSButton 挂上 menu 不会在点击时自动弹出（那是 NSPopUpButton 的行为），
+        // 得自己接住点击再 popUp —— 实测点击无反应的坑就在这
+        moreButton.target = self
+        moreButton.action = #selector(showMoreMenu(_:))
 
         let leftGroup = NSStackView(views: [fileIcon, fileNameLabel, dirtyDot, externalOpenButton])
         leftGroup.orientation = .horizontal
@@ -313,6 +317,12 @@ final class ContentViewController: NSViewController {
         guard let next = Mode(rawValue: modeControl.selectedSegment) else { return }
         mode = next
         onModeChanged?(next)
+    }
+
+    /// ··· 点击弹出操作菜单（菜单项的 target 由窗口控制器装配，这里只管弹）
+    @objc private func showMoreMenu(_ sender: NSButton) {
+        guard let menu = sender.menu else { return }
+        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: sender.bounds.height + 5), in: sender)
     }
 
     // MARK: - 对外状态
