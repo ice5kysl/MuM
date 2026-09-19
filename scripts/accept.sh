@@ -78,6 +78,12 @@ if ! (cd "$WT" && swift test --disable-sandbox 2>&1 | grep -E "Executed [0-9]+ t
 fi
 
 echo
+echo "═══ 应用内自驱动 UI 测试（--uitest）═══"
+# 零权限、确定性等待，可进 CI/验收。注意它内部要开屏外窗口，
+# 用 release 二进制跑（debug 也能跑，慢一些没关系，这里用的是构建产物）
+"$WT/.build/release/MuM" --uitest all 2>&1 | tail -2
+
+echo
 echo "═══ 打包（含版本号一致性）═══"
 (cd "$WT" && ./scripts/build-app.sh release 2>&1 | grep -E "版本|完成" | tail -2)
 
@@ -87,4 +93,4 @@ echo "TTFR 等指标要用 bundle 内的二进制："
 echo "  $WT/dist/MuM.app/Contents/MacOS/MuM"
 echo "直接跑 .build/release/MuM 没有 bundle id，读的是另一个 defaults 域 —— 会得到假结果。"
 echo
-echo "（本脚本只验可自动化的部分。空状态、popover、颜色这些必须真实点击/截图。）"
+echo "（popover / 模式切换 / 查找 / 大纲 / 导出已由 --uitest 覆盖；颜色、间距、字形这类"长得对不对"仍须人工截图核对。）"
