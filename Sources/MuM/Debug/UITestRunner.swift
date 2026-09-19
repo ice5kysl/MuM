@@ -27,6 +27,7 @@ enum UITestRunner {
         ("export", "导出（⌘⇧E）"),
         ("newfile", "新建文件（⌘N）"),
         ("rename", "重命名与新建文件夹"),
+        ("trash", "移到废纸篓"),
     ]
 
     static func run(arguments: [String]) -> Int32 {
@@ -111,6 +112,7 @@ enum UITestRunner {
             case "export": scenarioExport(controller, docURL, check)
             case "newfile": scenarioNewFile(controller, check)
             case "rename": scenarioRename(controller, check)
+            case "trash": scenarioTrash(controller, check)
             default: break
             }
             checkers.append(check)
@@ -492,6 +494,46 @@ enum UITestRunner {
         let firstContent = (try? String(contentsOf: first, encoding: .utf8)) ?? "<读不到>"
         check.expect(firstContent.isEmpty, "第一个文件未被覆盖",
                      expected: "仍为空文件", actual: "\(firstContent.count) 字符")
+    }
+
+    /// 移到废纸篓：文件/文件夹删除、打开中的文件收尾关文档、可恢复（进 Trash 不是抹掉）
+    private static func scenarioTrash(_ c: MainWindowController, _ check: Checker) {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("mum-uitest-trash-\(ProcessInfo.processInfo.processIdentifier)")
+        try? FileManager.default.removeItem(at: dir)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        guard check.expect(WorkspaceStore.shared.open(url: dir) != nil, "打开临时目录为项目",
+                           expected: "项目打开成功", actual: "open 返回 nil") else { return }
+
+        // 删除打开中的文件：先收尾（关文档），再进废纸篓
+        guard let file = c.newDocument() else {
+            check.expect(false, "准备：新建文件", expected: "返回文件 URL", actual: "nil")
+            return
+        }
+        check.expect(c.trashNode(FileNode(url: file), presentErrors: false),
+                     "删除打开中的文件", expected: "成功", actual: "失败")
+        check.expect(!FileManager.default.fileExists(atPath: file.path), "文件已离开项目目录",
+                     expected: "不在原位置", actual: "还在")
+        check.expect(c.debugCurrentFileURL == nil, "打开状态已收尾（关文档）",
+                     expected: "无打开文件", actual: c.debugCurrentFileURL?.lastPathComponent ?? "?")
+
+        // 删除目录：打开中的文件在它里面，同样收尾
+        let folder = dir.appendingPathComponent("要删的目录")
+        let inner = folder.appendingPathComponent("内层.md")
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: inner.path, contents: Data("# 内层\n".utf8))
+        WorkspaceStore.shared.active?.root.invalidate()
+        c.open(url: inner)
+        guard check.expect(sameFile(c.debugCurrentFileURL, inner), "准备：打开目录里的文件",
+                           expected: "内层.md", actual: c.debugCurrentFileURL?.lastPathComponent ?? "无") else { return }
+        check.expect(c.trashNode(FileNode(url: folder), presentErrors: false),
+                     "删除目录", expected: "成功", actual: "失败")
+        check.expect(!FileManager.default.fileExists(atPath: folder.path) && c.debugCurrentFileURL == nil,
+                     "目录没了且打开状态收尾",
+                     expected: "目录删除 + 无打开文件",
+                     actual: "目录\(FileManager.default.fileExists(atPath: folder.path) ? "还在" : "已删") 打开=\(c.debugCurrentFileURL?.lastPathComponent ?? "无")")
     }
 
     /// 同一文件的判定要解符号链接：树节点的路径来自 FileManager 扫描（已解链接），

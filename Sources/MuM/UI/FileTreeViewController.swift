@@ -15,6 +15,8 @@ final class FileTreeViewController: NSViewController {
     var onNewFolderRequest: (() -> Void)?
     /// 行内重命名的落盘委托给窗口控制器（它要跟打开状态）；返回是否成功
     var onRenameNode: ((FileNode, String) -> Bool)?
+    /// 删除（移到废纸篓）委托给窗口控制器（打开状态收尾它管）
+    var onTrashNode: ((FileNode) -> Void)?
 
     private let switcher = ProjectSwitcherControl()
     private let menuButton = NSButton()
@@ -241,6 +243,8 @@ final class FileTreeViewController: NSViewController {
             menu.addItem(contextItem("重命名…", #selector(contextRename), icon: Self.menuIcon("pencil")))
             menu.addItem(.separator())
             menu.addItem(contextItem("在访达中显示", #selector(contextRevealInFinder), icon: Self.finderIcon))
+            menu.addItem(.separator())
+            menu.addItem(contextItem("移到废纸篓", #selector(contextTrash), icon: Self.menuIcon("trash")))
         } else {
             menu.addItem(contextItem("新建文件", #selector(contextNewFileAtRoot), icon: Self.menuIcon("doc.badge.plus")))
             menu.addItem(contextItem("新建文件夹", #selector(contextNewFolderAtRoot), icon: Self.menuIcon("folder.badge.plus")))
@@ -285,6 +289,11 @@ final class FileTreeViewController: NSViewController {
     /// 重命名只能从菜单进 —— 单击文件名永远只是选中，不进编辑态
     @objc private func contextRename() {
         beginRenameSelected()
+    }
+
+    @objc private func contextTrash() {
+        guard let node = selectedNode else { return }
+        onTrashNode?(node)
     }
 
     @objc private func contextRevealInFinder() {

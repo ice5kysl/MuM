@@ -308,6 +308,9 @@ final class MainWindowController: NSWindowController {
         fileTreeViewController.onRenameNode = { [weak self] node, newName in
             self?.performRename(node: node, newName: newName) ?? false
         }
+        fileTreeViewController.onTrashNode = { [weak self] node in
+            self?.trashNode(node)
+        }
 
         let editor = contentPane.editorViewController
         editor.onTextChanged = { [weak self] _ in
@@ -862,6 +865,35 @@ final class MainWindowController: NSWindowController {
             WorkspaceStore.shared.rememberOpenedFile(newCurrent, in: workspace)
         }
         refreshChrome() // 窗口标题、状态栏位置
+    }
+
+    // MARK: - 删除（移到废纸篓）
+
+    /// 移到废纸篓 —— 可恢复，绝不做彻底删除（ice 2026-09-19 拍的：需要删除，
+    /// 但跳访达太麻烦；废纸篓就是后悔药）。打开中的文件被删前先收尾：
+    /// 脏检查走 confirmDiscardIfNeeded（用户可取消），然后关文档；
+    /// 删目录时打开中的文件在它里面同样收尾。返回是否成功。
+    @discardableResult
+    func trashNode(_ node: FileNode, presentErrors: Bool = true) -> Bool {
+        let url = node.url
+        if let current = currentFileURL {
+            let currentPath = current.realPath
+            let targetPath = url.realPath
+            if currentPath == targetPath || (node.isDirectory && currentPath.hasPrefix(targetPath + "/")) {
+                if isDirty, !confirmDiscardIfNeeded() { return false }
+                closeCurrentFile()
+                refreshChrome()
+            }
+        }
+        do {
+            try FileManager.default.trashItem(at: url, resultingItemURL: nil)
+        } catch {
+            if presentErrors { presentError(message: "移到废纸篓失败", detail: error.localizedDescription) }
+            return false
+        }
+        WorkspaceStore.shared.active?.root.invalidate()
+        fileTreeViewController.refreshPreservingExpansion()
+        return true
     }
 
     // MARK: - 导出（⌘⇧E）
