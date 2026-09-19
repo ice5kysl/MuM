@@ -1,9 +1,17 @@
 # MuM 的定位
 
-> **Fast, native, multi-project Markdown reader.**
-> **Reading is the point, not a preview.**
+> **A fast, native Markdown engine — for humans and agents.**
 >
-> 快、原生、多项目的 Markdown 阅读器 —— 阅读是目的，不是编辑的副产品。
+> 快、原生的 Markdown 引擎 —— 给人用，也给 agent 用。
+>
+> **人读它**：快、原生、多项目，*Reading is the point, not a preview* ——
+> 阅读是目的，不是编辑的副产品。
+> **Agent 用它产出**：同一套排版引擎，无窗口出图、出结构化数据。
+
+**两个出口，一条优先级：冲突时人优先。** 这是定位，不是和稀泥 ——
+它决定了 v0.6 的顺序（给人用的分发链路排在给 agent 用的 CLI 之前），
+也决定了我们**不做**什么：不做插件系统、不做 Web 版、不做协作平台。
+引擎是引擎，不是平台。
 
 这份文档回答**为什么**。具体做什么、什么时候做，见 [ROADMAP.md](roadmap.md)。
 
@@ -16,6 +24,7 @@
 | **Fast** | 没有启动画面这回事 | 进程启动到窗口上屏 **280ms**，渲染本身 **0.03s**（`MUM_LAUNCH_TIMING=1` 可复现） |
 | **Native** | 2.8 MB，全程没有 Web 引擎 | cmark-gfm 解析成 `NSAttributedString`，排版与绘制全在 AppKit 里手写 |
 | **Multi-project** | 项目是主语 | `⌘1`…`⌘9` 秒切，项目回答"我在哪" |
+| **for agents** | 同一套引擎的第二个出口 | `mum render --png` 无窗口出图（v0.6）；**结构化解 markdown 是商品，排一张好版不是** —— 这是别人复制不了的那部分 |
 
 第三句是界限：**在别处，阅读是编辑的副产品** —— `preview` 这个词本身就是证据，
 它暗示"真正的工作是写，看只是顺便"。MuM 反过来。

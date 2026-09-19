@@ -1,6 +1,6 @@
 # MuM
 
-**Fast, native, multi-project Markdown reader.**
+**A fast, native Markdown engine — for humans and agents.**
 **Reading is the point, not a preview.**
 
 > 快、原生、多项目的 Markdown 阅读器 —— **阅读是目的，不是编辑的副产品。**
