@@ -26,6 +26,7 @@ enum UITestRunner {
         ("search", "全局搜索"),
         ("export", "导出（⌘⇧E）"),
         ("newfile", "新建文件（⌘N）"),
+        ("rename", "重命名与新建文件夹"),
     ]
 
     static func run(arguments: [String]) -> Int32 {
@@ -109,6 +110,7 @@ enum UITestRunner {
             case "search": scenarioSearch(controller, docURL, check)
             case "export": scenarioExport(controller, docURL, check)
             case "newfile": scenarioNewFile(controller, check)
+            case "rename": scenarioRename(controller, check)
             default: break
             }
             checkers.append(check)
@@ -502,6 +504,89 @@ enum UITestRunner {
             return String(cString: resolved)
         }
         return resolve(a) == resolve(b)
+    }
+
+    /// 重命名 + 新建文件夹：行内编辑态、落盘、打开中的文件路径跟随、
+    /// 冲突不覆盖、Esc 取消不落盘、··· 菜单内容（ice 报过"没看到新建文件"）
+    private static func scenarioRename(_ c: MainWindowController, _ check: Checker) {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("mum-uitest-rename-\(ProcessInfo.processInfo.processIdentifier)")
+        try? FileManager.default.removeItem(at: dir)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        guard check.expect(WorkspaceStore.shared.open(url: dir) != nil, "打开临时目录为项目",
+                           expected: "项目打开成功", actual: "open 返回 nil") else { return }
+
+        // ··· 菜单内容核对（ice 报过"没看到新建文件"——菜单在，但断言钉住它）
+        let titles = c.debugTreeMenuTitles
+        check.expect(titles.contains("新建文件") && titles.contains("新建文件夹"),
+                     "··· 菜单有新建文件/新建文件夹",
+                     expected: "两项都在", actual: "\(titles)")
+
+        guard let file = c.newDocument() else {
+            check.expect(false, "准备：新建文件", expected: "返回文件 URL", actual: "nil")
+            return
+        }
+
+        // 行内重命名：进编辑态 → field editor 在岗 → 提交新名
+        c.debugRenameSelectedNode()
+        check.expect(c.debugIsRenaming && c.debugRenameFieldActive, "进入重命名编辑态",
+                     expected: "编辑中且文本框在岗",
+                     actual: "renaming=\(c.debugIsRenaming) field=\(c.debugRenameFieldActive)")
+        let renamed = dir.appendingPathComponent("笔记.md")
+        c.debugCommitRename("笔记.md")
+        check.expect(FileManager.default.fileExists(atPath: renamed.path), "重命名落盘",
+                     expected: "笔记.md 在磁盘上", actual: "不存在")
+        check.expect(sameFile(c.debugCurrentFileURL, renamed), "打开中的文件跟到新 URL",
+                     expected: "笔记.md", actual: c.debugCurrentFileURL?.lastPathComponent ?? "无打开文件")
+
+        // 冲突：另一个文件想改成已存在的名字 → 失败且不覆盖（静默断言路径，
+        // 弹窗会卡住测试进程，所以直接调 performRename(presentErrors: false)）
+        guard let second = c.newDocument() else {
+            check.expect(false, "准备：新建第二个文件", expected: "返回文件 URL", actual: "nil")
+            return
+        }
+        let node = FileNode(url: second)
+        check.expect(!c.performRename(node: node, newName: "笔记.md", presentErrors: false),
+                     "重名冲突被拒绝", expected: "返回 false", actual: "成功")
+        check.expect(FileManager.default.fileExists(atPath: second.path), "冲突时原文件没被覆盖",
+                     expected: "未命名2.md 还在", actual: "没了")
+
+        // Esc 取消：进编辑态再取消，磁盘不变
+        c.debugRenameSelectedNode()
+        check.expect(c.debugIsRenaming, "再次进入编辑态", expected: "编辑中", actual: "没有")
+        c.debugCancelRename()
+        check.expect(FileManager.default.fileExists(atPath: second.path) && !c.debugIsRenaming,
+                     "Esc 取消不落盘", expected: "文件没动、退出编辑态", actual: "有变化")
+
+        // 新建文件夹：落盘 + 建完直接进重命名编辑态（文件夹的名字就是它的全部）
+        guard let folder = c.newFolder() else {
+            check.expect(false, "新建文件夹", expected: "返回 URL", actual: "nil")
+            return
+        }
+        var isDir: ObjCBool = false
+        check.expect(FileManager.default.fileExists(atPath: folder.path, isDirectory: &isDir) && isDir.boolValue,
+                     "文件夹落盘", expected: "目录存在", actual: "不存在")
+        check.expect(c.debugIsRenaming, "建完直接进重命名", expected: "编辑中", actual: "没有")
+        let renamedFolder = dir.appendingPathComponent("子文件夹")
+        c.debugCommitRename("子文件夹")
+        check.expect(FileManager.default.fileExists(atPath: renamedFolder.path, isDirectory: &isDir),
+                     "文件夹改名落盘", expected: "子文件夹", actual: "不存在")
+
+        // 重命名外层目录时，打开中的文件路径要跟
+        let inner = renamedFolder.appendingPathComponent("内层.md")
+        FileManager.default.createFile(atPath: inner.path, contents: Data("# 内层\n".utf8))
+        WorkspaceStore.shared.active?.root.invalidate()
+        c.open(url: inner)
+        guard check.expect(sameFile(c.debugCurrentFileURL, inner), "准备：打开内层文件",
+                           expected: "内层.md", actual: c.debugCurrentFileURL?.lastPathComponent ?? "无") else { return }
+        let folderNode = FileNode(url: renamedFolder)
+        check.expect(c.performRename(node: folderNode, newName: "归档", presentErrors: false),
+                     "重命名外层目录", expected: "成功", actual: "失败")
+        check.expect(sameFile(c.debugCurrentFileURL, dir.appendingPathComponent("归档/内层.md")),
+                     "打开中的文件路径跟随目录改名",
+                     expected: "归档/内层.md", actual: c.debugCurrentFileURL?.path ?? "无")
     }
 
     // MARK: - 控件驱动与断言助手

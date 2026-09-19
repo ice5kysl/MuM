@@ -9,14 +9,23 @@ final class FileTreeViewController: NSViewController {
 
     /// 用户在树里选中了一个文件
     var onSelectFile: ((FileNode) -> Void)?
+    /// 右键/··· 菜单请求新建文件（点中的节点已被选中，目标目录由窗口控制器按选中项推导）
+    var onNewFileRequest: (() -> Void)?
+    /// 同上：新建文件夹
+    var onNewFolderRequest: (() -> Void)?
+    /// 行内重命名的落盘委托给窗口控制器（它要跟打开状态）；返回是否成功
+    var onRenameNode: ((FileNode, String) -> Bool)?
 
     private let switcher = ProjectSwitcherControl()
     private let menuButton = NSButton()
     private let separator = NSBox()
     private let filterField = NSSearchField()
-    private let outlineView = NSOutlineView()
+    private let outlineView = FileTreeOutlineView()
     private let scrollView = NSScrollView()
     private let emptyState = NSView()
+
+    /// 当前处于重命名编辑态的单元格（同时最多一个）
+    private var editingCell: FileTreeCellView?
 
     private var items: [FileNode] = []
     private var isFiltering = false
@@ -118,6 +127,8 @@ final class FileTreeViewController: NSViewController {
         outlineView.allowsEmptySelection = true
         outlineView.selectionHighlightStyle = .regular
         outlineView.usesAlternatingRowBackgroundColors = false
+        // 右键菜单：点中哪行（-1 = 空白区）由菜单提供者决定内容
+        outlineView.menuProvider = { [weak self] row in self?.contextMenu(forRow: row) }
 
         scrollView.documentView = outlineView
         scrollView.hasVerticalScroller = true
@@ -160,10 +171,22 @@ final class FileTreeViewController: NSViewController {
     // MARK: - 项目菜单
 
     @objc private func showProjectMenu() {
+        makeProjectMenu().popUp(
+            positioning: nil,
+            at: NSPoint(x: menuButton.bounds.midX, y: menuButton.bounds.minY - 4),
+            in: menuButton
+        )
+    }
+
+    /// ··· 菜单的内容。抽成工厂方法：每次弹出重建（状态可能变了），
+    /// 诊断钩子也能直接读标题清单
+    private func makeProjectMenu() -> NSMenu {
         let menu = NSMenu()
-        // target=nil 走响应链，最终到 AppDelegate.newDocument（与菜单栏 ⌘N 同一动作）
+        // target=nil 走响应链，最终到 AppDelegate 的对应动作（与菜单栏同一动作）
         let newFile = NSMenuItem(title: "新建文件", action: #selector(AppDelegate.newDocument(_:)), keyEquivalent: "")
         menu.addItem(newFile)
+        let newFolder = NSMenuItem(title: "新建文件夹", action: #selector(AppDelegate.newFolder(_:)), keyEquivalent: "")
+        menu.addItem(newFolder)
 
         menu.addItem(.separator())
         let reveal = NSMenuItem(title: "在访达中显示", action: #selector(revealProject), keyEquivalent: "")
@@ -178,13 +201,11 @@ final class FileTreeViewController: NSViewController {
         let close = NSMenuItem(title: "关闭当前项目", action: #selector(closeProject), keyEquivalent: "")
         close.target = self
         menu.addItem(close)
-
-        menu.popUp(
-            positioning: nil,
-            at: NSPoint(x: menuButton.bounds.midX, y: menuButton.bounds.minY - 4),
-            in: menuButton
-        )
+        return menu
     }
+
+    /// 诊断用（UITestRunner）：··· 菜单的标题清单
+    var debugProjectMenuTitles: [String] { makeProjectMenu().items.map(\.title) }
 
     @objc private func revealProject() {
         guard let url = WorkspaceStore.shared.active?.rootURL else { return }
@@ -198,6 +219,98 @@ final class FileTreeViewController: NSViewController {
     @objc private func closeProject() {
         WorkspaceStore.shared.closeActive()
     }
+
+    // MARK: - 右键菜单
+    //
+    // 文件管理动作的自然家是文件树右键。点中节点（FileTreeOutlineView 会先选中它）
+    // 给节点操作；空白区只给新建，落在项目根 —— 所以先清空选择，
+    // 让窗口控制器按"没选中"推导目标目录。
+
+    private func contextMenu(forRow row: Int) -> NSMenu? {
+        guard WorkspaceStore.shared.active != nil else { return nil }
+        let menu = NSMenu()
+
+        if row >= 0, outlineView.item(atRow: row) is FileNode {
+            menu.addItem(contextItem("新建文件", #selector(contextNewFile)))
+            menu.addItem(contextItem("新建文件夹", #selector(contextNewFolder)))
+            menu.addItem(contextItem("重命名…", #selector(contextRename)))
+            menu.addItem(.separator())
+            menu.addItem(contextItem("在访达中显示", #selector(contextRevealInFinder)))
+        } else {
+            menu.addItem(contextItem("新建文件", #selector(contextNewFileAtRoot)))
+            menu.addItem(contextItem("新建文件夹", #selector(contextNewFolderAtRoot)))
+        }
+        return menu
+    }
+
+    private func contextItem(_ title: String, _ action: Selector) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
+        item.target = self
+        return item
+    }
+
+    @objc private func contextNewFile() { onNewFileRequest?() }
+    @objc private func contextNewFolder() { onNewFolderRequest?() }
+
+    @objc private func contextNewFileAtRoot() {
+        outlineView.deselectAll(nil)
+        onNewFileRequest?()
+    }
+
+    @objc private func contextNewFolderAtRoot() {
+        outlineView.deselectAll(nil)
+        onNewFolderRequest?()
+    }
+
+    /// 重命名只能从菜单进 —— 单击文件名永远只是选中，不进编辑态
+    @objc private func contextRename() {
+        beginRenameSelected()
+    }
+
+    @objc private func contextRevealInFinder() {
+        guard let node = selectedNode else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([node.url])
+    }
+
+    // MARK: - 行内重命名（Finder 式：回车确认、Esc 取消）
+    //
+    // 实现方式：直接把单元格里的 nameLabel 临时变成可编辑文本框，
+    // 不换单元格类型、不叠浮层 —— view-based outline 里这是侵入最小的做法。
+
+    /// 让 url 对应的节点进入重命名编辑态（新建文件夹后调它：名字就是文件夹的全部）
+    func beginRename(url: URL) {
+        reveal(url: url)
+        beginRenameSelected()
+    }
+
+    /// 当前选中的节点进入重命名编辑态
+    func beginRenameSelected() {
+        let row = outlineView.selectedRow
+        guard row >= 0,
+              let cell = outlineView.view(atColumn: 0, row: row, makeIfNecessary: true) as? FileTreeCellView,
+              let node = cell.node else { return }
+        editingCell?.cancelEditing()
+        editingCell = cell
+        cell.beginEditing(
+            onCommit: { [weak self] newName in
+                guard let self else { return false }
+                self.editingCell = nil
+                return self.onRenameNode?(node, newName) ?? false
+            },
+            onEnd: { [weak self] in self?.editingCell = nil }
+        )
+    }
+
+    // MARK: - 诊断钩子（UITestRunner）
+
+    /// 是否正处于重命名编辑态
+    var debugIsRenaming: Bool { editingCell != nil }
+    /// 命名单元格的文本框是否真的是第一响应者（field editor 在岗）
+    var debugRenameFieldActive: Bool { editingCell?.debugFieldActive ?? false }
+    /// 以当前编辑中的文本框内容提交（与回车同一条路径）
+    func debugCommitRename(_ newName: String) { editingCell?.debugCommit(newName) }
+    /// 取消编辑（与 Esc 同一条路径）
+    func debugCancelRename() { editingCell?.cancelEditing() }
 
     // MARK: - 数据
 
@@ -240,8 +353,8 @@ final class FileTreeViewController: NSViewController {
         // 且 URL/NSString 的 resolvingSymlinksInPath 在这代 macOS 上不解 /var（实测）——
         // 只有 realpath(3) 与 contentsOfDirectory 的结果一致。不解析的话，链接目录下的
         // 文件永远 reveal 不到（新建文件的断言抓住了这个）
-        let urlPath = Self.realPath(url)
-        let rootPath = Self.realPath(workspace.rootURL)
+        let urlPath = url.realPath
+        let rootPath = workspace.rootURL.realPath
 
         guard urlPath.hasPrefix(rootPath + "/") else { return }
 
@@ -267,13 +380,6 @@ final class FileTreeViewController: NSViewController {
             outlineView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
             outlineView.scrollRowToVisible(row)
         }
-    }
-
-    /// realpath(3)：解不开（路径不存在等）就退回原样
-    private static func realPath(_ url: URL) -> String {
-        guard let resolved = realpath(url.path, nil) else { return url.path }
-        defer { free(resolved) }
-        return String(cString: resolved)
     }
 
     func focusFilter() {
@@ -488,6 +594,9 @@ final class FileTreeCellView: NSTableCellView {
     private let nameLabel = NSTextField(labelWithString: "")
     private let pathLabel = NSTextField(labelWithString: "")
 
+    /// 当前展示的节点（行内重命名时要拿它做落盘）
+    private(set) var node: FileNode?
+
     init(identifier: NSUserInterfaceItemIdentifier) {
         super.init(frame: .zero)
         self.identifier = identifier
@@ -531,6 +640,8 @@ final class FileTreeCellView: NSTableCellView {
 
             nameLabel.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 6),
             nameLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+            // 编辑态下文本框要能撑到行尾（平时被 pathLabel 或截断约束收住）
+            nameLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -4),
 
             pathLabel.leadingAnchor.constraint(equalTo: nameLabel.trailingAnchor, constant: 6),
             pathLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -4),
@@ -539,6 +650,7 @@ final class FileTreeCellView: NSTableCellView {
     }
 
     func configure(with node: FileNode, showsParentPath: Bool) {
+        self.node = node
         nameLabel.stringValue = node.name
         nameLabel.textColor = node.isDirectory ? MuMDesign.secondaryText : MuMDesign.primaryText
         nameLabel.font = node.isDirectory
@@ -554,5 +666,116 @@ final class FileTreeCellView: NSTableCellView {
         }
 
         toolTip = node.url.path
+    }
+
+    // MARK: - 行内重命名
+
+    /// 编辑态的三个状态：编辑中 / 用户按了 Esc / 原文备份
+    private var editing = false
+    private var cancelled = false
+    private var originalName = ""
+    private var onCommit: ((String) -> Bool)?
+    private var onEnd: (() -> Void)?
+
+    /// 进入编辑态（Finder 式：回车/焦点离开确认，Esc 取消）。
+    /// onCommit 返回 false（校验失败/写不进）时恢复原文 —— 报错由提交方负责。
+    func beginEditing(onCommit: @escaping (String) -> Bool, onEnd: @escaping () -> Void) {
+        guard let node, !editing else { return }
+        originalName = node.name
+        self.onCommit = onCommit
+        self.onEnd = onEnd
+        editing = true
+        cancelled = false
+
+        nameLabel.isEditable = true
+        nameLabel.isSelectable = true
+        nameLabel.isBezeled = true
+        nameLabel.delegate = self
+        window?.makeFirstResponder(nameLabel)
+
+        // 选中主名（不含扩展名），文件夹没有扩展名问题、全选
+        if let editor = nameLabel.currentEditor() {
+            let name = nameLabel.stringValue as NSString
+            let length = node.isDirectory ? name.length : (name.deletingPathExtension as NSString).length
+            editor.selectedRange = NSRange(location: 0, length: length)
+        }
+    }
+
+    /// Esc 路径：标取消再结束编辑，endEditing 回调里按取消处理（恢复原文、不落盘）
+    func cancelEditing() {
+        guard editing else { return }
+        cancelled = true
+        window?.makeFirstResponder(nil)
+    }
+
+    /// 诊断用（UITestRunner）：文本框的 field editor 是否在岗
+    var debugFieldActive: Bool { nameLabel.currentEditor() != nil }
+
+    /// 诊断用（UITestRunner）：写入新名并结束编辑 —— 与"回车确认"同一条 endEditing 路径
+    func debugCommit(_ newName: String) {
+        guard editing else { return }
+        nameLabel.stringValue = newName
+        window?.makeFirstResponder(nil)
+    }
+
+    /// 焦点离开时提交（与 Finder 一致）；回车也会走到这里
+    private func endEditing() {
+        guard editing else { return }
+        editing = false
+        let committed = nameLabel.stringValue
+        nameLabel.isEditable = false
+        nameLabel.isSelectable = false
+        nameLabel.isBezeled = false
+        nameLabel.delegate = nil
+
+        let commit = onCommit
+        let end = onEnd
+        onCommit = nil
+        onEnd = nil
+
+        if cancelled || committed == originalName {
+            nameLabel.stringValue = originalName
+        } else if commit?(committed) != true {
+            // 改名失败（冲突/写不进）：恢复原文。错误已经由提交方报过
+            nameLabel.stringValue = originalName
+        }
+        end?()
+    }
+}
+
+// MARK: - NSTextFieldDelegate（行内重命名）
+
+extension FileTreeCellView: NSTextFieldDelegate {
+
+    /// 回车 / 焦点离开都会触发；Esc 在 doCommandBy 里先标取消
+    func controlTextDidEndEditing(_ notification: Notification) {
+        endEditing()
+    }
+
+    func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+        if commandSelector == #selector(NSResponder.cancelOperation(_:)) {
+            cancelEditing()
+            return true
+        }
+        return false
+    }
+}
+
+// MARK: - 带右键菜单的大纲视图
+
+/// 右键菜单需要知道点中的是哪一行（还是空白区），静态的 `menu` 属性做不到。
+/// 点中节点时先选中它再弹菜单 —— 菜单动作（新建/重命名）都按"当前选中"工作。
+private final class FileTreeOutlineView: NSOutlineView {
+
+    /// 参数是被右键的行（-1 = 空白区），返回该行/空白区的菜单
+    var menuProvider: ((Int) -> NSMenu?)?
+
+    override func menu(for event: NSEvent) -> NSMenu? {
+        let point = convert(event.locationInWindow, from: nil)
+        let row = row(at: point)
+        if row >= 0, !selectedRowIndexes.contains(row) {
+            selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
+        }
+        return menuProvider?(row)
     }
 }

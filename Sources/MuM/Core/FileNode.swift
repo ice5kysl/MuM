@@ -42,6 +42,7 @@ final class FileNode {
     }
 
     // MARK: - 图标
+    // MARK: - 图标
 
     private static let iconCache = ConcurrentCache<NSImage>()
 
@@ -70,5 +71,19 @@ final class FileNode {
         sized?.size = NSSize(width: 16, height: 16)
         if let sized { FileNode.iconCache[key] = sized }
         return sized
+    }
+}
+
+extension URL {
+    /// 解符号链接后的真实路径（realpath(3)；解不开退回原路径）。
+    ///
+    /// 凡是和 FileManager 扫描结果比路径的地方都必须用这个：这代 macOS 上
+    /// `resolvingSymlinksInPath` 不解 /var → /private/var（实测），而
+    /// contentsOfDirectory 返回的子路径是解过链接的 —— 两边不比同一个形式，
+    /// 链接目录下的文件就会"在树里但找不到"（新建文件的断言抓住了这个）
+    var realPath: String {
+        guard let resolved = realpath(path, nil) else { return path }
+        defer { free(resolved) }
+        return String(cString: resolved)
     }
 }

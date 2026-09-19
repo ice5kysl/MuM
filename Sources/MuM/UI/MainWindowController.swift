@@ -297,6 +297,18 @@ final class MainWindowController: NSWindowController {
         // 内容区右上 ···：导出菜单（无文档 / 非文本时置灰，见 NSMenuItemValidation 扩展）
         contentPane.moreButton.menu = makeExportMenu()
 
+        // 文件树的文件管理动作：新建文件/文件夹与重命名落盘都在窗口控制器 ——
+        // 它要跟打开状态（重命名打开中的文件，路径要跟到新 URL）
+        fileTreeViewController.onNewFileRequest = { [weak self] in
+            self?.newDocument()
+        }
+        fileTreeViewController.onNewFolderRequest = { [weak self] in
+            self?.newFolder()
+        }
+        fileTreeViewController.onRenameNode = { [weak self] node, newName in
+            self?.performRename(node: node, newName: newName) ?? false
+        }
+
         let editor = contentPane.editorViewController
         editor.onTextChanged = { [weak self] _ in
             self?.markDirty()
@@ -745,6 +757,113 @@ final class MainWindowController: NSWindowController {
         }
     }
 
+    // MARK: - 新建文件夹 / 重命名
+    //
+    // 文件管理动作的统一落点：文件树右键菜单、··· 菜单都汇到这里。
+    // 命名一律递增不覆盖；落盘失败走 presentError。
+
+    /// 新建文件夹：与新建文件同一套目录推导（选中项的目录 / 项目根）。
+    /// 文件夹没有"写内容"，名字就是它的全部 —— 建完直接进行内重命名编辑态。
+    @discardableResult
+    func newFolder() -> URL? {
+        guard let workspace = WorkspaceStore.shared.active else { return nil }
+
+        let selected = fileTreeViewController.selectedNode
+        let dir = selected.map { $0.isDirectory ? $0.url : $0.url.deletingLastPathComponent() }
+            ?? workspace.rootURL
+
+        var candidate = dir.appendingPathComponent("未命名文件夹")
+        var index = 2
+        while FileManager.default.fileExists(atPath: candidate.path) {
+            candidate = dir.appendingPathComponent("未命名文件夹\(index)")
+            index += 1
+        }
+
+        do {
+            try FileManager.default.createDirectory(at: candidate, withIntermediateDirectories: false)
+        } catch {
+            presentError(message: "新建文件夹失败", detail: error.localizedDescription)
+            return nil
+        }
+
+        // 与新建文件同理：树的缓存是落盘前的，先失效重载，编辑态才找得到新节点
+        workspace.root.invalidate()
+        fileTreeViewController.refreshPreservingExpansion()
+        fileTreeViewController.beginRename(url: candidate)
+        return candidate
+    }
+
+    /// 行内重命名的校验。返回 nil = 可以改；提成独立方法让测试直接断言校验规则
+    func renameValidationError(node: FileNode, newName: String) -> String? {
+        let trimmed = newName.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty { return "名字不能为空" }
+        if trimmed.contains("/") { return "名字不能包含「/」" }
+        guard trimmed != node.name else { return nil }
+        let target = node.url.deletingLastPathComponent().appendingPathComponent(trimmed)
+        if FileManager.default.fileExists(atPath: target.path) { return "「\(trimmed)」已存在" }
+        return nil
+    }
+
+    /// 行内重命名的落盘与状态跟随。返回是否成功；失败时按 presentErrors 决定要不要
+    /// 弹错误框（测试进程里弹模态框会永远等不到点击，--uitest 传 false 走静默断言）
+    @discardableResult
+    func performRename(node: FileNode, newName: String, presentErrors: Bool = true) -> Bool {
+        let trimmed = newName.trimmingCharacters(in: .whitespaces)
+        // 没改名 = 直接算成功（等于用户看了看又放弃了）
+        guard trimmed != node.name else { return true }
+        if let message = renameValidationError(node: node, newName: trimmed) {
+            if presentErrors { presentError(message: "重命名失败", detail: message) }
+            return false
+        }
+
+        let oldURL = node.url
+        let target = oldURL.deletingLastPathComponent().appendingPathComponent(trimmed)
+        do {
+            // moveItem 不覆盖已存在的目标（校验已挡过，这里是第二道）
+            try FileManager.default.moveItem(at: oldURL, to: target)
+        } catch {
+            if presentErrors { presentError(message: "重命名失败", detail: error.localizedDescription) }
+            return false
+        }
+
+        followRenamedNode(from: oldURL, to: target, isDirectory: node.isDirectory)
+
+        // 树刷新并选中新位置
+        WorkspaceStore.shared.active?.root.invalidate()
+        fileTreeViewController.refreshPreservingExpansion()
+        fileTreeViewController.reveal(url: target)
+        return true
+    }
+
+    /// 重命名/移动后，打开状态跟到新 URL。不换的话，⌘S 会写回旧位置 ——
+    /// 等于在旧路径复制出一个幽灵文件，未保存的改动看起来"丢了"。
+    /// 文件夹被改名时，打开中的文件在它里面的，路径同样要跟。
+    private func followRenamedNode(from oldURL: URL, to newURL: URL, isDirectory: Bool) {
+        guard let current = currentFileURL else { return }
+
+        // 比较走 realPath：树节点路径已解链接，currentFileURL 可能没解（/var vs /private/var）
+        let currentPath = current.realPath
+        let oldPath = oldURL.realPath
+        let newCurrent: URL?
+        if currentPath == oldPath {
+            newCurrent = newURL
+        } else if isDirectory, currentPath.hasPrefix(oldPath + "/") {
+            let suffix = String(currentPath.dropFirst(oldPath.count + 1))
+            newCurrent = newURL.appendingPathComponent(suffix)
+        } else {
+            newCurrent = nil
+        }
+        guard let newCurrent else { return }
+
+        currentFileURL = newCurrent
+        // 文件监听跟着走，不然外部再改动就监听不到了
+        startFileWatcher(for: newCurrent)
+        if let workspace = WorkspaceStore.shared.active {
+            WorkspaceStore.shared.rememberOpenedFile(newCurrent, in: workspace)
+        }
+        refreshChrome() // 窗口标题、状态栏位置
+    }
+
     // MARK: - 导出（⌘⇧E）
 
     /// 当前文档可导出：有打开的文本文件（图片 / PDF 没有"导出渲染结果"这回事）
@@ -819,6 +938,16 @@ final class MainWindowController: NSWindowController {
     /// 诊断用（UITestRunner）：新建文件的断言点 —— 光标位置与文件树选中
     var debugEditorFocused: Bool { contentPane.editorViewController.debugIsFocused }
     var debugSelectedTreeFile: URL? { fileTreeViewController.selectedNode?.url }
+
+    /// 诊断用（UITestRunner）：文件管理动作 —— 右键菜单与行内重命名的断言点
+    var debugSelectedNode: FileNode? { fileTreeViewController.selectedNode }
+    var debugTreeMenuTitles: [String] { fileTreeViewController.debugProjectMenuTitles }
+    func debugSelectTreeNode(url: URL) { fileTreeViewController.reveal(url: url) }
+    func debugRenameSelectedNode() { fileTreeViewController.beginRenameSelected() }
+    var debugIsRenaming: Bool { fileTreeViewController.debugIsRenaming }
+    var debugRenameFieldActive: Bool { fileTreeViewController.debugRenameFieldActive }
+    func debugCommitRename(_ newName: String) { fileTreeViewController.debugCommitRename(newName) }
+    func debugCancelRename() { fileTreeViewController.debugCancelRename() }
 
     /// 导出参数：跟随当前的阅读主题与排版设置；明暗跟随 app 当前外观（dark 留 nil）
     private func exportRenderedOrThrow(to output: URL) throws {

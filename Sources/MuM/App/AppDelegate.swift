@@ -112,6 +112,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mainWindowController?.newDocument()
     }
 
+    @objc func newFolder(_ sender: Any?) {
+        mainWindowController?.newFolder()
+    }
+
     @objc func openFolder(_ sender: Any?) {
         WorkspaceStore.shared.promptForFolder()
     }
