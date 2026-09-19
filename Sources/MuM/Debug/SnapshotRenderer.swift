@@ -81,6 +81,16 @@ enum SnapshotRenderer {
             RunLoop.main.run(until: Date().addingTimeInterval(0.6))
         }
 
+        // 可选：`--mode write|read|preview` 切换呈现方式（默认 read，沿用打开路径的偏好）
+        if let modeIndex = arguments.firstIndex(of: "--mode"), modeIndex + 1 < arguments.count {
+            switch arguments[modeIndex + 1] {
+            case "write": controller.setMode(.write)
+            case "preview": controller.setMode(.preview)
+            default: controller.setMode(.read)
+            }
+            RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+        }
+
         // 模拟弹出文档大纲：`--outline`
         if arguments.contains("--outline") {
             controller.debugOutline()

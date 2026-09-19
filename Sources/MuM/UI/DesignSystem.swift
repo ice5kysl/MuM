@@ -56,6 +56,13 @@ enum MuMDesign {
     static let paneInset: CGFloat = 8
     static let cornerRadius: CGFloat = 7
 
+    /// 内容区顶栏在标题栏安全区之下再下探的高度 —— 顶栏不只是标题栏的附属，
+    /// 它承载文件名、模式开关、操作菜单，需要自己的呼吸空间
+    static let titleStripExtra: CGFloat = 12
+
+    /// 内容区文档标题的字号：加大到 16pt semibold，文件名是这一栏的主角
+    static let contentTitleLarge = NSFont.systemFont(ofSize: 16, weight: .semibold)
+
     // MARK: - 字体
 
     static let paneTitle = NSFont.systemFont(ofSize: 12, weight: .semibold)

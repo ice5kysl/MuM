@@ -1,4 +1,5 @@
 import AppKit
+import UniformTypeIdentifiers
 
 /// 主窗口：三栏 + 底部状态栏，并充当各栏之间的协调者。
 ///
@@ -292,6 +293,9 @@ final class MainWindowController: NSWindowController {
         rootViewController.statusBar.onShowSettings = { [weak self] anchor in
             self?.showSystemSettings(from: anchor)
         }
+
+        // 内容区右上 ···：导出菜单（无文档 / 非文本时置灰，见 NSMenuItemValidation 扩展）
+        contentPane.moreButton.menu = makeExportMenu()
 
         let editor = contentPane.editorViewController
         editor.onTextChanged = { [weak self] _ in
@@ -671,15 +675,47 @@ final class MainWindowController: NSWindowController {
     /// ⌘⇧E：导出当前文档的渲染结果。保存面板只管"存到哪、什么格式"，
     /// 渲染走 DocumentRenderer —— 与 headless `MuM render` 同一个入口。
     func exportDocument() {
-        guard canExport, let window, let url = currentFileURL else { return }
+        guard let url = currentFileURL else { return }
+        presentExportPanel(
+            allowedContentTypes: [.png, .pdf],
+            defaultName: url.deletingPathExtension().lastPathComponent + ".png"
+        )
+    }
+
+    /// ··· 菜单的导出：格式由菜单项预选，保存面板只管位置和文件名
+    func exportDocument(format: DocumentRenderer.Format) {
+        guard let url = currentFileURL else { return }
+        presentExportPanel(
+            allowedContentTypes: [format.contentType],
+            defaultName: url.deletingPathExtension().lastPathComponent + "." + format.pathExtension
+        )
+    }
+
+    private func presentExportPanel(allowedContentTypes: [UTType], defaultName: String) {
+        guard canExport, let window else { return }
         let panel = NSSavePanel()
-        panel.allowedContentTypes = [.png, .pdf]
-        panel.nameFieldStringValue = url.deletingPathExtension().lastPathComponent + ".png"
+        panel.allowedContentTypes = allowedContentTypes
+        panel.nameFieldStringValue = defaultName
         panel.beginSheetModal(for: window) { [weak self] response in
             guard response == .OK, let output = panel.url else { return }
             self?.exportRendered(to: output)
         }
     }
+
+    /// 内容区右上 ··· 的菜单：导出两项，格式预选
+    private func makeExportMenu() -> NSMenu {
+        let menu = NSMenu()
+        let png = NSMenuItem(title: "导出为 PNG…", action: #selector(exportAsPNG(_:)), keyEquivalent: "")
+        png.target = self
+        let pdf = NSMenuItem(title: "导出为 PDF…", action: #selector(exportAsPDF(_:)), keyEquivalent: "")
+        pdf.target = self
+        menu.addItem(png)
+        menu.addItem(pdf)
+        return menu
+    }
+
+    @objc private func exportAsPNG(_ sender: Any?) { exportDocument(format: .png) }
+    @objc private func exportAsPDF(_ sender: Any?) { exportDocument(format: .pdf) }
 
     /// 面板落定后的实际导出。导出编辑器里的当前内容（含未保存改动）—— 所见即所得。
     private func exportRendered(to output: URL) {
@@ -695,6 +731,9 @@ final class MainWindowController: NSWindowController {
     func debugExport(to output: URL) -> Bool {
         (try? exportRenderedOrThrow(to: output)) != nil
     }
+
+    /// 诊断用（UITestRunner）：··· 菜单本体 —— 断言菜单项存在与置灰逻辑
+    var debugExportMenu: NSMenu? { contentPane.moreButton.menu }
 
     /// 导出参数：跟随当前的阅读主题与排版设置；明暗跟随 app 当前外观（dark 留 nil）
     private func exportRenderedOrThrow(to output: URL) throws {
@@ -1364,5 +1403,20 @@ extension MainWindowController: NSWindowDelegate {
     /// 走 AppDelegate 的 applicationShouldTerminate —— 两边同一个确认框。
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         confirmDiscardIfNeeded()
+    }
+}
+
+// MARK: - ··· 菜单项可用性
+
+extension MainWindowController: NSMenuItemValidation {
+
+    /// ··· 菜单的导出项：无文档 / 非文本（图片、PDF）时置灰
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        switch menuItem.action {
+        case #selector(exportAsPNG(_:)), #selector(exportAsPDF(_:)):
+            return canExport
+        default:
+            return true
+        }
     }
 }

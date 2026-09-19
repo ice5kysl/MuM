@@ -46,6 +46,9 @@ final class ContentViewController: NSViewController {
     private let externalOpenButton = NSButton()
     var onOpenExternally: (() -> Void)?
     private let modeControl = NSSegmentedControl()
+    /// 右上角的「···」操作菜单按钮。菜单由窗口控制器装配（它知道当前文档
+    /// 能不能导出）；按钮本身只是 chrome，与文件树栏头部的 ··· 同一语言
+    let moreButton = NSButton()
     /// 内容区顶部到 view 顶部的距离，等于标题带的高度（运行期按安全区自适应）
     private var stripHeightConstraint: NSLayoutConstraint!
     /// 标题带内控件的垂直中心
@@ -89,10 +92,11 @@ final class ContentViewController: NSViewController {
     override func viewDidLayout() {
         super.viewDidLayout()
 
-        // 内容区从标题带下面开始。标题带高度由系统安全区给出（就是标准标题栏高度），
-        // 拿不到时退回常量 —— 不在代码里写死 28，标题栏样式变了也不会错位。
+        // 内容区从标题带下面开始。标题带 = 系统安全区（标准标题栏高度）+
+        // 自己的下探空间（titleStripExtra），拿不到安全区时退回常量 ——
+        // 不在代码里写死 28，标题栏样式变了也不会错位。
         let inset = view.safeAreaInsets.top
-        let strip = inset > 1 ? inset : MuMDesign.titleStripHeight
+        let strip = (inset > 1 ? inset : MuMDesign.titleStripHeight) + MuMDesign.titleStripExtra
         guard abs(stripHeightConstraint.constant - strip) > 0.5 else { return }
 
         stripHeightConstraint.constant = strip
@@ -104,13 +108,17 @@ final class ContentViewController: NSViewController {
     /// 内容栏的所有控件都住在窗口顶部那条标题带里，不再单独占一行。
     ///
     /// 这是从 Lineform 学来的：标题带横跨整个窗口，左侧是红绿灯、右侧是布局开关组，
-    /// 中间这条带子本来就是空着的 —— 把文件名、模式切换、字号放进来，内容区就白赚
-    /// 一整行（40pt）的高度，而且不会有两层横条叠在一起的分裂感。
+    /// 中间这条带子本来就是空着的 —— 把文件名、模式切换、操作菜单放进来，内容区就
+    /// 白赚一整行（40pt）的高度，而且不会有两层横条叠在一起的分裂感。
+    ///
+    /// 三段式布局：左 = 文档图标 + 文件名（这一栏的主角，16pt semibold）；
+    /// 中 = Write/Read/Preview 模式开关（文档的"主视角开关"，水平居中）；
+    /// 右 = ··· 操作菜单（导出等）。
     private func buildTitleStrip() {
-        fileIcon.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 12, weight: .regular)
+        fileIcon.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
         fileIcon.contentTintColor = MuMDesign.secondaryText
 
-        fileNameLabel.font = MuMDesign.contentTitle
+        fileNameLabel.font = MuMDesign.contentTitleLarge
         fileNameLabel.textColor = MuMDesign.primaryText
         fileNameLabel.lineBreakMode = .byTruncatingMiddle
         fileNameLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
@@ -134,17 +142,31 @@ final class ContentViewController: NSViewController {
         dirtyDot.layer?.backgroundColor = MuMDesign.accent.cgColor
         dirtyDot.isHidden = true
 
+        // 模式开关居中，控件本身调大一号：大号控件 + 更宽的分段 + 加粗一档的字，
+        // 让它读起来是"主开关"而不是工具栏附件。保持原生 NSSegmentedControl，不自绘。
         modeControl.segmentStyle = .rounded
         modeControl.trackingMode = .selectOne
+        modeControl.controlSize = .large
+        modeControl.font = .systemFont(ofSize: 13, weight: .medium)
         modeControl.segmentCount = Mode.allCases.count
         for (index, mode) in Mode.allCases.enumerated() {
             modeControl.setLabel(mode.title, forSegment: index)
-            modeControl.setWidth(70, forSegment: index)
+            modeControl.setWidth(78, forSegment: index)
         }
         modeControl.selectedSegment = mode.rawValue
         modeControl.target = self
         modeControl.action = #selector(modeControlChanged)
         modeControl.toolTip = "Write 写源码 · Read 阅读 · Preview 并排对照（⌘⌥1 / ⌘⌥2 / ⌘⌥3）"
+
+        // 右上 ···：操作菜单（导出为 PNG/PDF）。菜单内容由窗口控制器装配 ——
+        // 它知道当前文档能不能导出。样式与文件树栏头部的 ··· 一致。
+        moreButton.image = NSImage(systemSymbolName: "ellipsis", accessibilityDescription: "文档操作")
+        moreButton.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
+        moreButton.isBordered = false
+        moreButton.bezelStyle = .inline
+        moreButton.contentTintColor = MuMDesign.secondaryText
+        moreButton.toolTip = "导出与更多操作"
+        moreButton.translatesAutoresizingMaskIntoConstraints = false
 
         let leftGroup = NSStackView(views: [fileIcon, fileNameLabel, dirtyDot, externalOpenButton])
         leftGroup.orientation = .horizontal
@@ -157,10 +179,11 @@ final class ContentViewController: NSViewController {
 
         view.addSubview(leftGroup)
         view.addSubview(modeControl)
+        view.addSubview(moreButton)
 
         stripCenterConstraint = leftGroup.centerYAnchor.constraint(
             equalTo: view.topAnchor,
-            constant: MuMDesign.titleStripHeight / 2
+            constant: (MuMDesign.titleStripHeight + MuMDesign.titleStripExtra) / 2
         )
 
         titleLeadingConstraint = leftGroup.leadingAnchor.constraint(
@@ -172,12 +195,19 @@ final class ContentViewController: NSViewController {
             stripCenterConstraint,
             titleLeadingConstraint,
 
+            // 左组不能压到居中的模式开关
             leftGroup.trailingAnchor.constraint(lessThanOrEqualTo: modeControl.leadingAnchor, constant: -12),
 
-            // 模式控件贴右。字号、阅读宽度这些"设置"类的东西已经挪到底栏的齿轮里，
-            // 顶栏只留跟当前文件直接相关的两件事：它是谁、怎么看。
-            modeControl.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            // 中：模式开关，钉在标题带的水平中心
+            modeControl.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             modeControl.centerYAnchor.constraint(equalTo: leftGroup.centerYAnchor),
+
+            // 右：··· 操作菜单
+            moreButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -14),
+            moreButton.centerYAnchor.constraint(equalTo: leftGroup.centerYAnchor),
+            moreButton.leadingAnchor.constraint(greaterThanOrEqualTo: modeControl.trailingAnchor, constant: 12),
+            moreButton.widthAnchor.constraint(equalToConstant: 22),
+            moreButton.heightAnchor.constraint(equalToConstant: 22),
         ])
     }
 

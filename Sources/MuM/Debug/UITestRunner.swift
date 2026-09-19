@@ -402,6 +402,14 @@ enum UITestRunner {
         guard openAndRender(c, doc, check) else { return }
         check.expect(c.canExport, "有打开文档时可导出", expected: "canExport", actual: "不可导出")
 
+        // ··· 菜单：两项导出都在，且有文档时不置灰（置灰逻辑 = validateMenuItem）
+        let menu = c.debugExportMenu
+        check.expect(menu?.items.map(\.title) == ["导出为 PNG…", "导出为 PDF…"],
+                     "··· 菜单有「导出为 PNG/PDF」两项",
+                     expected: "两项", actual: "\(menu?.items.map(\.title) ?? [])")
+        check.expect(menu?.items.allSatisfy({ c.validateMenuItem($0) }) == true,
+                     "有文档时导出项可用", expected: "可用", actual: "置灰")
+
         let dir = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("mum-uitest-export-\(ProcessInfo.processInfo.processIdentifier)")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

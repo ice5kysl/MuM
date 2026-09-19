@@ -1,5 +1,6 @@
 import AppKit
 import PDFKit
+import UniformTypeIdentifiers
 
 /// 文档正文的离屏渲染：markdown → PNG 长图 / 分页 PDF。
 ///
@@ -10,6 +11,15 @@ import PDFKit
 /// （PreviewLayoutManager + PreviewTextView 的装饰绘制），渲染器就是产线的
 /// `MarkdownRenderer` —— 不是另起炉灶的"导出样式"。
 enum DocumentRenderer {
+
+    /// 导出格式。··· 菜单按它预选格式，保存面板不再让用户选。
+    enum Format {
+        case png
+        case pdf
+
+        var contentType: UTType { self == .png ? .png : .pdf }
+        var pathExtension: String { self == .png ? "png" : "pdf" }
+    }
 
     enum ExportError: LocalizedError {
         /// 输出扩展名不是 png / pdf
