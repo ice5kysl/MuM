@@ -112,12 +112,19 @@ final class EditorViewController: NSViewController, NSTextViewDelegate {
         textView.isEditable = editable
     }
 
+    /// 让光标进编辑器（新建文件后立刻能写）
+    func focusEditor() {
+        view.window?.makeFirstResponder(textView)
+    }
+
     // MARK: - 诊断钩子（UITestRunner）
 
     /// 偏好是否真正落到了编辑区 —— "设置变了"和"界面跟上"是两件事，都要断言
     var debugAppliedFontSize: CGFloat { editorFontSize }
     var debugLineNumbersVisible: Bool { scrollView.rulersVisible }
     var debugCurrentLineHighlightOn: Bool { textView.showsCurrentLineHighlight }
+    /// 光标是否在编辑器里（新建文件"打开即写"的断言点）
+    var debugIsFocused: Bool { view.window?.firstResponder === textView }
 
     // MARK: - 应用偏好
 

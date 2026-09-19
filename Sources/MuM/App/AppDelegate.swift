@@ -108,6 +108,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - 文件
 
+    @objc func newDocument(_ sender: Any?) {
+        mainWindowController?.newDocument()
+    }
+
     @objc func openFolder(_ sender: Any?) {
         WorkspaceStore.shared.promptForFolder()
     }

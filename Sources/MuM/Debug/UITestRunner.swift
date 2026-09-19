@@ -25,6 +25,7 @@ enum UITestRunner {
         ("outline", "大纲"),
         ("search", "全局搜索"),
         ("export", "导出（⌘⇧E）"),
+        ("newfile", "新建文件（⌘N）"),
     ]
 
     static func run(arguments: [String]) -> Int32 {
@@ -107,6 +108,7 @@ enum UITestRunner {
             case "outline": scenarioOutline(controller, docURL, check)
             case "search": scenarioSearch(controller, docURL, check)
             case "export": scenarioExport(controller, docURL, check)
+            case "newfile": scenarioNewFile(controller, check)
             default: break
             }
             checkers.append(check)
@@ -440,6 +442,66 @@ enum UITestRunner {
         let head = Array(data.prefix(magic.count))
         let ok = data.count >= minBytes && head == magic
         return (ok, "\(data.count) 字节，头部 \(head.map { String(format: "%02X", $0) }.joined())")
+    }
+
+    // MARK: - 场景八：新建文件（⌘N）
+    //
+    // 在临时目录建项目，断言完整链路：落盘 → 打开 → Write 模式 → 光标进编辑器
+    // → 文件树选中；再建一个验证递增命名且不覆盖前一个。跑完清理临时目录。
+    // 无项目的保存面板路径不在这里测（面板要真实用户点），它与导出共用同一套
+    // 面板范式，风险在渲染与落盘，那些已被 export 场景覆盖。
+
+    private static func scenarioNewFile(_ c: MainWindowController, _ check: Checker) {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("mum-uitest-newfile-\(ProcessInfo.processInfo.processIdentifier)")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        guard check.expect(WorkspaceStore.shared.open(url: dir) != nil, "打开临时目录为项目",
+                           expected: "项目打开成功", actual: "open 返回 nil") else { return }
+
+        guard let first = c.newDocument() else {
+            check.expect(false, "新建第一个文件", expected: "返回文件 URL", actual: "nil")
+            return
+        }
+        check.expect(FileManager.default.fileExists(atPath: first.path), "文件落盘存在",
+                     expected: "磁盘上存在", actual: "不存在")
+        check.expect(first.lastPathComponent == "未命名.md", "第一个文件叫「未命名.md」",
+                     expected: "未命名.md", actual: first.lastPathComponent)
+        check.expect(c.debugCurrentFileURL == first, "新建后文件被打开",
+                     expected: first.lastPathComponent,
+                     actual: c.debugCurrentFileURL?.lastPathComponent ?? "无打开文件")
+        check.expect(c.currentMode == .write && c.debugEditorVisible && !c.debugPreviewVisible,
+                     "打开即 Write 模式", expected: "editor 可见 / preview 隐藏",
+                     actual: "mode=\(c.currentMode) editor=\(c.debugEditorVisible) preview=\(c.debugPreviewVisible)")
+        check.expect(c.debugEditorFocused, "光标在编辑器里",
+                     expected: "firstResponder=编辑器", actual: "不在编辑器")
+        check.expect(sameFile(c.debugSelectedTreeFile, first), "文件树选中新文件",
+                     expected: first.lastPathComponent,
+                     actual: c.debugSelectedTreeFile?.lastPathComponent ?? "无选中")
+
+        guard let second = c.newDocument() else {
+            check.expect(false, "新建第二个文件", expected: "返回文件 URL", actual: "nil")
+            return
+        }
+        check.expect(second.lastPathComponent == "未命名2.md", "同名递增为「未命名2.md」",
+                     expected: "未命名2.md", actual: second.lastPathComponent)
+        // 递增命名的意义就是不覆盖：第一个文件必须还是原来的空文件
+        let firstContent = (try? String(contentsOf: first, encoding: .utf8)) ?? "<读不到>"
+        check.expect(firstContent.isEmpty, "第一个文件未被覆盖",
+                     expected: "仍为空文件", actual: "\(firstContent.count) 字符")
+    }
+
+    /// 同一文件的判定要解符号链接：树节点的路径来自 FileManager 扫描（已解链接），
+    /// 而新建返回的 URL 带着调用方给的未解析前缀（/var vs /private/var）
+    private static func sameFile(_ a: URL?, _ b: URL?) -> Bool {
+        guard let a, let b else { return false }
+        func resolve(_ url: URL) -> String {
+            guard let resolved = realpath(url.path, nil) else { return url.path }
+            defer { free(resolved) }
+            return String(cString: resolved)
+        }
+        return resolve(a) == resolve(b)
     }
 
     // MARK: - 控件驱动与断言助手

@@ -51,6 +51,9 @@ enum MainMenuBuilder {
 
     private static func fileMenu(target: AppDelegate) -> NSMenuItem {
         let menu = NSMenu(title: "文件")
+        // 总是可用：有项目建进项目，无项目弹保存面板 —— 所以不进 validateMenuItem 的置灰列表
+        menu.addItem(item("新建文件", #selector(AppDelegate.newDocument(_:)), "n", target: target))
+        menu.addItem(.separator())
         menu.addItem(item("打开项目…", #selector(AppDelegate.openFolder(_:)), "o", target: target))
         menu.addItem(item("关闭当前项目", #selector(AppDelegate.closeProject(_:)), "w", modifiers: [.command, .shift], target: target))
         menu.addItem(.separator())

@@ -667,6 +667,84 @@ final class MainWindowController: NSWindowController {
         }
     }
 
+    // MARK: - 新建文件（⌘N）
+
+    /// ⌘N：快速建一个文件并立刻写内容。三个入口同一动作：
+    /// 菜单「文件 → 新建文件」、文件树栏头部 ··· 菜单（响应链到 AppDelegate）。
+    ///
+    /// 有项目：落在文件树当前选中的目录（选中文件取其父目录，没选中取项目根），
+    ///   递增命名 `未命名.md` / `未命名2.md` …，绝不覆盖；建好后打开 + Write 模式 +
+    ///   光标进编辑器 —— 这个功能的诉求就是"立刻写"。
+    /// 无项目：保存面板选位置和文件名，建好后走现有的"打开单个文件"路径。
+    ///
+    /// 返回创建成功的文件 URL（无项目的保存面板是异步的，那种情形返回 nil）。
+    @discardableResult
+    func newDocument() -> URL? {
+        guard let workspace = WorkspaceStore.shared.active else {
+            presentNewFilePanel()
+            return nil
+        }
+
+        let selected = fileTreeViewController.selectedNode
+        let dir = selected.map { $0.isDirectory ? $0.url : $0.url.deletingLastPathComponent() }
+            ?? workspace.rootURL
+
+        // 递增命名，绝不覆盖
+        var candidate = dir.appendingPathComponent("未命名.md")
+        var index = 2
+        while FileManager.default.fileExists(atPath: candidate.path) {
+            candidate = dir.appendingPathComponent("未命名\(index).md")
+            index += 1
+        }
+
+        do {
+            // 空文件就好：模板是第二次输入的负担，用户要的是立刻能写。
+            // withoutOverwriting 兜底命名竞态（命名检查后落盘前有人建了同名文件）
+            try Data().write(to: candidate, options: .withoutOverwriting)
+        } catch {
+            presentError(message: "新建文件失败", detail: error.localizedDescription)
+            return nil
+        }
+
+        // 文件树的子节点缓存是落盘前建的，等 FSEvents 的异步刷新会让
+        // 紧接着的 reveal 找不到新文件。先失效再重载（重载会重建整层节点），
+        // open() 内部的 reveal 就能同步选中它
+        workspace.root.invalidate()
+        fileTreeViewController.refreshPreservingExpansion()
+
+        open(url: candidate)
+        guard currentFileURL == candidate.standardizedFileURL else { return nil }
+
+        // 打开即写：Write 模式 + 光标进编辑器
+        setMode(.write)
+        contentPane.editorViewController.focusEditor()
+        return candidate
+    }
+
+    /// 无项目时的新建：保存面板选位置和名字
+    private func presentNewFilePanel() {
+        guard let window else { return }
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [UTType("net.daringfireball.markdown") ?? .plainText]
+        panel.nameFieldStringValue = "未命名.md"
+        panel.beginSheetModal(for: window) { [weak self] response in
+            guard let self, response == .OK, let url = panel.url else { return }
+            // 已存在就不覆盖（保存面板已问过用户）：直接打开它；不存在才建空文件
+            if !FileManager.default.fileExists(atPath: url.path) {
+                do {
+                    try Data().write(to: url, options: .withoutOverwriting)
+                } catch {
+                    presentError(message: "新建文件失败", detail: error.localizedDescription)
+                    return
+                }
+            }
+            openFileFromOutside(url)
+            guard currentFileURL == url.standardizedFileURL else { return }
+            setMode(.write)
+            contentPane.editorViewController.focusEditor()
+        }
+    }
+
     // MARK: - 导出（⌘⇧E）
 
     /// 当前文档可导出：有打开的文本文件（图片 / PDF 没有"导出渲染结果"这回事）
@@ -737,6 +815,10 @@ final class MainWindowController: NSWindowController {
 
     /// 诊断用（UITestRunner）：··· 菜单本体 —— 断言菜单项存在与置灰逻辑
     var debugExportMenu: NSMenu? { contentPane.moreButton.menu }
+
+    /// 诊断用（UITestRunner）：新建文件的断言点 —— 光标位置与文件树选中
+    var debugEditorFocused: Bool { contentPane.editorViewController.debugIsFocused }
+    var debugSelectedTreeFile: URL? { fileTreeViewController.selectedNode?.url }
 
     /// 导出参数：跟随当前的阅读主题与排版设置；明暗跟随 app 当前外观（dark 留 nil）
     private func exportRenderedOrThrow(to output: URL) throws {

@@ -161,6 +161,11 @@ final class FileTreeViewController: NSViewController {
 
     @objc private func showProjectMenu() {
         let menu = NSMenu()
+        // target=nil 走响应链，最终到 AppDelegate.newDocument（与菜单栏 ⌘N 同一动作）
+        let newFile = NSMenuItem(title: "新建文件", action: #selector(AppDelegate.newDocument(_:)), keyEquivalent: "")
+        menu.addItem(newFile)
+
+        menu.addItem(.separator())
         let reveal = NSMenuItem(title: "在访达中显示", action: #selector(revealProject), keyEquivalent: "")
         reveal.target = self
         menu.addItem(reveal)
@@ -219,13 +224,29 @@ final class FileTreeViewController: NSViewController {
         }
     }
 
+    /// 当前选中的节点（新建文件落在它的目录里；诊断也用它断言选中状态）
+    var selectedNode: FileNode? {
+        let row = outlineView.selectedRow
+        guard row >= 0 else { return nil }
+        return outlineView.item(atRow: row) as? FileNode
+    }
+
     /// 让某个文件在树里被选中并滚动到可见
     func reveal(url: URL) {
         guard !isFiltering, let workspace = WorkspaceStore.shared.active else { return }
-        guard url.path.hasPrefix(workspace.rootURL.path) else { return }
 
-        let components = url.pathComponents
-        let rootComponents = workspace.rootURL.pathComponents
+        // 路径可能穿过符号链接（/var → /private/var、链接过的 home 目录等）：
+        // 树里的子节点由 FileManager 扫描得到（已解链接），而调用方传入的 URL 没解过，
+        // 且 URL/NSString 的 resolvingSymlinksInPath 在这代 macOS 上不解 /var（实测）——
+        // 只有 realpath(3) 与 contentsOfDirectory 的结果一致。不解析的话，链接目录下的
+        // 文件永远 reveal 不到（新建文件的断言抓住了这个）
+        let urlPath = Self.realPath(url)
+        let rootPath = Self.realPath(workspace.rootURL)
+
+        guard urlPath.hasPrefix(rootPath + "/") else { return }
+
+        let components = NSString(string: urlPath).pathComponents
+        let rootComponents = NSString(string: rootPath).pathComponents
         guard components.count > rootComponents.count else { return }
 
         var node: FileNode? = workspace.root
@@ -246,6 +267,13 @@ final class FileTreeViewController: NSViewController {
             outlineView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
             outlineView.scrollRowToVisible(row)
         }
+    }
+
+    /// realpath(3)：解不开（路径不存在等）就退回原样
+    private static func realPath(_ url: URL) -> String {
+        guard let resolved = realpath(url.path, nil) else { return url.path }
+        defer { free(resolved) }
+        return String(cString: resolved)
     }
 
     func focusFilter() {
