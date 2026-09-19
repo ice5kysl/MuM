@@ -5,13 +5,13 @@
 // 用代码画而不是塞一张位图：图标需要 16pt 到 1024pt 共 10 个尺寸，从矢量描述
 // 逐个尺寸渲染出来，小尺寸下笔画才不会糊成一团。
 //
-// 设计：黑色圆角方块 + 居中的纯白几何 M + 底部一道绿色横线。
+// 设计：黑色圆角方块 + 居中偏上的纯白几何 M + 紧贴 M 下方的绿色下划线。
 //
 // M 不用字体字形，而是用几段粗线画出来 —— 笔画用圆角接头（半径半个笔画宽，
 // 只磨圆顶点，直边与平切端点保留），整体硬朗但不拉尖刺。
-// 底部横线用绿色（#2ECC4A），作为整个图标唯一的高饱和色。
-// 背景是纯黑系的微弱纵向渐变（ice 2026-09-19 要求对齐 Vme 图标的黑），
-// 顶部一道极弱高光防止死板。
+// M 与下划线视为一个组合整体垂直居中（ice 2026-09-19：M 居中、绿线贴在 M 正下方），
+// 下划线宽度呼应 M 的字面宽，作为整个图标唯一的高饱和色（#2ECC4A）。
+// 背景是纯黑系的微弱纵向渐变（对齐 Vme 图标的黑），顶部一道极弱高光防止死板。
 
 import AppKit
 
@@ -54,7 +54,14 @@ func drawIcon(in rect: NSRect) {
     let mWidth = size * 0.248
     let mHeight = size * 0.285
     let centerX = body.midX
-    let bottom = body.minY + size * 0.432
+
+    // M 与下划线是一个组合：先算组合总高，整体垂直居中
+    let barWidth = size * 0.38
+    let barHeight = max(size * 0.05, 1)
+    let barGap = size * 0.055
+    let groupBottom = body.minY + (size - mHeight - barGap - barHeight) / 2
+
+    let bottom = groupBottom + barHeight + barGap
     let top = bottom + mHeight
     let left = centerX - mWidth / 2
     let right = centerX + mWidth / 2
@@ -76,13 +83,10 @@ func drawIcon(in rect: NSRect) {
     NSColor.white.setStroke()
     mPath.stroke()
 
-    // 底部强调线。加粗到 0.06（ice 2026-09-19，对齐 Vme 图标的份量感），
-    // y 跟着厚度调，保持线的**中心**位置不变
-    let barWidth = size * 0.62
-    let barHeight = max(size * 0.034, 1)
+    // 绿色下划线：贴在 M 正下方，宽度呼应 M 的字面（ice 2026-09-19）
     let bar = NSRect(
         x: body.midX - barWidth / 2,
-        y: body.minY + size * 0.330,
+        y: groupBottom,
         width: barWidth,
         height: barHeight
     )
