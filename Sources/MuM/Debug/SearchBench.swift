@@ -9,7 +9,8 @@ import AppKit
 /// 报三个数，对应三条验收：
 ///   首个结果  —— 从发起到第一批结果回调（验收 1：≤300ms @ 10 项目/5 万文件）
 ///   全部扫完  —— 到完成批次（验收 2：≤5s）
-///   命中条数  —— 与 `grep -r` 对拍（验收 8：这是最看重的一条）
+///   命中条数  —— 与 `grep -ri` 对拍（验收 8：这是最看重的一条；
+///   大小写不敏感是有意的语义，见 GlobalSearchEngine 单测）
 enum SearchBench {
 
     static func run(arguments: [String]) -> Int32 {
@@ -66,7 +67,7 @@ enum SearchBench {
 
         print(String(format: "首个结果  %8.1f ms   （验收 1：≤ 300 ms）", firstResultMS ?? -1))
         print(String(format: "全部扫完  %8.1f ms   （验收 2：≤ 5000 ms，%d 个文件）", totalMS, summary.filesScanned))
-        print("命中      \(hits) 条（内容 \(hits - fileNameHits) / 文件名 \(fileNameHits)）—— 与 grep -r 对拍（验收 8）")
+        print("命中      \(hits) 条（内容 \(hits - fileNameHits) / 文件名 \(fileNameHits)）—— 与 grep -ri 对拍（验收 8）")
         if summary.skippedLargeFiles > 0 {
             print("跳过      \(summary.skippedLargeFiles) 个超过 10MB 的文件（显式报告，不静默漏）")
         }

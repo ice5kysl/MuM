@@ -33,6 +33,9 @@ final class PreviewViewController: NSViewController {
     /// 预览用的文本视图。不叫 contentView 是为了不和 NSWindow.contentView 混淆。
     var previewTextView: PreviewTextView { textView }
 
+    /// 诊断/基准用：预览的滚动视图（ScrollBench 程序化滚动要走真实滚动路径）
+    var debugScrollView: NSScrollView { textScrollView }
+
     // MARK: - 查找
 
     /// ⌘F：显示查找条并聚焦。已经显示时只重新聚焦。

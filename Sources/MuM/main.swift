@@ -13,8 +13,13 @@ if CommandLine.arguments.contains("--selftest") {
     exit(RendererSelfTest.run(arguments: CommandLine.arguments))
 }
 
-// 大文档性能基线：`MuM --bench <文件.md>`
+// 大文档性能基线：`MuM --bench <文件.md>`；滚动流畅度：`MuM --bench scroll <文件.md>`
 if CommandLine.arguments.contains("--bench") {
+    if let index = CommandLine.arguments.firstIndex(of: "--bench"),
+       index + 1 < CommandLine.arguments.count,
+       CommandLine.arguments[index + 1] == "scroll" {
+        exit(ScrollBench.run(arguments: CommandLine.arguments))
+    }
     exit(RenderBench.run(arguments: CommandLine.arguments))
 }
 
