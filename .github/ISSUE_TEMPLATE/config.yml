@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 只是想聊两句 / 不确定算不算问题
+    url: https://mum.jiker.ai
+    about: 主页底部有联系方式。不确定该不该开 issue 的，直接说就行。

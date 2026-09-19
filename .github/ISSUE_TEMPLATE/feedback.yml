@@ -1,0 +1,42 @@
+name: 使用反馈
+description: 用它读了点什么，然后告诉我你卡在哪。这是最有用的一类反馈。
+title: "[反馈] "
+labels: ["feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **谢谢。** 不用写得漂亮，也不用客气 —— 说清「你做了什么、哪里别扭」就够了。
+
+        MuM 还很早，**你最值钱的反馈不是"缺什么功能"，是"我卡在哪了"。**
+  - type: textarea
+    id: what
+    attributes:
+      label: 你用它做了什么
+      description: 比如「读了一篇 1 万字的项目文档」「在三个项目之间找一段引用」
+      placeholder: 我用它读了……
+    validations:
+      required: true
+  - type: textarea
+    id: stuck
+    attributes:
+      label: 哪里卡住了 / 哪里别扭
+      description: |
+        三个最有用的角度（能答几个答几个）：
+        1. **你打开它之后第一个动作是什么？**（找不找得到"打开项目"）
+        2. **哪里你停顿超过 5 秒？**
+        3. **你脑子里问了什么问题？**（那说明界面上没说清）
+      placeholder: 我第一个动作是…… / 我在这里停了一下……
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      description: 菜单 MuM → 关于 MuM 里有
+      placeholder: v0.6.0
+  - type: input
+    id: macos
+    attributes:
+      label: macOS 版本 / 芯片
+      placeholder: macOS 15.2 / Apple Silicon

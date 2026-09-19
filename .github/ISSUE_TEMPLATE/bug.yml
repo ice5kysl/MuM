@@ -1,0 +1,49 @@
+name: 我遇到一个问题
+description: 崩溃、显示不对、文件出了问题 —— 请务必告诉我，尤其涉及文件内容安全
+title: "[问题] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **如果这个 issue 涉及文件内容被改坏或丢失，请在第一行写明 —— 那是最高优先级。**
+  - type: textarea
+    id: what
+    attributes:
+      label: 发生了什么
+      placeholder: 我以为会发生……实际发生了……
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 怎么重现
+      description: 越具体越好。如果只是偶发，也告诉我"多久出现一次"。
+      placeholder: |
+        1. 打开……
+        2. 点击……
+        3. 看到……
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 严重程度
+      options:
+        - 文件内容出了问题（最高优先级）
+        - 崩溃 / 打不开
+        - 显示不对
+        - 不好用，但能用
+        - 其它
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      placeholder: v0.6.0
+  - type: input
+    id: macos
+    attributes:
+      label: macOS 版本 / 芯片
+      placeholder: macOS 15.2 / Apple Silicon
