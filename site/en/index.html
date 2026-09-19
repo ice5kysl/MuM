@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MuM — A fast, native Markdown engine</title>
+<meta name="description" content="A fast, native Markdown engine — for humans and agents. 快、原生的 Markdown 引擎，For humans and agents.">
+<style>
+  :root{
+    --bg:#faf9f7; --fg:#1c1c1e; --dim:#6b6b70; --line:#e4e2de;
+    --accent:#2ecc4a; --code:#f2f0ec;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#1c1c1e; --fg:#f2f2f4; --dim:#9a9aa0; --line:#323236;
+           --accent:#2ecc4a; --code:#252528; }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--fg);
+    font:16px/1.7 -apple-system,BlinkMacSystemFont,"SF Pro SC","PingFang SC",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:680px;margin:0 auto;padding:72px 24px 96px}
+  .lang{position:absolute;top:20px;right:24px;font-size:13px}
+  .lang a{color:var(--dim);text-decoration:none;padding:4px 8px;border-radius:6px}
+  .lang a[aria-current]{color:var(--fg);background:var(--code)}
+  .lang a:hover{color:var(--fg)}
+
+  .mark{display:flex;align-items:center;gap:12px;margin-bottom:40px}
+  .mark svg{display:block}
+  .mark span{font-weight:600;font-size:17px;letter-spacing:.01em}
+
+  h1{font-size:34px;line-height:1.25;margin:0 0 20px;letter-spacing:-.02em;font-weight:600}
+  h1 .sub{display:block;color:var(--dim);font-size:19px;font-weight:400;margin-top:10px;letter-spacing:0}
+  p.lead{font-size:17px;color:var(--dim);margin:0 0 40px}
+
+  .dl{display:flex;flex-wrap:wrap;align-items:center;gap:16px;margin:0 0 12px}
+  .btn{
+    display:inline-block;background:var(--fg);color:var(--bg);text-decoration:none;
+    padding:12px 24px;border-radius:10px;font-weight:500;font-size:15px;
+  }
+  .btn:hover{opacity:.85}
+  .meta{font-size:13px;color:var(--dim)}
+
+  hr{border:0;border-top:1px solid var(--line);margin:56px 0}
+
+  h2{font-size:15px;font-weight:600;margin:0 0 14px;letter-spacing:.01em}
+  ul.list{list-style:none;padding:0;margin:0 0 40px}
+  ul.list li{padding:0 0 10px;color:var(--dim);font-size:15px}
+  ul.list li b{color:var(--fg);font-weight:500}
+
+  table{width:100%;border-collapse:collapse;font-size:14px;margin:0 0 40px}
+  th,td{text-align:left;padding:9px 0;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:400}
+  td:last-child,th:last-child{text-align:right;color:var(--fg);font-variant-numeric:tabular-nums}
+
+  .foot{font-size:13px;color:var(--dim);line-height:1.9}
+  .foot a{color:var(--dim)}
+</style>
+</head>
+<body>
+<nav class="lang">
+  <a href="/">中文</a><a href="/en/" aria-current="page">English</a>
+</nav>
+
+<div class="wrap">
+  <div class="mark">
+    <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">
+      <rect width="30" height="30" rx="7" fill="#1c1c1e"/>
+      <path d="M7.2 20.4V10.8l4 4.6 4-4.6v9.6" fill="none" stroke="#fff"
+            stroke-width="2.1" stroke-linecap="butt" stroke-linejoin="round"/>
+      <path d="M17.6 21.1h5.6" stroke="var(--accent)" stroke-width="1.3" stroke-linecap="butt"/>
+    </svg>
+    <span>MuM</span>
+  </div>
+
+  <h1>A fast, native Markdown engine.
+    <span class="sub">For humans and agents.</span>
+  </h1>
+
+  <p class="lead">
+    No Web engine. No plugin system. No account. You open it, you read.
+  </p>
+
+  <div class="dl">
+    <a class="btn" href="https://github.com/ice5kysl/MuM/releases/latest">Download for macOS</a>
+    <span class="meta">v0.5.0 · 2026-09-18 · macOS 14+ · 3 MB</span>
+  </div>
+  <p class="meta">Signed and notarized. Double-click and it opens — no Gatekeeper workaround.</p>
+
+  <hr>
+
+  <h2>How fast</h2>
+  <table>
+    <tr><th></th><th>MuM</th></tr>
+    <tr><td>Cold start to window on screen</td><td>280 ms</td></tr>
+    <tr><td>1 MB document, open to readable</td><td>622 ms</td></tr>
+    <tr><td>5 MB document, first screen laid out</td><td>302 ms</td></tr>
+    <tr><td>Bundle size</td><td>3 MB</td></tr>
+  </table>
+
+  <h2>For humans</h2>
+  <ul class="list">
+    <li><b>Multi-project</b> —— Several projects open at once, ⌘1…⌘9 to switch. Projects answer &ldquo;where am I&rdquo;.</li>
+    <li><b>Made for reading</b> —— Remembers where you were, ⌘F find, document outline, cross-project search.</li>
+    <li><b>Typographic tuning for CJK</b> —— Line height, punctuation, CJK/Latin spacing — all measured, not guessed.</li>
+  </ul>
+
+  <h2>For agents</h2>
+  <ul class="list">
+    <li><b>Headless rendering</b> —— <code>mum render --png</code> — the same typesetting engine.</li>
+    <li><b>Structured output</b> —— outline / search  emit <code>--json</code> with meaningful exit codes.</li>
+  </ul>
+
+  <hr>
+
+  <p class="foot">
+    <a href="https://github.com/ice5kysl/MuM">Source</a> ·
+    <a href="https://github.com/ice5kysl/MuM/blob/main/CHANGELOG.md">Changelog</a> ·
+    MIT
+  </p>
+</div>
+</body>
+</html>
