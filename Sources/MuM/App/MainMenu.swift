@@ -212,11 +212,15 @@ enum MainMenuBuilder {
         let menu = NSMenu(title: "帮助")
         let item = NSMenuItem(title: "MuM 使用说明", action: #selector(AppDelegate.showHelp(_:)), keyEquivalent: "?")
         item.target = NSApp.delegate as? AppDelegate
+        item.image = NSImage(systemSymbolName: "keyboard", accessibilityDescription: nil)?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 12, weight: .regular))
         menu.addItem(item)
 
         // 反馈入口：开源项目的生命线，放帮助菜单（macOS 惯例位置）
         let feedback = NSMenuItem(title: "反馈问题或建议…", action: #selector(AppDelegate.showFeedback(_:)), keyEquivalent: "")
         feedback.target = NSApp.delegate as? AppDelegate
+        feedback.image = NSImage(systemSymbolName: "bubble.left", accessibilityDescription: nil)?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 12, weight: .regular))
         menu.addItem(feedback)
 
         let holder = NSMenuItem(title: "帮助", action: nil, keyEquivalent: "")
