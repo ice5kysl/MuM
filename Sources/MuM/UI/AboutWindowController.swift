@@ -78,12 +78,12 @@ final class AboutWindowController: NSWindowController {
         // 定位语必须与 VISION.md 一字不差 —— 它是产品的全部自我认知，
         // 关于窗口没有资格改写它（v0.6：reader → engine，给人也给 agent）。
         // 破折号前后拆成两行：窄窗里整句折行的断点不可控（实测"agent 用"会孤行）
-        let tagline = NSTextField(labelWithString: "快、原生的 Markdown 引擎")
+        let tagline = NSTextField(labelWithString: "阅读优先的 Markdown 引擎")
         tagline.font = NSFont.systemFont(ofSize: 12)
         tagline.textColor = MuMDesign.secondaryText
         tagline.translatesAutoresizingMaskIntoConstraints = false
 
-        let audience = NSTextField(labelWithString: "给人用，也给 agent 用")
+        let audience = NSTextField(labelWithString: "快、原生 —— 给人用，也给 agent 用")
         audience.font = NSFont.systemFont(ofSize: 12)
         audience.textColor = MuMDesign.secondaryText
         audience.translatesAutoresizingMaskIntoConstraints = false

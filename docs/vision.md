@@ -1,8 +1,9 @@
 # MuM 的定位
 
-> **A fast, native Markdown engine — for humans and agents.**
+> **A reading-first Markdown engine.**
+> **Fast, native — for humans and agents.**
 >
-> 快、原生的 Markdown 引擎 —— 给人用，也给 agent 用。
+> 阅读优先的 Markdown 引擎 —— 快、原生，给人用，也给 agent 用。
 >
 > **人读它**：快、原生、多项目，*Reading is the point, not a preview* ——
 > 阅读是目的，不是编辑的副产品。

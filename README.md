@@ -1,7 +1,8 @@
 # MuM
 
-**A fast, native Markdown engine — for humans and agents.**
-快、原生的 Markdown 引擎 —— 给人用，也给 agent 用。
+**A reading-first Markdown engine.**
+**Fast, native — for humans and agents.**
+阅读优先的 Markdown 引擎 —— 快、原生，给人用，也给 agent 用。
 
 [**下载 macOS 版**](https://github.com/ice5kysl/MuM/releases/download/v0.6.0/MuM-0.6.0.dmg) ·
 [主页](https://mum.jiker.ai) ·
