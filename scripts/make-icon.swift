@@ -56,10 +56,12 @@ func drawIcon(in rect: NSRect) {
     let centerX = body.midX
 
     // M 与下划线是一个组合：先算组合总高，整体垂直居中
+    // 注意分母用 body.height 而不是 size —— 从 body.minY 起算再用 size 会把
+    // inset 重复计一次，组合因此偏上 ~0.055·size（实测偏 18px @256，ice 看出来了）
     let barWidth = size * 0.38
     let barHeight = max(size * 0.05, 1)
     let barGap = size * 0.055
-    let groupBottom = body.minY + (size - mHeight - barGap - barHeight) / 2
+    let groupBottom = body.minY + (body.height - mHeight - barGap - barHeight) / 2
 
     let bottom = groupBottom + barHeight + barGap
     let top = bottom + mHeight

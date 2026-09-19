@@ -702,13 +702,16 @@ final class MainWindowController: NSWindowController {
         }
     }
 
-    /// 内容区右上 ··· 的菜单：导出两项，格式预选
+    /// 内容区右上 ··· 的菜单：导出两项，格式预选。
+    /// 项要短（ice 2026-09-19）：小图标 + PNG / PDF，不写「导出为 PNG…」这种长句。
     private func makeExportMenu() -> NSMenu {
         let menu = NSMenu()
-        let png = NSMenuItem(title: "导出为 PNG…", action: #selector(exportAsPNG(_:)), keyEquivalent: "")
+        let png = NSMenuItem(title: "PNG", action: #selector(exportAsPNG(_:)), keyEquivalent: "")
         png.target = self
-        let pdf = NSMenuItem(title: "导出为 PDF…", action: #selector(exportAsPDF(_:)), keyEquivalent: "")
+        png.image = NSImage(systemSymbolName: "photo", accessibilityDescription: nil)
+        let pdf = NSMenuItem(title: "PDF", action: #selector(exportAsPDF(_:)), keyEquivalent: "")
         pdf.target = self
+        pdf.image = NSImage(systemSymbolName: "doc.richtext", accessibilityDescription: nil)
         menu.addItem(png)
         menu.addItem(pdf)
         return menu
