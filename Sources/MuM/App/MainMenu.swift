@@ -216,6 +216,13 @@ enum MainMenuBuilder {
             .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 12, weight: .regular))
         menu.addItem(item)
 
+        // 更新检查：紧跟使用说明之后 —— 「我跑的到底是不是最新版」是帮助场景的第一问
+        let update = NSMenuItem(title: "检查更新…", action: #selector(AppDelegate.checkForUpdates(_:)), keyEquivalent: "")
+        update.target = NSApp.delegate as? AppDelegate
+        update.image = NSImage(systemSymbolName: "arrow.triangle.2.circlepath", accessibilityDescription: nil)?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 12, weight: .regular))
+        menu.addItem(update)
+
         // 反馈入口：开源项目的生命线，放帮助菜单（macOS 惯例位置）
         let feedback = NSMenuItem(title: "反馈问题或建议…", action: #selector(AppDelegate.showFeedback(_:)), keyEquivalent: "")
         feedback.target = NSApp.delegate as? AppDelegate

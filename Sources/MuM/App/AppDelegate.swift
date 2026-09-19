@@ -50,6 +50,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             name: .mumWorkspaceListChanged,
             object: nil
         )
+
+        // 启动后静默检查一次更新：延迟几秒，不挡启动路径；失败安静吞掉（reading is the point），
+        // 有新版本也只出一条不抢焦点的提示条
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+            self?.checkForUpdatesSilently()
+        }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -247,7 +253,74 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - 帮助
 
+    // MARK: - 更新检查
+
+    private var updateBannerController: UpdateBannerViewController?
+
+    /// 帮助 → 检查更新…：手动触发，三种结果都要明说
+    @objc func checkForUpdates(_ sender: Any?) {
+        UpdateChecker.check { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .available(let update):
+                self.presentUpdateBanner(update)
+            case .upToDate:
+                let alert = NSAlert()
+                alert.messageText = "已是最新版本"
+                alert.informativeText = "v\(UpdateChecker.currentVersion) 是当前发布的最新版。"
+                alert.alertStyle = .informational
+                alert.addButton(withTitle: "好")
+                if let window = self.mainWindowController?.window {
+                    alert.beginSheetModal(for: window)
+                } else {
+                    alert.runModal()
+                }
+            case .failed:
+                let alert = NSAlert()
+                alert.messageText = "暂时连不上更新源"
+                alert.informativeText = "检查更新需要访问 GitHub，请稍后再试。"
+                alert.alertStyle = .informational
+                alert.addButton(withTitle: "好")
+                if let window = self.mainWindowController?.window {
+                    alert.beginSheetModal(for: window)
+                } else {
+                    alert.runModal()
+                }
+            }
+        }
+    }
+
+    /// 启动静默检查：失败吞掉；用户忽略过的版本不再提示
+    private func checkForUpdatesSilently() {
+        UpdateChecker.check { [weak self] result in
+            guard let self, case .available(let update) = result else { return }
+            let settings = SettingsStore.load()
+            guard update.version != settings.ignoredUpdateVersion else { return }
+            self.presentUpdateBanner(update)
+        }
+    }
+
+    private func presentUpdateBanner(_ update: UpdateChecker.AvailableUpdate) {
+        guard let window = mainWindowController?.window else { return }
+        // 已经挂着就不重复挂
+        guard updateBannerController == nil,
+              !window.titlebarAccessoryViewControllers.contains(where: { $0 === updateBannerController })
+        else { return }
+        let banner = UpdateBannerViewController(update: update)
+        banner.onIgnore = {
+            var settings = SettingsStore.load()
+            settings.ignoredUpdateVersion = update.version
+            SettingsStore.save(settings)
+        }
+        banner.onDismiss = { [weak self] in
+            self?.updateBannerController = nil
+        }
+        updateBannerController = banner
+        window.addTitlebarAccessoryViewController(banner)
+    }
+
     private var shortcutsHelpController: ShortcutsHelpWindowController?
+
 
     @objc func showHelp(_ sender: Any?) {
         let controller = shortcutsHelpController ?? ShortcutsHelpWindowController()
@@ -255,9 +328,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.present(relativeTo: mainWindowController?.window)
     }
 
-    /// 帮助 → 反馈问题或建议…：打开 GitHub issues 的模板选择页
+    /// 帮助 → 反馈问题或建议…：直达反馈模板，并把版本 / macOS / 芯片预填进表单
+    /// （issue forms 支持用字段 id 作 URL 参数预填）—— 判断问题时第一个要问的就是版本，
+    /// 用户不会记得自己跑的是哪版，能自动带上的就别让人填
     @objc func showFeedback(_ sender: Any?) {
-        NSWorkspace.shared.open(URL(string: "https://github.com/ice5kysl/MuM/issues/new/choose")!)
+        var components = URLComponents(string: "https://github.com/ice5kysl/MuM/issues/new")!
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+        let os = ProcessInfo.processInfo.operatingSystemVersion
+        var queryItems = [URLQueryItem(name: "template", value: "feedback.yml")]
+        if !version.isEmpty {
+            queryItems.append(URLQueryItem(name: "version", value: "v\(version)"))
+        }
+        queryItems.append(URLQueryItem(
+            name: "macos",
+            value: "macOS \(os.majorVersion).\(os.minorVersion).\(os.patchVersion) / \(Self.archName)"
+        ))
+        components.queryItems = queryItems
+        if let url = components.url {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    private static var archName: String {
+        #if arch(arm64)
+        return "Apple Silicon"
+        #else
+        return "Intel"
+        #endif
     }
 }
 

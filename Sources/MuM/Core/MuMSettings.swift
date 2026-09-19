@@ -32,6 +32,9 @@ struct MuMSettings {
     var showsHiddenFiles = false
     /// Tab 缩进的空格数
     var indentWidth = 2
+    /// 用户点了「忽略此版本」的更新提示版本号（不带 v 前缀）。
+    /// nil = 没有忽略任何版本。只记忽略，不记"已看过"——看过但想稍后再说，下次启动再提醒。
+    var ignoredUpdateVersion: String?
 
     // MARK: - 外观
 
@@ -135,6 +138,7 @@ enum SettingsStore {
                let width = MarkdownTheme.ReadingWidth(rawValue: Int(value)) { settings.readingWidth = width }
             if let value = boolean(stored["showsLineNumbers"]) { settings.showsLineNumbers = value }
             if let value = boolean(stored["highlightsCurrentLine"]) { settings.highlightsCurrentLine = value }
+            if let value = stored["ignoredUpdateVersion"] as? String { settings.ignoredUpdateVersion = value }
 
             // 排版默认值修正（settingsVersion 2）：行距 4pt / 段间距 8pt 对中文太挤。
             // 老用户手里存的是旧默认值，不迁移的话改了默认也看不到效果。
@@ -182,7 +186,7 @@ enum SettingsStore {
     }
 
     static func save(_ settings: MuMSettings) {
-        UserDefaults.standard.set([
+        var dict: [String: Any] = [
             "settingsVersion": 2,
             "restoresLastSession": settings.restoresLastSession,
             "startMode": settings.startMode.rawValue,
@@ -200,6 +204,10 @@ enum SettingsStore {
             "editorFontSize": Double(settings.editorFontSize),
             "showsLineNumbers": settings.showsLineNumbers,
             "highlightsCurrentLine": settings.highlightsCurrentLine,
-        ], forKey: key)
+        ]
+        if let ignored = settings.ignoredUpdateVersion {
+            dict["ignoredUpdateVersion"] = ignored
+        }
+        UserDefaults.standard.set(dict, forKey: key)
     }
 }
