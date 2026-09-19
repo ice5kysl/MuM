@@ -151,6 +151,11 @@ final class StatusBarView: NSView {
         onShowDisplaySettings?(displayButton)
     }
 
+    /// 诊断用（UITestRunner）：走完"点按钮 → 回调 → 弹 popover"的完整链路，
+    /// 而不是绕过按钮直接调控制器 —— 断线（回调没接上）也是要被测出来的
+    func debugTriggerDisplaySettings() { showDisplaySettings() }
+    func debugTriggerSystemSettings() { showSettings() }
+
 
 
     /// - Parameters:

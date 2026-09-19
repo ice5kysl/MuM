@@ -85,6 +85,13 @@ final class ReadingThemePicker: NSView {
             card.isSelected = (card.theme == theme)
         }
     }
+
+    /// 诊断用（UITestRunner）：模拟点一张主题卡片。
+    /// 走和鼠标点击相同的 onClick 路径，而不是只改选中态 —— 否则回调断线测不出来
+    func debugClick(_ theme: ReadingTheme) {
+        guard let card = cards.first(where: { $0.theme == theme }) else { return }
+        card.onClick?(theme)
+    }
 }
 
 /// 单张主题卡片

@@ -200,4 +200,11 @@ final class SystemSettingsPanelViewController: NSViewController {
 
         emit()
     }
+
+    // MARK: - 诊断钩子（UITestRunner）
+    //
+    // 同 SettingsPanelViewController：给自驱动测试开一道只读的门
+
+    func debugToggle(_ key: String) -> SettingsToggleRow? { toggles[key] }
+    func debugSegment(_ key: String) -> SettingsSegmentedRow? { segments[key] }
 }

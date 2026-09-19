@@ -265,4 +265,23 @@ final class SettingsPanelViewController: NSViewController {
         themePicker?.select(settings.readingTheme)
         emit()
     }
+
+    // MARK: - 诊断钩子（UITestRunner）
+    //
+    // 自驱动 UI 测试要"像用户一样"操作面板：驱动真实控件（滑块/分段/开关/主题卡），
+    // 再断言 settings 与控件读回一致。sliders/toggles/segments 本身是 private，
+    // 这里开一道只读的门，不改变任何正常路径行为。
+
+    /// 按 key 取控件行（key 就是搭建时用的设置项名）
+    func debugSlider(_ key: String) -> SettingsSliderRow? { sliders[key] }
+    func debugToggle(_ key: String) -> SettingsToggleRow? { toggles[key] }
+    func debugSegment(_ key: String) -> SettingsSegmentedRow? { segments[key] }
+
+    /// 主题卡片的点击（走 ReadingThemePicker.debugClick，与鼠标点击同一条 onClick 路径）
+    func debugClickTheme(_ theme: ReadingTheme) {
+        themePicker?.debugClick(theme)
+    }
+
+    /// 「恢复默认」按钮
+    func debugReset() { resetTapped() }
 }

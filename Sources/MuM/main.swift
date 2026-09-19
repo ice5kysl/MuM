@@ -28,6 +28,12 @@ if CommandLine.arguments.contains("--bench-search") {
     exit(SearchBench.run(arguments: CommandLine.arguments))
 }
 
+// 应用内自驱动 UI 测试：`MuM --uitest <场景|all> [文档.md]`。
+// 外部模拟点击要 Accessibility 权限且不可靠，所以让应用自己触发自己的动作再断言状态。
+if CommandLine.arguments.contains("--uitest") {
+    exit(UITestRunner.run(arguments: CommandLine.arguments))
+}
+
 // 离屏快照：`MuM --snapshot out.png`，不需要屏幕点亮
 if CommandLine.arguments.contains("--snapshot")
     || CommandLine.arguments.contains("--snapshot-settings") {

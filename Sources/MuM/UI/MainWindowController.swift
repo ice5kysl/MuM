@@ -755,6 +755,58 @@ final class MainWindowController: NSWindowController {
         applySettings(updated, persist: false)
     }
 
+    // MARK: - 诊断钩子（UITestRunner）
+    //
+    // 自驱动 UI 测试的观察口：全部只读或仅触发既有动作，不改正常路径行为。
+
+    /// 当前生效的偏好（settings 本身是 private）
+    var debugSettings: MuMSettings { settings }
+
+    /// 两个设置 popover：从真实的状态栏按钮触发，走和产品一致的 wiring
+    func debugShowDisplaySettings() { rootViewController.statusBar.debugTriggerDisplaySettings() }
+    func debugShowSystemSettings() { rootViewController.statusBar.debugTriggerSystemSettings() }
+    var debugDisplaySettingsShown: Bool { displaySettingsPopover?.isShown ?? false }
+    var debugSystemSettingsShown: Bool { systemSettingsPopover?.isShown ?? false }
+    var debugDisplaySettingsPanel: SettingsPanelViewController? {
+        displaySettingsPopover?.contentViewController as? SettingsPanelViewController
+    }
+    var debugSystemSettingsPanel: SystemSettingsPanelViewController? {
+        systemSettingsPopover?.contentViewController as? SystemSettingsPanelViewController
+    }
+    func debugClosePopovers() {
+        displaySettingsPopover?.performClose(nil)
+        systemSettingsPopover?.performClose(nil)
+    }
+
+    /// 模式切换后的视图显隐与两侧内容（断言"预览跟着换"）
+    var debugEditorVisible: Bool { !contentPane.editorViewController.view.isHidden }
+    var debugPreviewVisible: Bool { !contentPane.previewViewController.view.isHidden }
+    var debugPreviewText: String { contentPane.previewViewController.previewTextView.string }
+    var debugEditorText: String { contentPane.editorViewController.text }
+    var debugCurrentFileURL: URL? { currentFileURL }
+
+    /// 预览 / 编辑器控制器本体（查找、大纲、编辑器设置读回的断言都挂在它们身上）
+    var debugPreview: PreviewViewController { contentPane.previewViewController }
+    var debugEditor: EditorViewController { contentPane.editorViewController }
+
+    /// 全局搜索：与 showGlobalSearch 相同的接线，但面板不上屏（见 GlobalSearchPanel.debugPresent）
+    func debugShowGlobalSearch(prefill: String) {
+        guard let window else { return }
+        let workspaces = WorkspaceStore.shared.workspaces
+        guard !workspaces.isEmpty else { return }
+
+        let panel = globalSearchPanel ?? GlobalSearchPanel()
+        globalSearchPanel = panel
+        panel.onOpen = { [weak self] query, hit in
+            self?.openSearchHit(hit, query: query)
+        }
+        panel.debugPresent(over: window, scopes: workspaces.map {
+            GlobalSearchEngine.Scope(root: $0.rootURL, name: $0.name)
+        }, prefilledQuery: prefill)
+    }
+
+    var debugGlobalSearchPanel: GlobalSearchPanel? { globalSearchPanel }
+
     /// 诊断用：整窗视图树。定位"某个控件没出现 / 尺寸不对"这类问题时，
     /// 直接看 hierarchy 比一层层猜快得多（`MUM_LAYOUT_DEBUG=1` 打开）。
     func dumpViewTree() -> String {

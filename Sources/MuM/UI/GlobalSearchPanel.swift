@@ -86,6 +86,38 @@ final class GlobalSearchPanel: NSPanel {
         super.close()
     }
 
+    // MARK: - 诊断钩子（UITestRunner）
+
+    /// 与 present 相同的接线与搜索行为，但不上屏：
+    /// 测试进程是 accessory 且不激活，浮动面板 orderFront 会弹到用户屏幕上
+    /// 打扰真实使用 —— 除了不 orderFront / 不抢焦点，其余路径一致
+    func debugPresent(over parent: NSWindow, scopes: [GlobalSearchEngine.Scope], prefilledQuery: String) {
+        self.scopes = scopes
+        included = Array(repeating: true, count: scopes.count)
+        rebuildScopeChips()
+
+        parent.addChildWindow(self, ordered: .above)
+
+        field.stringValue = prefilledQuery
+        resetResults()
+        updateStatus()
+        // 预填就不等去抖，与 present 的 prefilledQuery 路径一致
+        restartSearch()
+    }
+
+    var debugIsSearching: Bool { searching }
+    var debugResultCount: Int { hits.count }
+    var debugFirstHitFileURL: URL? { hits.first?.fileURL }
+    /// 首条是否为内容命中（文件名命中没有行号，点中只能开文件不能定位）
+    var debugFirstHitIsContent: Bool { hits.first?.kind == .content }
+
+    /// 打开第一行结果（与 ⏎ 同一条 openSelection 路径）
+    func debugOpenFirstResult() {
+        guard !hits.isEmpty else { return }
+        tableView.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
+        openSelection()
+    }
+
     // MARK: - 搜索
 
     private var query: String {

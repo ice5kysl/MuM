@@ -86,6 +86,9 @@ final class PreviewFindBar: NSView {
         searchField.stringValue = text
     }
 
+    /// 诊断用（UITestRunner）：计数标签上的文字 —— "界面读回"断言用
+    var debugCountText: String { countLabel.stringValue }
+
     func focus() {
         window?.makeFirstResponder(searchField)
         searchField.currentEditor()?.selectAll(nil)

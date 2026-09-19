@@ -63,6 +63,24 @@ final class PreviewViewController: NSViewController {
 
     var isFinding: Bool { isFindBarVisible }
 
+    // MARK: - 诊断钩子（UITestRunner）
+    //
+    // 查找/大纲的内部状态是 private 实现细节；测试要断言"命中数、当前处、
+    // 大纲条目与位置"，这里开一道只读的门，正常路径行为不变。
+
+    /// 当前查找命中数与当前处（0 起算）
+    var debugFindMatchCount: Int { findMatches.count }
+    var debugFindCurrentIndex: Int { currentMatchIndex }
+    /// 查找条计数标签的文字（界面读回）
+    var debugFindBarCountText: String { findBar.debugCountText }
+
+    /// 大纲条目（层级、字符位置、标题）
+    var debugOutlineItems: [(level: Int, location: Int, title: String)] {
+        outline.map { ($0.level, $0.location, $0.title) }
+    }
+    var debugOutlinePopoverShown: Bool { outlinePopover?.isShown ?? false }
+    func debugCloseOutline() { outlinePopover?.performClose(nil) }
+
     // MARK: - 大纲
 
     private var outline: [MarkdownRenderer.OutlineItem] = []

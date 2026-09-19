@@ -112,6 +112,13 @@ final class EditorViewController: NSViewController, NSTextViewDelegate {
         textView.isEditable = editable
     }
 
+    // MARK: - 诊断钩子（UITestRunner）
+
+    /// 偏好是否真正落到了编辑区 —— "设置变了"和"界面跟上"是两件事，都要断言
+    var debugAppliedFontSize: CGFloat { editorFontSize }
+    var debugLineNumbersVisible: Bool { scrollView.rulersVisible }
+    var debugCurrentLineHighlightOn: Bool { textView.showsCurrentLineHighlight }
+
     // MARK: - 应用偏好
 
     func apply(settings: MuMSettings) {
