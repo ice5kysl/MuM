@@ -7,18 +7,21 @@
 #   ./scripts/sign-release.sh dist/MuM.app --sign-only   # 只签名验证，不提交公证
 #
 # 身份与凭据（ice 2026-09-19 决策：公司项目，复用既有资产）：
-#   - 证书：公司 Developer ID Application（本机登录钥匙串，含私钥）
-#   - 公证：keychain profile `<见 .mumenv.local.example>`（复用已有的 App Store Connect API Key，
+#   - 证书：Developer ID Application（本机登录钥匙串，含私钥）
+#   - 公证：keychain profile（复用已有的 App Store Connect API Key，
 #     一次性 `xcrun notarytool store-credentials` 已配置）
-# 流程依据：本机签名资产指引（本机实测版）。
+# 签名身份与 profile 名**不入库** —— 见 .mumenv.local.example。
 #
 # MuM 是单二进制（无 Frameworks/插件），直接签 .app 即可，不需要逐个签嵌套项。
 
 set -euo pipefail
 
 APP="${1:?用法：scripts/sign-release.sh <MuM.app> [--dmg|--sign-only]}"
-IDENTITY="Developer ID Application: <见 .mumenv.local.example>"
-PROFILE="<见 .mumenv.local.example>"
+# 签名身份与公证 profile 从环境读，**不写进仓库**。
+# 用 :? 而不是默认值 —— 缺了就带清楚的话退出，而不是拿空 identity 去签名
+# （那会产出一个"看起来签了其实没签"的包，比直接失败危险得多）。
+IDENTITY="${MUM_SIGN_IDENTITY:?未设置 MUM_SIGN_IDENTITY，见 .mumenv.local.example}"
+PROFILE="${MUM_NOTARY_PROFILE:?未设置 MUM_NOTARY_PROFILE，见 .mumenv.local.example}"
 
 if [ ! -d "$APP" ]; then
   echo "找不到 $APP" >&2

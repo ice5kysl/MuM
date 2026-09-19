@@ -1,0 +1,16 @@
+# 本机配置模板。复制成 .mumenv.local 后填自己的值 —— .mumenv.local 不入库。
+#
+#   cp .mumenv.local.example .mumenv.local
+
+# 依赖拉取走代理（可选；国内网络克隆 swift-markdown 常超时）
+# export GITHUB_PROXY="http://127.0.0.1:10809"
+
+# ── 发版签名（仅发版需要，日常构建不用）────────────────────────
+#
+# 签名身份：`security find-identity -v -p codesigning` 能看到完整串
+# export MUM_SIGN_IDENTITY="Developer ID Application: Your Company (TEAMID)"
+
+# 公证用的 keychain profile：用 `xcrun notarytool store-credentials` 创建
+# xcrun notarytool store-credentials "NOTARYPROFILE" \
+#   --key <ASC_API_Key_ID> --issuer <Issuer_ID> --key-path AuthKey_XXX.p8
+# export MUM_NOTARY_PROFILE="NOTARYPROFILE"
