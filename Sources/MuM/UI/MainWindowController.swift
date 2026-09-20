@@ -674,6 +674,16 @@ final class MainWindowController: NSWindowController {
             contentPane.previewViewController.setOutline(renderer.outline)
         case .code:
             attributed = renderer.renderCode(text, language: FileKind.language(for: url))
+        case .plainText:
+            // csv / tsv 按表格渲染 —— 表格排版是手工调过的，阅读优先；
+            // 解析失败（空文件、单列、超行数上限）退回纯文本，内容完整可见
+            if let delimiter = FileKind.tableDelimiter(for: url),
+               let table = DelimitedTable.markdown(from: text, delimiter: delimiter) {
+                attributed = renderer.render(table)
+                contentPane.previewViewController.setOutline([])
+            } else {
+                attributed = renderer.renderPlainText(text)
+            }
         default:
             attributed = renderer.renderPlainText(text)
         }

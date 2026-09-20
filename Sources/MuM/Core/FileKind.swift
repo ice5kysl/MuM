@@ -141,4 +141,14 @@ enum FileKind {
         default: return nil
         }
     }
+
+    /// 分隔表格的分隔符（csv / tsv），其余文件 nil。
+    /// 这类文件编辑时仍是纯文本，只有 Read/Preview 的渲染走表格。
+    static func tableDelimiter(for url: URL) -> Character? {
+        switch url.pathExtension.lowercased() {
+        case "csv": return ","
+        case "tsv": return "\t"
+        default: return nil
+        }
+    }
 }
