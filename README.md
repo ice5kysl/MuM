@@ -156,9 +156,6 @@ mum check  doc.md --json                               # 退出码有意义
 | 想了解 | 去哪 |
 | :--- | :--- |
 | **为什么是这个定位**、判断标准、明确不做 | [docs/vision.md](docs/vision.md) |
-| 每个版本做什么、验收标准 | [docs/roadmap.md](docs/roadmap.md) · [docs/versions/](docs/versions/) |
-| 指标体系（北极星 TTFR） | [docs/metrics.md](docs/metrics.md) |
-| **现在到哪一步了** | [docs/status.md](docs/status.md) |
 | 技术选型（为什么不用 Web 引擎…） | [docs/design/technical-choices.md](docs/design/technical-choices.md) |
 | 界面与交互 | [docs/design/interface.md](docs/design/interface.md) |
 | 构建、测试、发布 | [docs/development/build.md](docs/development/build.md) |
