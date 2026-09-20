@@ -359,6 +359,7 @@ final class ContentViewController: NSViewController {
         case .markdown: return "text.document"
         case .code: return "chevron.left.forwardslash.chevron.right"
         case .plainText: return "doc.plaintext"
+        case .richText: return "doc.richtext"
         case .image: return "photo"
         case .pdf: return "doc.richtext"
         default: return "doc"

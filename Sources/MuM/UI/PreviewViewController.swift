@@ -24,6 +24,9 @@ final class PreviewViewController: NSViewController {
     private let messageIcon = NSImageView()
     private let messageTitle = NSTextField(labelWithString: "")
     private let messageSubtitle = NSTextField(labelWithString: "")
+    /// 消息页的动作按钮行（默认隐藏）—— 只有「不支持的格式」这类
+    /// 需要把用户导向别处的消息才有动作
+    private let messageActions = NSStackView()
 
     /// 点链接时优先在 MuM 内部处理的回调（比如跳到另一个 Markdown 文件）
     var onOpenInternalLink: ((URL) -> Bool)?
@@ -368,12 +371,17 @@ final class PreviewViewController: NSViewController {
         messageSubtitle.lineBreakMode = .byWordWrapping
         messageSubtitle.maximumNumberOfLines = 4
 
-        let stack = NSStackView(views: [messageIcon, messageTitle, messageSubtitle])
+        let stack = NSStackView(views: [messageIcon, messageTitle, messageSubtitle, messageActions])
         stack.orientation = .vertical
         stack.alignment = .centerX
         stack.spacing = 8
         stack.setCustomSpacing(14, after: messageIcon)
+        stack.setCustomSpacing(18, after: messageSubtitle)
         stack.translatesAutoresizingMaskIntoConstraints = false
+
+        messageActions.orientation = .horizontal
+        messageActions.spacing = 10
+        messageActions.isHidden = true
 
         messageContainer.addSubview(stack)
         NSLayoutConstraint.activate([
@@ -466,6 +474,47 @@ final class PreviewViewController: NSViewController {
         messageTitle.stringValue = title
         messageSubtitle.stringValue = subtitle
         messageSubtitle.isHidden = subtitle.isEmpty
+        messageActions.isHidden = true
+    }
+
+    /// 「不支持的格式」占位页：说清楚为什么不支持（不是缺陷，是定位），
+    /// 然后把用户导向能承接的系统工具 —— 默认应用打开 / 访达中显示。
+    /// MuM 是 Markdown 阅读器，Office 三件套、压缩包、音视频这些
+    /// 各有各的原生归宿，不该在这里出现一个半吊子预览。
+    func showUnsupported(url: URL) {
+        showOnly(messageContainer)
+        messageIcon.image = NSImage(systemSymbolName: "doc.questionmark", accessibilityDescription: nil)
+        messageTitle.stringValue = url.lastPathComponent
+        messageSubtitle.stringValue = "MuM 是 Markdown 阅读器，这个格式交给更合适的工具："
+        messageSubtitle.isHidden = false
+
+        let appName = NSWorkspace.shared
+            .urlForApplication(toOpen: url)
+            .map { FileManager.default.displayName(atPath: $0.path) }
+
+        let open = NSButton(title: "用 \(appName ?? "默认应用") 打开", target: self, action: #selector(openMessageURLExternally))
+        open.bezelStyle = .rounded
+        open.controlSize = .regular
+        open.keyEquivalent = "\r" // 回车 = 主行动
+        let reveal = NSButton(title: "在访达中显示", target: self, action: #selector(revealMessageURLInFinder))
+        reveal.bezelStyle = .rounded
+        reveal.controlSize = .regular
+
+        messageActions.views.forEach { messageActions.removeView($0) }
+        messageActions.addView(open, in: .leading)
+        messageActions.addView(reveal, in: .leading)
+        messageActions.isHidden = false
+        messageURL = url
+    }
+
+    private var messageURL: URL?
+
+    @objc private func openMessageURLExternally() {
+        if let messageURL { NSWorkspace.shared.open(messageURL) }
+    }
+
+    @objc private func revealMessageURLInFinder() {
+        if let messageURL { NSWorkspace.shared.activateFileViewerSelecting([messageURL]) }
     }
 
     // MARK: - 滚动同步

@@ -52,7 +52,7 @@ final class FileNode {
         let key: String
         switch kind {
         case .folder: key = "dir"
-        case .markdown, .code, .plainText, .image, .pdf, .unsupported:
+        case .markdown, .code, .plainText, .richText, .image, .pdf, .unsupported:
             key = url.pathExtension.lowercased()
         }
 

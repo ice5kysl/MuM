@@ -490,7 +490,15 @@ final class MainWindowController: NSWindowController {
             currentFileURL = standardized
             contentPane.editorViewController.setEditable(false)
 
-        case .unsupported, .folder:
+        case .richText:
+            loadRichTextFile(url: standardized)
+
+        case .unsupported:
+            contentPane.previewViewController.showUnsupported(url: standardized)
+            currentFileURL = standardized
+            contentPane.editorViewController.setEditable(false)
+
+        case .folder:
             contentPane.previewViewController.showMessage(
                 symbol: "questionmark.folder",
                 title: standardized.lastPathComponent,
@@ -537,6 +545,31 @@ final class MainWindowController: NSWindowController {
             true,
             tooltip: appName.map { "用 \($0) 打开" } ?? "用默认应用打开"
         )
+    }
+
+    /// RTF：NSAttributedString 原生渲染，只读。
+    /// 不进编辑器 —— 编辑后保存会把纯文本盖在 RTF 控制字上（见 FileKind.richText）。
+    private func loadRichTextFile(url: URL) {
+        let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
+            .documentType: NSAttributedString.DocumentType.rtf
+        ]
+        guard let attributed = try? NSAttributedString(
+            url: url, options: options, documentAttributes: nil
+        ) else {
+            contentPane.previewViewController.showMessage(
+                symbol: "exclamationmark.triangle",
+                title: "无法读取",
+                subtitle: url.lastPathComponent
+            )
+            contentPane.editorViewController.setText("")
+            contentPane.editorViewController.setEditable(false)
+            currentFileURL = url
+            contentPane.mode = .read
+            return
+        }
+        contentPane.previewViewController.show(attributed: attributed, restoreFraction: nil)
+        currentFileURL = url
+        contentPane.editorViewController.setEditable(false)
     }
 
     private func loadTextFile(url: URL, kind: FileKind) {

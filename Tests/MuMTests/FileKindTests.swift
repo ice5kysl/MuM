@@ -40,6 +40,24 @@ final class FileKindTests: XCTestCase {
     func testUnsupportedExtension() {
         XCTAssertEqual(kind("/tmp/a.bin"), .unsupported)
         XCTAssertEqual(kind("/tmp/a.o"), .unsupported)
+        // Office 三件套 / 压缩包 / 音视频：不在计划里，界面给系统工具导向
+        for ext in ["docx", "xlsx", "pptx", "doc", "zip", "mp4", "mp3", "epub"] {
+            XCTAssertEqual(kind("/tmp/a.\(ext)"), .unsupported, "\(ext) 应保持不支持")
+        }
+    }
+
+    // MARK: - RTF / 笔记本 / 通讯录日历
+
+    func testRichTextAndNewTextKinds() {
+        // rtf 渲染成富文本但只读 —— 当纯文本编辑会在保存时毁掉控制字
+        XCTAssertEqual(kind("/tmp/a.rtf"), .richText)
+        XCTAssertFalse(kind("/tmp/a.rtf").isTextual)
+        // ipynb 本质是 JSON，按代码打开带高亮
+        XCTAssertEqual(kind("/tmp/a.ipynb"), .code)
+        XCTAssertEqual(FileKind.language(for: URL(fileURLWithPath: "/tmp/a.ipynb")), "json")
+        // vcf / ics 是纯文本格式
+        XCTAssertEqual(kind("/tmp/a.vcf"), .plainText)
+        XCTAssertEqual(kind("/tmp/a.ics"), .plainText)
     }
 
     func testDirectoryAlwaysFolder() {

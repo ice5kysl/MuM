@@ -6,6 +6,9 @@ enum FileKind {
     case markdown
     case code
     case plainText
+    /// RTF：能渲染（NSAttributedString 原生支持），但**不能当文本编辑** ——
+    /// 编辑后保存会把纯文本盖在 RTF 控制字上，文件就毁了。只读。
+    case richText
     case image
     case pdf
     case unsupported
@@ -60,10 +63,12 @@ enum FileKind {
         "tf": "hcl", "hcl": "hcl",
         "graphql": "graphql", "gql": "graphql",
         "diff": "diff", "patch": "diff",
+        "ipynb": "json",
     ]
 
     private static let plainTextExtensions: Set<String> = [
-        "txt", "text", "log", "csv", "tsv", "rtf", "tex", "bib",
+        "txt", "text", "log", "csv", "tsv", "tex", "bib",
+        "vcf", "ics",
         "gitignore", "env", "editorconfig", "npmrc", "lock",
     ]
 
@@ -81,6 +86,8 @@ enum FileKind {
             self = .image
         } else if ext == "pdf" {
             self = .pdf
+        } else if ext == "rtf" {
+            self = .richText
         } else if FileKind.codeExtensions[ext] != nil {
             self = .code
         } else if FileKind.plainTextExtensions.contains(ext) {
