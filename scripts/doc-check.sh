@@ -38,7 +38,7 @@ S=$(grep -rl "fast, native Markdown engine\|multi-project Markdown reader" READM
 say "无旧定位句（在外文件）" "$([ "$S" = "0" ] && echo "✅ 0" || { fail=1; echo "❌ $S 处"; })"
 
 # status.md 的「最后更新」不能比最新 tag 落后太多 —— 只能提醒，无法自动判
-say "status.md 最新版本号" "$(grep -oE 'v0\.[0-9]+\.[0-9]+' docs/status.md | head -1)"
+say "roadmap 当前版本" "$(grep -oE "v0\\.[0-9]+\\.[0-9]+" docs/roadmap.md | head -1)"
 
 echo
 [ "$fail" = "0" ] && echo "文档检查：全过 ✅" || echo "文档检查：有不过的 ❌"
