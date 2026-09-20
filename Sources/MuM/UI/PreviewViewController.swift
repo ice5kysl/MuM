@@ -84,6 +84,29 @@ final class PreviewViewController: NSViewController {
     var debugOutlinePopoverShown: Bool { outlinePopover?.isShown ?? false }
     func debugCloseOutline() { outlinePopover?.performClose(nil) }
 
+    /// 提示页（空状态 / 不支持格式）的可见性与内容
+    var debugMessageInfo: (visible: Bool, title: String, subtitle: String, actions: [String]) {
+        (
+            !messageContainer.isHidden,
+            messageTitle.stringValue,
+            messageSubtitle.stringValue,
+            messageActions.isHidden ? [] : messageActions.views.compactMap { ($0 as? NSButton)?.title }
+        )
+    }
+
+    /// 预览文本里的表格块数（NSTextTableBlock）—— csv/tsv 按表格渲染的断言点
+    var debugPreviewTableBlocks: Int {
+        guard let storage = textView.textStorage, !textScrollView.isHidden else { return 0 }
+        var count = 0
+        storage.enumerateAttribute(.paragraphStyle, in: NSRange(location: 0, length: storage.length)) { value, _, _ in
+            if let style = value as? NSParagraphStyle, !style.textBlocks.isEmpty { count += 1 }
+        }
+        return count
+    }
+
+    /// 当前显示的是不是文本预览页（相对图片 / PDF / 提示页）
+    var debugIsTextPreviewVisible: Bool { !textScrollView.isHidden }
+
     // MARK: - 大纲
 
     private var outline: [MarkdownRenderer.OutlineItem] = []

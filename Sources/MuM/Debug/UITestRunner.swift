@@ -28,6 +28,8 @@ enum UITestRunner {
         ("newfile", "新建文件（⌘N）"),
         ("rename", "重命名与新建文件夹"),
         ("trash", "移到废纸篓"),
+        ("csv", "CSV/TSV 表格渲染"),
+        ("unsupported", "不支持格式的导向页"),
     ]
 
     static func run(arguments: [String]) -> Int32 {
@@ -113,6 +115,8 @@ enum UITestRunner {
             case "newfile": scenarioNewFile(controller, check)
             case "rename": scenarioRename(controller, check)
             case "trash": scenarioTrash(controller, check)
+            case "csv": scenarioCSV(controller, check)
+            case "unsupported": scenarioUnsupported(controller, check)
             default: break
             }
             checkers.append(check)
@@ -536,10 +540,92 @@ enum UITestRunner {
                      actual: "目录\(FileManager.default.fileExists(atPath: folder.path) ? "还在" : "已删") 打开=\(c.debugCurrentFileURL?.lastPathComponent ?? "无")")
     }
 
+    /// CSV/TSV → 表格渲染：出表格结构（不是纯文本），单列退回纯文本，TSV 同样成表。
+    /// 解析器本身有 DelimitedTableTests 九个用例，这里验的是「点开文件 → 预览里真有表格」
+    /// 这条接线 —— 解析对但渲染没接上，单测看不见（dsh 验收补的缺口）。
+    private static func scenarioCSV(_ c: MainWindowController, _ check: Checker) {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("mum-uitest-csv-\(ProcessInfo.processInfo.processIdentifier)")
+        try? FileManager.default.removeItem(at: dir)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        guard check.expect(WorkspaceStore.shared.open(url: dir) != nil, "打开临时目录为项目",
+                           expected: "项目打开成功", actual: "open 返回 nil") else { return }
+
+        let preview = c.debugPreview
+        // 场景前置条件自己立：连跑时 mode 场景会把 preferredMode 留在 Write
+        // （contentPane.onModeChanged 回写），而 Write 下 performRender 直接 return。
+        // 注意 setMode 有「无打开文档则静默返回」的门 —— 必须先开文件再钉模式，
+        // 顺序反了（先 setMode 后 open）等于没钉，断言就依赖运行顺序
+
+        // 含引号和逗号的真实 csv
+        let csv = dir.appendingPathComponent("数据.csv")
+        FileManager.default.createFile(atPath: csv.path,
+            contents: Data("名称,数量,备注\n苹果,3,\"甜的,好吃\"\n梨,5,\n".utf8))
+        c.open(url: csv)
+        c.setMode(.read)
+        // 等待条件必须锚在**这篇文档的内容**上：all 连跑时上一场景的预览还挂着，
+        // 「文本预览可见」一进来就为真，等不到本次渲染（standalone 靠欢迎页碰巧等对了）
+        _ = wait(3) { c.debugPreviewText.contains("苹果") }
+        check.expect(preview.debugPreviewTableBlocks > 0, "csv 渲染出表格",
+                     expected: ">0 个表格块", actual: "\(preview.debugPreviewTableBlocks) 个")
+
+        // tsv 同样成表
+        let tsv = dir.appendingPathComponent("数据.tsv")
+        FileManager.default.createFile(atPath: tsv.path, contents: Data("甲\t乙\n一\t二\n".utf8))
+        c.open(url: tsv)
+        c.setMode(.read)
+        _ = wait(3) { c.debugPreviewText.contains("甲") }
+        check.expect(preview.debugPreviewTableBlocks > 0, "tsv 渲染出表格",
+                     expected: ">0 个表格块", actual: "\(preview.debugPreviewTableBlocks) 个")
+
+        // 单列 csv 不是表 → 退回纯文本
+        let single = dir.appendingPathComponent("单列.csv")
+        FileManager.default.createFile(atPath: single.path, contents: Data("只一列\n第二行\n".utf8))
+        c.open(url: single)
+        c.setMode(.read)
+        _ = wait(3) { c.debugPreviewText.contains("只一列") }
+        check.expect(preview.debugIsTextPreviewVisible && preview.debugPreviewTableBlocks == 0,
+                     "单列 csv 退回纯文本", expected: "文本预览且无表格块",
+                     actual: "预览=\(preview.debugIsTextPreviewVisible) 表格块=\(preview.debugPreviewTableBlocks)")
+    }
+
+    /// 不支持格式的导向页：占位页出现、两个去向按钮都在、文案带文件名。
+    /// 这是「点开 docx 不会死在一句暂不支持」的验收（ice 点的功能）。
+    private static func scenarioUnsupported(_ c: MainWindowController, _ check: Checker) {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("mum-uitest-unsupported-\(ProcessInfo.processInfo.processIdentifier)")
+        try? FileManager.default.removeItem(at: dir)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        guard check.expect(WorkspaceStore.shared.open(url: dir) != nil, "打开临时目录为项目",
+                           expected: "项目打开成功", actual: "open 返回 nil") else { return }
+
+        let bin = dir.appendingPathComponent("报告.xyz")
+        FileManager.default.createFile(atPath: bin.path, contents: Data([0x00, 0x01, 0x02, 0x03]))
+        c.open(url: bin)
+
+        let preview = c.debugPreview
+        _ = wait(3) { preview.debugMessageInfo.title == "报告.xyz" }
+        let info = preview.debugMessageInfo
+        check.expect(info.visible, "导向页出现", expected: "提示页可见", actual: "不可见")
+        check.expect(info.title == "报告.xyz", "标题是文件名",
+                     expected: "报告.xyz", actual: info.title)
+        check.expect(info.actions.count == 2
+                     && info.actions[0].hasPrefix("用 ")
+                     && info.actions[0].hasSuffix(" 打开")
+                     && info.actions[1] == "在访达中显示",
+                     "两个去向按钮（用 X 打开 / 在访达中显示）",
+                     expected: "用 X 打开 + 在访达中显示", actual: info.actions.joined(separator: " / "))
+        check.expect(!preview.debugIsTextPreviewVisible, "文本预览没有同时露出来",
+                     expected: "文本预览隐藏", actual: "可见")
+    }
+
     /// 同一文件的判定要解符号链接：树节点的路径来自 FileManager 扫描（已解链接），
     /// 而新建返回的 URL 带着调用方给的未解析前缀（/var vs /private/var）
-    private static func sameFile(_ a: URL?, _ b: URL?) -> Bool {
-        guard let a, let b else { return false }
+    private static func sameFile(_ a: URL?, _ b: URL?) -> Bool {        guard let a, let b else { return false }
         func resolve(_ url: URL) -> String {
             guard let resolved = realpath(url.path, nil) else { return url.path }
             defer { free(resolved) }

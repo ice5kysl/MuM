@@ -98,6 +98,13 @@ dist/MuM.app/Contents/MacOS/MuM --snapshot /tmp/mum.png
 注意要用 app bundle 里的二进制：直接跑 `.build/release/MuM` 时没有 bundle id，
 读不到已保存的项目列表。
 
+### `--uitest` 的权限前提
+
+应用内自驱动 UI 测试（`--uitest all`）**在受限沙箱里会假失败**：废纸篓场景的
+删除步骤需要文件系统权限，沙箱拦下时表现为步骤红、但功能本身没问题。
+跑验收请用正常权限的 shell；CI 里如果非要沙箱，删除类步骤的误判要先排除
+（dsh 在 0.7.2 验收时踩到，宽权限重跑后结论才为真）。
+
 ### 关于 `.mumenv`
 
 构建脚本会 `source .mumenv`，它只做一件事：**把 clang / SwiftPM 的模块缓存重定向到 `.build/`**。
