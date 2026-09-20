@@ -11,7 +11,7 @@ final class OutlineLayoutTests: XCTestCase {
 
     func testRowsAreFullWidthAndReadable() {
         let items = [
-            MarkdownRenderer.OutlineItem(level: 1, title: "WhyMyPhone 是什么", location: 0),
+            MarkdownRenderer.OutlineItem(level: 1, title: "示例文档是什么", location: 0),
             MarkdownRenderer.OutlineItem(level: 2, title: "目录与使用百科", location: 10),
             MarkdownRenderer.OutlineItem(level: 2, title: "一段比较长的二级标题，应该被截断而不是塌掉", location: 20),
             MarkdownRenderer.OutlineItem(level: 3, title: "支持邮箱", location: 30),

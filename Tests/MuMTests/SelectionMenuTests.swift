@@ -32,7 +32,7 @@ final class SelectionMenuTests: XCTestCase {
     }
 
     func testLongSelectionIsTruncatedInTitleButNotInQuery() {
-        let long = "反代到容器 :5180，Host 路由 dsh.jiker.ai + 自动证书"
+        let long = "一段足够长的中文测试文本，用来验证选中菜单不会盖住内容"
         let menu = makeTextView().selectionMenu(selectedText: long)
         let findItem = menu.items.first { $0.title.contains("在文档中查找") }
         XCTAssertTrue(findItem!.title.contains("…"), "菜单标题要截断，不能撑爆菜单")
