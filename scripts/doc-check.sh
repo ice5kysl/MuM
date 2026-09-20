@@ -38,6 +38,10 @@ S=$(grep -rl "fast, native Markdown engine\|multi-project Markdown reader" READM
 say "无旧定位句（在外文件）" "$([ "$S" = "0" ] && echo "✅ 0" || { fail=1; echo "❌ $S 处"; })"
 
 # status.md 的「最后更新」不能比最新 tag 落后太多 —— 只能提醒，无法自动判
+# 发版时最容易漏的一步：落地页的下载链接与版本号
+SITE=$(grep -ohE 'releases/download/v[0-9.]+' site/index.html 2>/dev/null | head -1 | grep -oE 'v[0-9.]+')
+say "落地页下载链接跟上版本" "$([ "v$V" = "$SITE" ] && echo "✅ $SITE" || { fail=1; echo "❌ 页面是 $SITE，版本是 v$V"; })"
+
 say "roadmap 当前版本" "$(grep -oE "v0\\.[0-9]+\\.[0-9]+" docs/roadmap.md | head -1)"
 
 echo
