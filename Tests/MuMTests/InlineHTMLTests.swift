@@ -72,4 +72,26 @@ final class InlineHTMLTests: XCTestCase {
                       "<br> 应输出换行")
         XCTAssertFalse(out.string.contains("<br"))
     }
+
+    // MARK: - 块级 HTML
+
+    func testPageBreakDivIsHidden() {
+        let out = renderer.render("上文\n\n<div style=\"break-after: page; page-break-after: always;\"></div>\n\n下文\n")
+        XCTAssertFalse(out.string.contains("break-after"), "分页空 div 不应出现在成文里")
+        XCTAssertTrue(out.string.contains("上文"))
+        XCTAssertTrue(out.string.contains("下文"))
+    }
+
+    func testCommentBlockIsHidden() {
+        let out = renderer.render("上文\n\n<!-- ↓↓↓ 第 2 页从这里开始 ↓↓↓ -->\n\n下文\n")
+        XCTAssertFalse(out.string.contains("<!--"), "HTML 注释不应出现在成文里")
+        XCTAssertFalse(out.string.contains("第 2 页从这里开始"))
+    }
+
+    func testHTMLBlockWithRealContentStaysRaw() {
+        let out = renderer.render("<div>这段文字是内容</div>\n")
+        XCTAssertTrue(out.string.contains("<div>"),
+                      "带真实内容的 HTML 片段仍按原文显示（贴片段做笔记的场景）")
+        XCTAssertTrue(out.string.contains("这段文字是内容"))
+    }
 }

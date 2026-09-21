@@ -95,6 +95,21 @@ final class MarkdownRenderer {
         }
     }
 
+    // MARK: - 块级 HTML
+
+    private static let htmlCommentPattern = try! NSRegularExpression(pattern: #"<!--[\s\S]*?-->"#)
+    private static let htmlTagPattern = try! NSRegularExpression(pattern: #"<[^>]*>"#)
+
+    /// 块级 HTML 去掉注释和标签后还有没有可见文字。注释块、分页空 div 这类
+    /// 纯排版指令没有 —— 整块吞掉；带真实内容的片段（如 <table>文字）保留原文显示。
+    static func htmlBlockHasVisibleContent(_ raw: String) -> Bool {
+        let withoutComments = htmlCommentPattern.stringByReplacingMatches(
+            in: raw, range: NSRange(raw.startIndex..., in: raw), withTemplate: "")
+        let withoutTags = htmlTagPattern.stringByReplacingMatches(
+            in: withoutComments, range: NSRange(withoutComments.startIndex..., in: withoutComments), withTemplate: "")
+        return !withoutTags.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     // MARK: - 段落样式
 
     private func paragraphStyle(
@@ -157,6 +172,9 @@ final class MarkdownRenderer {
             renderThematicBreak(into: out, context: context)
 
         case let html as HTMLBlock:
+            // 无可见内容的块（HTML 注释、分页空 div 这类排版指令）直接吞掉，
+            // 与其他阅读器一致；带真实内容的 HTML 片段仍按原文显示。
+            guard Self.htmlBlockHasVisibleContent(html.rawHTML) else { return }
             let style = paragraphStyle(indent: context.indent, spacingBefore: 10, spacingAfter: 10)
             let text = NSMutableAttributedString(string: html.rawHTML + "\n", attributes: [
                 .font: theme.codeBlockFont,
