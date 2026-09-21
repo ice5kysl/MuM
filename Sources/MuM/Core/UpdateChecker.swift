@@ -12,6 +12,10 @@ enum UpdateChecker {
         let version: String
         /// Release 页面
         let url: URL
+        /// 安装包直链（DMG 优先）。nil 表示 Release 里没有可下载资产，退回跳页面
+        let downloadURL: URL?
+        /// 安装包字节数（进度条分母），未知为 nil
+        let downloadSize: Int?
     }
 
     enum Result {
@@ -51,10 +55,29 @@ enum UpdateChecker {
                 return
             }
             let latest = tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
+            let asset = Self.pickAsset(from: json)
             result = isNewer(latest, than: currentVersion)
-                ? .available(AvailableUpdate(version: latest, url: pageURL))
+                ? .available(AvailableUpdate(version: latest, url: pageURL,
+                                             downloadURL: asset?.url, downloadSize: asset?.size))
                 : .upToDate
         }.resume()
+    }
+
+    /// 从 Release JSON 的 assets 里挑安装包：DMG 优先，ZIP 兜底。
+    /// 提出来做纯函数 —— 资产选择的对错直接可测，不用发网络请求。
+    static func pickAsset(from json: [String: Any]) -> (url: URL, size: Int?)? {
+        guard let assets = json["assets"] as? [[String: Any]] else { return nil }
+        func asset(matchingSuffix suffix: String) -> (url: URL, size: Int?)? {
+            for asset in assets {
+                guard let name = asset["name"] as? String,
+                      name.lowercased().hasSuffix(suffix),
+                      let link = asset["browser_download_url"] as? String,
+                      let url = URL(string: link) else { continue }
+                return (url, asset["size"] as? Int)
+            }
+            return nil
+        }
+        return asset(matchingSuffix: ".dmg") ?? asset(matchingSuffix: ".zip")
     }
 
     /// 语义化版本比较：逐段数值比，"0.7.1" > "0.7.0"。段数不齐时缺的按 0 算。

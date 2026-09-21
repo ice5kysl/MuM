@@ -33,10 +33,19 @@ final class UpdateBannerViewController: NSTitlebarAccessoryViewController {
         label.font = NSFont.systemFont(ofSize: 12)
         label.textColor = MuMDesign.secondaryText
 
-        let viewButton = NSButton(title: "查看更新", target: self, action: #selector(openRelease))
-        viewButton.bezelStyle = .inline
-        viewButton.controlSize = .small
-        viewButton.font = NSFont.systemFont(ofSize: 12)
+        // 有直链就一键下载（半自动升级）；没有直链退回跳 Release 页
+        let downloadButton = NSButton(
+            title: update.downloadURL != nil ? "下载更新" : "查看更新",
+            target: self, action: #selector(downloadOrOpenRelease))
+        downloadButton.bezelStyle = .inline
+        downloadButton.controlSize = .small
+        downloadButton.font = NSFont.systemFont(ofSize: 12)
+        self.downloadButton = downloadButton
+
+        let notesButton = NSButton(title: "更新说明", target: self, action: #selector(openReleaseNotes))
+        notesButton.bezelStyle = .inline
+        notesButton.controlSize = .small
+        notesButton.font = NSFont.systemFont(ofSize: 12)
 
         let ignoreButton = NSButton(title: "忽略此版本", target: self, action: #selector(ignore))
         ignoreButton.bezelStyle = .inline
@@ -49,7 +58,7 @@ final class UpdateBannerViewController: NSTitlebarAccessoryViewController {
         close.image = NSImage(systemSymbolName: "xmark", accessibilityDescription: "关闭")
         close.imagePosition = .imageOnly
 
-        let stack = NSStackView(views: [label, viewButton, ignoreButton, close])
+        let stack = NSStackView(views: [label, downloadButton, notesButton, ignoreButton, close])
         stack.orientation = .horizontal
         stack.alignment = .centerY
         stack.spacing = 12
@@ -79,9 +88,74 @@ final class UpdateBannerViewController: NSTitlebarAccessoryViewController {
         preferredContentSize = NSSize(width: NSView.noIntrinsicMetric, height: 30)
     }
 
-    @objc private func openRelease() {
+    @objc private func openReleaseNotes() {
         NSWorkspace.shared.open(update.url)
-        dismissBanner()
+    }
+
+    private var downloadButton: NSButton?
+    private var isDownloading = false
+
+    /// 「下载更新」：下到临时目录 → 挂载安装盘 → 提示拖进应用程序。
+    /// 没有直链时这个按钮就是原来的「查看更新」（跳 Release 页）。
+    @objc private func downloadOrOpenRelease() {
+        guard let downloadURL = update.downloadURL else {
+            NSWorkspace.shared.open(update.url)
+            dismissBanner()
+            return
+        }
+        guard !isDownloading else { return }
+        isDownloading = true
+        downloadButton?.isEnabled = false
+        downloadButton?.title = "下载中…"
+
+        UpdateDownloader.download(downloadURL, version: update.version) { [weak self] fraction in
+            self?.downloadButton?.title = String(format: "下载中 %d%%", Int((fraction * 100).rounded()))
+        } completion: { [weak self] result in
+            guard let self else { return }
+            self.isDownloading = false
+            switch result {
+            case .success(let dmg):
+                self.downloadButton?.title = "已下载"
+                UpdateDownloader.mountAndReveal(dmg)
+                self.presentInstallHint()
+            case .failure(let error):
+                self.downloadButton?.isEnabled = true
+                self.downloadButton?.title = "下载更新"
+                self.presentFailure(error)
+            }
+        }
+    }
+
+    /// 安装盘已挂载：说明最后一步，并给一个「退出 MuM」方便替换
+    private func presentInstallHint() {
+        let alert = NSAlert()
+        alert.messageText = "安装盘已打开"
+        alert.informativeText = "把 MuM 拖进「应用程序」文件夹替换旧版即可。退出 MuM 再替换更稳妥。"
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "退出 MuM")
+        alert.addButton(withTitle: "稍后")
+        present(alert) { response in
+            if response == .alertFirstButtonReturn {
+                NSApp.terminate(nil)
+            }
+        }
+    }
+
+    private func presentFailure(_ error: Error) {
+        let alert = NSAlert()
+        alert.messageText = "下载失败"
+        alert.informativeText = "\(error.localizedDescription)。也可以点「更新说明」去 Release 页手动下载。"
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "好")
+        present(alert) { _ in }
+    }
+
+    private func present(_ alert: NSAlert, completion: @escaping (NSApplication.ModalResponse) -> Void) {
+        if let window = view.window {
+            alert.beginSheetModal(for: window, completionHandler: completion)
+        } else {
+            completion(alert.runModal())
+        }
     }
 
     @objc private func ignore() {

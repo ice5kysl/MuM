@@ -26,4 +26,35 @@ final class UpdateCheckerTests: XCTestCase {
         XCTAssertTrue(UpdateChecker.isNewer("0.10.0", than: "0.9.9"))
         XCTAssertFalse(UpdateChecker.isNewer("0.9.9", than: "0.10.0"))
     }
+
+    // MARK: - 资产挑选（一键下载的直链来源）
+
+    private func releaseJSON(_ assets: [[String: Any]]) -> [String: Any] {
+        ["tag_name": "v0.7.3", "html_url": "https://example.com/r", "assets": assets]
+    }
+
+    func testPickAssetPrefersDMG() {
+        let json = releaseJSON([
+            ["name": "MuM-0.7.3.zip", "browser_download_url": "https://x/m.zip", "size": 100],
+            ["name": "MuM-0.7.3.dmg", "browser_download_url": "https://x/m.dmg", "size": 200],
+        ])
+        let picked = UpdateChecker.pickAsset(from: json)
+        XCTAssertEqual(picked?.url.absoluteString, "https://x/m.dmg", "DMG 优先于 ZIP")
+        XCTAssertEqual(picked?.size, 200)
+    }
+
+    func testPickAssetFallsBackToZIP() {
+        let json = releaseJSON([
+            ["name": "MuM-0.7.3.zip", "browser_download_url": "https://x/m.zip"],
+        ])
+        XCTAssertEqual(UpdateChecker.pickAsset(from: json)?.url.absoluteString, "https://x/m.zip")
+    }
+
+    func testPickAssetNilWhenNoUsableAsset() {
+        XCTAssertNil(UpdateChecker.pickAsset(from: releaseJSON([])), "空资产列表")
+        XCTAssertNil(UpdateChecker.pickAsset(from: releaseJSON([
+            ["name": "源码.tar.gz", "browser_download_url": "https://x/s.tar.gz"],
+        ])), "非 DMG/ZIP 不选")
+        XCTAssertNil(UpdateChecker.pickAsset(from: ["tag_name": "v1.0.0"]), "没有 assets 字段")
+    }
 }
