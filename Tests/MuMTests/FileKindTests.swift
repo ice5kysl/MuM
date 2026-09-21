@@ -44,6 +44,13 @@ final class FileKindTests: XCTestCase {
         for ext in ["docx", "xlsx", "pptx", "doc", "zip", "mp4", "mp3", "epub"] {
             XCTAssertEqual(kind("/tmp/a.\(ext)"), .unsupported, "\(ext) 应保持不支持")
         }
+        // html：读者要的是渲染后的页面，归导向页交给 Safari（ice 拍板）；
+        // vue / svelte 是组件源码，仍按代码打开
+        for ext in ["html", "htm", "xhtml"] {
+            XCTAssertEqual(kind("/tmp/a.\(ext)"), .unsupported, "\(ext) 应归导向页")
+        }
+        XCTAssertEqual(kind("/tmp/a.vue"), .code)
+        XCTAssertEqual(kind("/tmp/a.svelte"), .code)
     }
 
     // MARK: - RTF / 笔记本 / 通讯录日历

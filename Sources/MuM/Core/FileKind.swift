@@ -24,7 +24,10 @@ enum FileKind {
         "png", "jpg", "jpeg", "gif", "webp", "bmp", "tif", "tiff", "heic", "heif", "icns", "ico", "svg",
     ]
 
-    /// 可当文本打开的代码类扩展名 → 语法高亮语言标识
+    /// 可当文本打开的代码类扩展名 → 语法高亮语言标识。
+    /// 注意 html/htm/xhtml 故意不在表里：.html 文件（打印导出、网页存档）的读者
+    /// 要的是渲染后的页面，MuM 没有 Web 引擎也不追浏览器 —— 归「不支持的格式」，
+    /// 导向页一键交给 Safari（ice 拍板，比看源码干净）。vue/svelte 是组件源码，留下。
     private static let codeExtensions: [String: String] = [
         "swift": "swift",
         "js": "javascript", "mjs": "javascript", "cjs": "javascript", "jsx": "javascript",
@@ -48,7 +51,6 @@ enum FileKind {
         "sh": "shell", "bash": "shell", "zsh": "shell", "fish": "shell",
         "ps1": "powershell",
         "sql": "sql",
-        "html": "html", "htm": "html", "xhtml": "html",
         "css": "css", "scss": "scss", "sass": "scss", "less": "less",
         "json": "json", "jsonc": "json", "json5": "json",
         "yaml": "yaml", "yml": "yaml",
