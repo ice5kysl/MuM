@@ -513,6 +513,7 @@ final class MainWindowController: NSWindowController {
         // 文本文件沿用用户选的呈现方式；图片 / PDF 没有"编辑"可言，临时用 Read。
         // 注意这里不改 preferredMode —— 看完一张图再切回 Markdown，应该还是原来的模式。
         contentPane.mode = kind.isTextual ? preferredMode : .read
+        contentPane.setModeControlTextual(kind.isTextual)
 
         // 非 Markdown 文件才提供"用默认应用打开"：MuM 给出源码，
         // 渲染结果（HTML 页面、SVG 图形、PDF…）交给系统。自己实现 HTML 渲染
@@ -1170,6 +1171,10 @@ final class MainWindowController: NSWindowController {
     var debugPreview: PreviewViewController { contentPane.previewViewController }
     var debugEditor: EditorViewController { contentPane.editorViewController }
 
+    /// 模式控件三段（write/read/preview）的可用状态——
+    /// 非文本文件只留 Read 可点、无文档时三段全灰的断言
+    var debugModeControlEnabled: [Bool] { contentPane.debugModeControlEnabled }
+
     /// 全局搜索：与 showGlobalSearch 相同的接线，但面板不上屏（见 GlobalSearchPanel.debugPresent）
     func debugShowGlobalSearch(prefill: String) {
         guard let window else { return }
@@ -1477,6 +1482,9 @@ final class MainWindowController: NSWindowController {
 
     func setMode(_ mode: ContentViewController.Mode) {
         guard hasOpenDocument else { return }
+        // 非文本文件（PDF / 图片 / 不支持的格式）没有源码可写，
+        // 快捷键 ⌥⌘1/3 也一样要拦住 —— 放过去就是一片空白
+        guard mode == .read || (currentKind?.isTextual ?? false) else { return }
         contentPane.mode = mode
         if mode != .write {
             renderPreview(immediately: true)
@@ -1509,7 +1517,9 @@ final class MainWindowController: NSWindowController {
 
         // 刚打开"显示行号"、而当前是 Read 模式（看不到编辑区）→ 顺手切到 Write。
         // 否则用户勾了它却什么都没发生，很自然会被当成"设置没生效"。
-        if !previous.showsLineNumbers, newSettings.showsLineNumbers, contentPane.mode == .read {
+        // 非文本文件（PDF 等）没有编辑区，别切 —— 切过去就是空白。
+        if !previous.showsLineNumbers, newSettings.showsLineNumbers, contentPane.mode == .read,
+           currentKind?.isTextual ?? false {
             preferredMode = .write
             contentPane.mode = .write
         }

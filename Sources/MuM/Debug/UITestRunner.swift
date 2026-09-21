@@ -621,6 +621,23 @@ enum UITestRunner {
                      expected: "用 X 打开 + 在访达中显示", actual: info.actions.joined(separator: " / "))
         check.expect(!preview.debugIsTextPreviewVisible, "文本预览没有同时露出来",
                      expected: "文本预览隐藏", actual: "可见")
+
+        // 非文本文件没有「写」可言：Write/Preview 置灰、快捷键也切不过去 ——
+        // 放过去就是一片空白（ice 真机踩到：pptx/pdf 停在 Write 模式全白）
+        let segments = c.debugModeControlEnabled
+        check.expect(segments == [false, true, false], "Write/Preview 置灰、只留 Read",
+                     expected: "[false, true, false]", actual: "\(segments)")
+        c.setMode(.write)
+        check.expect(c.currentMode == .read && !c.debugEditorVisible, "setMode(.write) 被拦住",
+                     expected: "仍是 Read、编辑区不露", actual: "mode=\(c.currentMode) 编辑区=\(c.debugEditorVisible ? "可见" : "隐藏")")
+
+        // 回到文本文件：三段要恢复 —— 置灰不是单程票
+        let md = dir.appendingPathComponent("笔记.md")
+        FileManager.default.createFile(atPath: md.path, contents: Data("# 标题\n".utf8))
+        c.open(url: md)
+        let restored = c.debugModeControlEnabled
+        check.expect(restored == [true, true, true], "回到 Markdown 后三段恢复",
+                     expected: "[true, true, true]", actual: "\(restored)")
     }
 
     /// 同一文件的判定要解符号链接：树节点的路径来自 FileManager 扫描（已解链接），

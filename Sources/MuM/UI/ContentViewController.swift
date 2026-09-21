@@ -319,10 +319,28 @@ final class ContentViewController: NSViewController {
         onModeChanged?(next)
     }
 
+    /// 非文本文件（图片 / PDF / 不支持的格式）没有「写」可言：
+    /// Write / Preview 两段置灰，只留 Read；已经在别的模式就拽回 Read。
+    /// 否则点一下 Write 就是一片空白（编辑区为空且不可编辑），像坏了。
+    func setModeControlTextual(_ textual: Bool) {
+        // Read 永远可用（可能被「无文档置灰」关过，这里顺手恢复）
+        modeControl.setEnabled(true, forSegment: Mode.read.rawValue)
+        modeControl.setEnabled(textual, forSegment: Mode.write.rawValue)
+        modeControl.setEnabled(textual, forSegment: Mode.preview.rawValue)
+        if !textual, mode != .read {
+            mode = .read
+        }
+    }
+
     /// ··· 点击弹出操作菜单（菜单项的 target 由窗口控制器装配，这里只管弹）
     @objc private func showMoreMenu(_ sender: NSButton) {
         guard let menu = sender.menu else { return }
         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: sender.bounds.height + 5), in: sender)
+    }
+
+    /// uitest 钩子：模式控件各段（write/read/preview）的 enabled 状态
+    var debugModeControlEnabled: [Bool] {
+        (0 ..< modeControl.segmentCount).map { modeControl.isEnabled(forSegment: $0) }
     }
 
     // MARK: - 对外状态
@@ -333,6 +351,11 @@ final class ContentViewController: NSViewController {
         emptyState.isHidden = fileURL != nil
 
         guard let fileURL else {
+            // 没有文档时模式控件整体置灰 —— 切模式没有对象，点了像没反应。
+            // 重新打开文件时由 setModeControlTextual 按文件类型恢复。
+            for segment in 0 ..< modeControl.segmentCount {
+                modeControl.setEnabled(false, forSegment: segment)
+            }
             if hasProject {
                 showEmptyState(
                     symbol: "doc.text.magnifyingglass",
