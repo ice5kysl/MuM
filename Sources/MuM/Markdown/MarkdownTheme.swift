@@ -130,6 +130,9 @@ struct MarkdownTheme {
     var quoteTextColor: NSColor { palette.secondary }
     var ruleColor: NSColor { palette.separator }
 
+    /// <mark> 高亮底色，明暗主题下都成立
+    var markBackground: NSColor { NSColor.systemYellow.withAlphaComponent(0.32) }
+
     /// 阅读面底色 —— PreviewViewController 也要用它设置文本视图背景
     var backgroundColor: NSColor { palette.background }
 

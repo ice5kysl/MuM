@@ -469,14 +469,89 @@ final class MarkdownRenderer {
         var bold = false
         var italic = false
         var strikethrough = false
+        var underline = false
         var code = false
+        var highlighted = false
+        /// <small>/<big>/<sub>/<sup> 累积的字号缩放
+        var fontScale: CGFloat = 1
+        /// <sub>/<sup> 的基线偏移（pt）
+        var baselineShift: CGFloat = 0
         var link: URL?
     }
 
     private func renderInlines(_ nodes: [Markup], into out: NSMutableAttributedString, style: InlineStyle, context: BlockContext) {
+        // 行内 HTML 在 AST 里是平铺的开/闭标签节点，没有嵌套结构，
+        // 用一个栈把 <small>…</small> 这类配对折回样式。
+        var current = style
+        var stack: [String] = []
         for node in nodes {
-            renderInline(node, into: out, style: style, context: context)
+            if let html = node as? InlineHTML,
+               handleInlineHTML(html.rawHTML, current: &current, base: style, stack: &stack, into: out) {
+                continue
+            }
+            renderInline(node, into: out, style: current, context: context)
         }
+    }
+
+    /// 认识的行内 HTML 标签。白名单之外的按原始文本输出（见 renderInline 的 InlineHTML 分支）。
+    private static let knownInlineHTMLTags: Set<String> = [
+        "b", "strong", "i", "em", "s", "del", "strike", "u", "ins",
+        "small", "big", "sub", "sup", "mark", "kbd", "span",
+    ]
+
+    private static let inlineHTMLTagPattern = try! NSRegularExpression(
+        pattern: #"^<\s*(/?)\s*([a-zA-Z][a-zA-Z0-9]*)"#
+    )
+
+    /// 消费一个行内 HTML 节点；返回 true 表示已处理，false 交给默认的原始文本渲染。
+    private func handleInlineHTML(
+        _ raw: String,
+        current: inout InlineStyle,
+        base: InlineStyle,
+        stack: inout [String],
+        into out: NSMutableAttributedString
+    ) -> Bool {
+        guard let match = Self.inlineHTMLTagPattern.firstMatch(in: raw, range: NSRange(raw.startIndex..., in: raw)),
+              let nameRange = Range(match.range(at: 2), in: raw),
+              let slashRange = Range(match.range(at: 1), in: raw) else { return false }
+        let name = raw[nameRange].lowercased()
+        if name == "br" {
+            out.append(NSAttributedString(string: "\n", attributes: attributes(for: current)))
+            return true
+        }
+        guard Self.knownInlineHTMLTags.contains(name) else { return false }
+        if !raw[slashRange].isEmpty {
+            // 闭标签：弹出最近一个同名开标签；配不上对就静默吞掉
+            if let index = stack.lastIndex(of: name) {
+                stack.remove(at: index)
+            }
+        } else {
+            stack.append(name)
+        }
+        current = stack.reduce(base) { applyingHTMLTag($1, to: $0) }
+        return true
+    }
+
+    private func applyingHTMLTag(_ name: String, to style: InlineStyle) -> InlineStyle {
+        var next = style
+        switch name {
+        case "b", "strong": next.bold = true
+        case "i", "em": next.italic = true
+        case "s", "del", "strike": next.strikethrough = true
+        case "u", "ins": next.underline = true
+        case "mark": next.highlighted = true
+        case "kbd": next.code = true
+        case "small": next.fontScale *= 0.83
+        case "big": next.fontScale *= 1.2
+        case "sub":
+            next.fontScale *= 0.75
+            next.baselineShift -= theme.baseSize * 0.28
+        case "sup":
+            next.fontScale *= 0.75
+            next.baselineShift += theme.baseSize * 0.42
+        default: break  // span 等：吞掉标签但不改样式
+        }
+        return next
     }
 
     private func renderInline(_ node: Markup, into out: NSMutableAttributedString, style: InlineStyle, context: BlockContext) {
@@ -564,19 +639,32 @@ final class MarkdownRenderer {
         if style.strikethrough {
             attributes[.strikethroughStyle] = NSUnderlineStyle.single.rawValue
         }
+        if style.underline {
+            attributes[.underlineStyle] = NSUnderlineStyle.single.rawValue
+        }
+        if style.highlighted {
+            attributes[.backgroundColor] = theme.markBackground
+        }
+        if style.baselineShift != 0 {
+            attributes[.baselineOffset] = style.baselineShift
+        }
         return attributes
     }
 
     private func font(for style: InlineStyle) -> NSFont {
+        let base: NSFont
         if style.code {
-            return style.bold ? theme.codeBoldFont : theme.codeFont
+            base = style.bold ? theme.codeBoldFont : theme.codeFont
+        } else {
+            switch (style.bold, style.italic) {
+            case (true, true): base = theme.boldItalicFont
+            case (true, false): base = theme.boldFont
+            case (false, true): base = theme.italicFont
+            case (false, false): base = theme.bodyFont
+            }
         }
-        switch (style.bold, style.italic) {
-        case (true, true): return theme.boldItalicFont
-        case (true, false): return theme.boldFont
-        case (false, true): return theme.italicFont
-        case (false, false): return theme.bodyFont
-        }
+        guard style.fontScale != 1 else { return base }
+        return NSFont(descriptor: base.fontDescriptor, size: base.pointSize * style.fontScale) ?? base
     }
 
     // MARK: - 图片
