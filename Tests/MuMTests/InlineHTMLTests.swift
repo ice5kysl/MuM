@@ -1,4 +1,5 @@
 import XCTest
+import PDFKit
 @testable import MuM
 
 /// 行内 HTML 白名单渲染：<small>/<mark>/<sup> 等配对标签折回样式并吞掉，
@@ -93,5 +94,45 @@ final class InlineHTMLTests: XCTestCase {
         XCTAssertTrue(out.string.contains("<div>"),
                       "带真实内容的 HTML 片段仍按原文显示（贴片段做笔记的场景）")
         XCTAssertTrue(out.string.contains("这段文字是内容"))
+    }
+
+    // MARK: - 分页指令
+
+    func testPageBreakLocationsRecorded() {
+        let markdown = "第一节\n\n<div style=\"break-after: page; page-break-after: always;\"></div>\n\n第二节\n\n<!-- 注释不是分页 -->\n\n第三节\n"
+        _ = renderer.render(markdown)
+        XCTAssertEqual(renderer.pageBreakLocations.count, 1,
+                       "只有分页 div 记位置，注释和普通隐藏块不记")
+        let location = renderer.pageBreakLocations[0]
+        XCTAssertGreaterThan(location, 0)
+    }
+
+    func testPageBreakVariantsMatched() {
+        XCTAssertTrue(MarkdownRenderer.isPageBreakHTML("<div style=\"break-after: page;\"></div>"))
+        XCTAssertTrue(MarkdownRenderer.isPageBreakHTML("<div style=\"page-break-after: always;\"></div>"))
+        XCTAssertTrue(MarkdownRenderer.isPageBreakHTML("<div style=\"page-break-before:always\"></div>"))
+        XCTAssertTrue(MarkdownRenderer.isPageBreakHTML("<p style=\"BREAK-AFTER: PAGE\"></p>"))
+        XCTAssertFalse(MarkdownRenderer.isPageBreakHTML("<!-- 普通注释 -->"))
+        XCTAssertFalse(MarkdownRenderer.isPageBreakHTML("<div style=\"color: red;\">文字</div>"))
+    }
+
+    /// 分页指令导出 PDF 时真正分页：带一个分页点的短文档出 2 页，
+    /// 同样内容去掉指令只有 1 页（自然排版装得下）。
+    func testPDFHonorsPageBreak() throws {
+        let withBreak = "第一节\n\n<div style=\"page-break-after: always;\"></div>\n\n第二节\n"
+        let withoutBreak = "第一节\n\n第二节\n"
+        var options = DocumentRenderer.Options()
+        options.dark = false
+
+        let broken = DocumentRenderer.render(text: withBreak, kind: .markdown, baseURL: nil, options: options)
+        let plain = DocumentRenderer.render(text: withoutBreak, kind: .markdown, baseURL: nil, options: options)
+
+        let brokenPDF = try XCTUnwrap(DocumentRenderer.pdf(broken, options: options))
+        let plainPDF = try XCTUnwrap(DocumentRenderer.pdf(plain, options: options))
+
+        XCTAssertEqual(PDFDocument(data: brokenPDF)?.pageCount, 2,
+                       "一个分页指令 → 强制 2 页（自然排版 1 页就装得下）")
+        XCTAssertEqual(PDFDocument(data: plainPDF)?.pageCount, 1,
+                       "没有指令的对照组保持 1 页")
     }
 }

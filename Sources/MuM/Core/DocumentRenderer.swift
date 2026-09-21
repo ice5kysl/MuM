@@ -61,6 +61,9 @@ enum DocumentRenderer {
         let renderMS: Double
         /// 阅读面底色（来自主题色板；system 主题下是动态色，绘制时按外观解析）
         let backgroundColor: NSColor
+        /// 分页指令（<div style="page-break-after: always"> 等）在成文中的字符位置，
+        /// PDF 导出在这些位置强制换页；PNG 长图没有页的概念，忽略
+        var pageBreaks: [Int] = []
     }
 
     // MARK: - 排版（与预览同一入口）
@@ -97,7 +100,8 @@ enum DocumentRenderer {
             attributed: attributed,
             outline: renderer.outline,
             renderMS: Date().timeIntervalSince(start) * 1000,
-            backgroundColor: theme.backgroundColor
+            backgroundColor: theme.backgroundColor,
+            pageBreaks: renderer.pageBreakLocations
         )
     }
 
@@ -132,6 +136,17 @@ enum DocumentRenderer {
         }
         seams.append(totalHeight)
 
+        // 分页指令的字符位置 → 视图坐标（所在行 fragment 的顶边）。
+        // 连续的多个指令落在同一位置，去重；文档末尾的指令没有内容可起页，忽略。
+        var forcedSeams: [CGFloat] = []
+        let charCount = (view.textStorage?.length ?? 0)
+        for location in rendered.pageBreaks where location > 0 && location < charCount {
+            let glyph = manager.glyphIndexForCharacter(at: location)
+            let lineRect = manager.lineFragmentUsedRect(forGlyphAt: glyph, effectiveRange: nil)
+            let y = lineRect.minY + view.textContainerOrigin.y
+            if forcedSeams.last != y { forcedSeams.append(y) }
+        }
+
         let document = PDFDocument()
         var top: CGFloat = 0
         while top < totalHeight {
@@ -140,6 +155,10 @@ enum DocumentRenderer {
             if limit < totalHeight,
                let seam = seams.last(where: { $0 <= limit && $0 > top }) {
                 bottom = seam
+            }
+            // 强制分页优先于「尽量多装」：本页范围内有分页指令，就在第一个指令处收页
+            if let forced = forcedSeams.first(where: { $0 > top && $0 <= bottom }) {
+                bottom = forced
             }
             let rect = NSRect(x: 0, y: top, width: viewWidth, height: bottom - top)
             // dataWithPDF 是矢量输出（文字可选中可复制），不是位图截图

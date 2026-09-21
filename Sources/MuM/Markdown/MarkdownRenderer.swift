@@ -99,6 +99,12 @@ final class MarkdownRenderer {
 
     private static let htmlCommentPattern = try! NSRegularExpression(pattern: #"<!--[\s\S]*?-->"#)
     private static let htmlTagPattern = try! NSRegularExpression(pattern: #"<[^>]*>"#)
+    /// 打印导向文档里的分页指令：<div style="break-after: page; page-break-after: always;"></div>
+    /// 阅读时隐藏（无可见内容），导出 PDF 时按它真正分页（位置记进 pageBreakLocations）。
+    private static let pageBreakPattern = try! NSRegularExpression(
+        pattern: #"(page-break-(before|after)\s*:\s*always)|(break-(before|after)\s*:\s*(page|always))"#,
+        options: [.caseInsensitive]
+    )
 
     /// 块级 HTML 去掉注释和标签后还有没有可见文字。注释块、分页空 div 这类
     /// 纯排版指令没有 —— 整块吞掉；带真实内容的片段（如 <table>文字）保留原文显示。
@@ -109,6 +115,13 @@ final class MarkdownRenderer {
             in: withoutComments, range: NSRange(withoutComments.startIndex..., in: withoutComments), withTemplate: "")
         return !withoutTags.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
+
+    static func isPageBreakHTML(_ raw: String) -> Bool {
+        pageBreakPattern.firstMatch(in: raw, range: NSRange(raw.startIndex..., in: raw)) != nil
+    }
+
+    /// 分页指令在成文中的字符位置（块边界），渲染时累积；PDF 导出按它强制分页
+    private(set) var pageBreakLocations: [Int] = []
 
     // MARK: - 段落样式
 
@@ -174,6 +187,11 @@ final class MarkdownRenderer {
         case let html as HTMLBlock:
             // 无可见内容的块（HTML 注释、分页空 div 这类排版指令）直接吞掉，
             // 与其他阅读器一致；带真实内容的 HTML 片段仍按原文显示。
+            // 分页指令额外记一笔位置 —— 阅读时不可见，PDF 导出按它强制分页。
+            if Self.isPageBreakHTML(html.rawHTML) {
+                pageBreakLocations.append(out.length)
+                return
+            }
             guard Self.htmlBlockHasVisibleContent(html.rawHTML) else { return }
             let style = paragraphStyle(indent: context.indent, spacingBefore: 10, spacingAfter: 10)
             let text = NSMutableAttributedString(string: html.rawHTML + "\n", attributes: [
