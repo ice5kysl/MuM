@@ -198,6 +198,11 @@ final class FileTreeViewController: NSViewController {
         reveal.image = Self.finderIcon
         menu.addItem(reveal)
 
+        let terminal = NSMenuItem(title: TerminalOpener.menuTitle, action: #selector(openProjectInTerminal), keyEquivalent: "")
+        terminal.target = self
+        terminal.image = TerminalOpener.menuIcon
+        menu.addItem(terminal)
+
         let refresh = NSMenuItem(title: "刷新文件树", action: #selector(refreshTapped), keyEquivalent: "")
         refresh.target = self
         refresh.image = Self.menuIcon("arrow.clockwise")
@@ -217,6 +222,11 @@ final class FileTreeViewController: NSViewController {
     @objc private func revealProject() {
         guard let url = WorkspaceStore.shared.active?.rootURL else { return }
         NSWorkspace.shared.activateFileViewerSelecting([url])
+    }
+
+    @objc private func openProjectInTerminal() {
+        guard let url = WorkspaceStore.shared.active?.rootURL else { return }
+        TerminalOpener.open(url)
     }
 
     @objc private func refreshTapped() {
@@ -243,6 +253,7 @@ final class FileTreeViewController: NSViewController {
             menu.addItem(contextItem("重命名…", #selector(contextRename), icon: Self.menuIcon("pencil")))
             menu.addItem(.separator())
             menu.addItem(contextItem("在访达中显示", #selector(contextRevealInFinder), icon: Self.finderIcon))
+            menu.addItem(contextItem(TerminalOpener.menuTitle, #selector(contextOpenInTerminal), icon: TerminalOpener.menuIcon))
             menu.addItem(.separator())
             menu.addItem(contextItem("移到废纸篓", #selector(contextTrash), icon: Self.menuIcon("trash")))
         } else {
@@ -299,6 +310,12 @@ final class FileTreeViewController: NSViewController {
     @objc private func contextRevealInFinder() {
         guard let node = selectedNode else { return }
         NSWorkspace.shared.activateFileViewerSelecting([node.url])
+    }
+
+    /// 选中的是文件夹直接开；是文件就开它所在的那层
+    @objc private func contextOpenInTerminal() {
+        guard let node = selectedNode else { return }
+        TerminalOpener.open(node.isDirectory ? node.url : node.url.deletingLastPathComponent())
     }
 
     // MARK: - 行内重命名（Finder 式：回车确认、Esc 取消）
