@@ -3,7 +3,7 @@ import AppKit
 /// 关于窗口。
 ///
 /// 为什么不用系统标准 about panel：它的 credits 是一个宽度不可控的滚动文本区，
-/// 文案换行听天由命（实测"阅读是目的"被从中间折断），字体层级只有一档，
+/// 文案换行听天由命（实测定位语被从中间折断），字体层级只有一档，
 /// 和 MuM 自己的设计语言完全是两套系统。关于窗口是应用的名片 ——
 /// 名片不该穿别人的衣服。
 ///
@@ -88,12 +88,6 @@ final class AboutWindowController: NSWindowController {
         audience.textColor = MuMDesign.secondaryText
         audience.translatesAutoresizingMaskIntoConstraints = false
 
-        // 「阅读是目的」保留，它管"给人"那一半
-        let motto = NSTextField(labelWithString: "阅读是目的，不是编辑的副产品")
-        motto.font = NSFont.systemFont(ofSize: 12)
-        motto.textColor = MuMDesign.tertiaryText
-        motto.translatesAutoresizingMaskIntoConstraints = false
-
         // 链接行：GitHub 仓库 · 反馈 · 作者 · 许可证（许可证链到仓库里的 LICENSE）
         let links = NSStackView(views: [
             LinkButton(title: "GitHub", url: "https://github.com/ice5kysl/MuM"),
@@ -115,7 +109,6 @@ final class AboutWindowController: NSWindowController {
         content.addSubview(version)
         content.addSubview(tagline)
         content.addSubview(audience)
-        content.addSubview(motto)
         content.addSubview(links)
         NSLayoutConstraint.activate([
             icon.topAnchor.constraint(equalTo: content.topAnchor, constant: 56),
@@ -138,10 +131,7 @@ final class AboutWindowController: NSWindowController {
             audience.topAnchor.constraint(equalTo: tagline.bottomAnchor, constant: 2),
             audience.centerXAnchor.constraint(equalTo: content.centerXAnchor),
 
-            motto.topAnchor.constraint(equalTo: audience.bottomAnchor, constant: 10),
-            motto.centerXAnchor.constraint(equalTo: content.centerXAnchor),
-
-            links.topAnchor.constraint(equalTo: motto.bottomAnchor, constant: 12),
+            links.topAnchor.constraint(equalTo: audience.bottomAnchor, constant: 22),
             links.centerXAnchor.constraint(equalTo: content.centerXAnchor),
         ])
         return content
