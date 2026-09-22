@@ -27,11 +27,11 @@
 <style>
   :root{
     --bg:#faf9f7; --fg:#1c1c1e; --dim:#6f6e73; --line:#e6e4df;
-    --accent:#23a03c; --code:#f1efeb; --panel:#17181c;
+    --accent:#23a03c; --code:#f1efeb;
   }
   :root[data-theme="dark"]{
     --bg:#17171a; --fg:#f4f3f1; --dim:#9b9aa0; --line:#2c2c31;
-    --accent:#34c759; --code:#222226; --panel:#101014;
+    --accent:#34c759; --code:#222226;
   }
   *{box-sizing:border-box}
   body{
@@ -128,14 +128,14 @@
   }
 
   .term{
-    background:var(--panel);border-radius:12px;padding:22px 24px;
+    background:var(--code);border-radius:12px;padding:22px 24px;
     font:13.5px/1.8 ui-monospace,"SF Mono",Menlo,monospace;
-    color:#c9c9cf;overflow-x:auto;margin:20px 0 8px;
-    border:1px solid rgba(0,0,0,.2);
+    color:var(--dim);overflow-x:auto;margin:20px 0 8px;
+    border:1px solid var(--line);
   }
   .term .p{color:var(--accent);user-select:none}
-  .term .c{color:#f4f3f1}
-  .term .o{color:#8b8b92}
+  .term .c{color:var(--fg)}
+  .term .o{color:var(--dim)}
   .term pre{margin:0;white-space:pre}
 
   .cap{font-size:13px;color:var(--dim);margin-top:10px}
