@@ -43,9 +43,11 @@
 	     于是 MuM 出现在「打开方式」里，但不主动劫持用户的现有选择。
 	     要成为默认，由用户在访达里指定，或用 MuM 的「设为默认 Markdown 编辑器」。
 
-	  2. LSItemContentTypes（现代 UTI）和 CFBundleTypeExtensions（旧式扩展名）都写。
-	     只写 UTI 时，某些动态生成的 UTI 文件不会出现在「打开方式」里；
-	     扩展名是兜底。
+	  2. **同一组里写了 LSItemContentTypes，CFBundleTypeExtensions 就会被
+	     LaunchServices 忽略**（实测 dump：bindings 只剩 UTI，扩展名全丢）。
+	     所以没有系统 UTI 的扩展名（srt/log/csv…）必须拆成扩展名-only 的组，
+	     见下面第二组「字幕与纯文本」。md/txt 留在第一组是因为它们本来就有
+	     系统 UTI（net.daringfireball.markdown / public.plain-text）兜着。
 	-->
 	<key>CFBundleDocumentTypes</key>
 	<array>
@@ -71,6 +73,23 @@
 				<string>mkdn</string>
 				<string>txt</string>
 				<string>text</string>
+			</array>
+		</dict>
+		<dict>
+			<!--
+			扩展名-only 组：srt/vtt/log/csv 这类没有系统声明 UTI 的扩展名。
+			必须单独成组 —— 实测 LaunchServices 在同一组里见到
+			LSItemContentTypes 就**忽略** CFBundleTypeExtensions（dump 里
+			bindings 只有 UTI、扩展名全丢），拆出来扩展名才会真正注册。
+			-->
+			<key>CFBundleTypeName</key>
+			<string>字幕与纯文本</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
 				<string>log</string>
 				<string>csv</string>
 				<string>tsv</string>
