@@ -173,9 +173,9 @@
 <main class="wrap">
 
   <div class="nums">
-    <div><div class="n">210<small>ms</small></div><div class="l">cold start to window</div></div>
-    <div><div class="n">493<small>ms</small></div><div class="l">1 MB doc open to readable</div></div>
-    <div><div class="n">3.2<small>MB</small></div><div class="l">installer size</div></div>
+    <div><div class="n">260<small>ms</small></div><div class="l">cold start to window</div></div>
+    <div><div class="n">100<small>+fps</small></div><div class="l">scrolling a 5 MB doc</div></div>
+    <div><div class="n">1.7<small>MB</small></div><div class="l">installer size</div></div>
     <div><div class="n">0</div><div class="l">web engines inside</div></div>
   </div>
 
@@ -184,10 +184,22 @@
     <ul class="feat cols">
       <li><b>Multi-project</b> — keep several projects open, switch with <kbd>⌘1</kbd>…<kbd>⌘9</kbd>. Projects answer “where am I”.</li>
       <li><b>Built for reading</b> — remembers where you stopped, <kbd>⌘F</kbd> find, <kbd>⌘⇧O</kbd> outline, reading history on <kbd>⌘[</kbd> <kbd>⌘]</kbd>.</li>
-      <li><b>Find anything</b> — <kbd>⌘⇧F</kbd> searches file names and contents across every project, streaming results as it scans.</li>
+      <li><b>Find anything</b> — <kbd>⌘P</kbd> fuzzy-finds files by name; <kbd>⌘⇧F</kbd> searches names and contents across every project, streaming results.</li>
       <li><b>CJK-tuned typesetting</b> — line height, punctuation compression, and mixed-script spacing are measured, not guessed.</li>
-      <li><b>Export</b> — <kbd>⌘⇧E</kbd> turns the current document into a tall PNG or a paged PDF.</li>
+      <li><b>Export</b> — <kbd>⌘⇧E</kbd> turns the current document into a tall PNG or a paged PDF; page-break hints in the document become real page breaks.</li>
       <li><b>Quiet</b> — no accounts, no telemetry, no plugin store. A tool shouldn't be louder than its content.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Day to day</h2>
+    <ul class="feat cols">
+      <li><b>Single-file mode</b> — double-click a lone file and both sidebars fold away: just read. The folder isn't turned into a project; your project list stays clean.</li>
+      <li><b>File management</b> — <kbd>⌘N</kbd> new file, new folder, rename, move to Trash — all in the file tree's <b>···</b> and right-click menus.</li>
+      <li><b>Open in Terminal</b> — one click opens a shell right at a deeply nested folder; auto-detects Ghostty → iTerm → Terminal.app.</li>
+      <li><b>Reads a lot</b> — code highlighting, CSV/TSV as tables, RTF, images, PDF, srt/vtt subtitles; Office files get a page that points to the default app.</li>
+      <li><b>One-click updates</b> — hit “Download update” on the banner: the DMG downloads in-app, mounts itself, and you drag MuM into Applications.</li>
+      <li><b>HTML in Markdown</b> — <code>&lt;small&gt;</code>, <code>&lt;mark&gt;</code>, super/subscripts render semantically; the tags themselves stay out of sight.</li>
     </ul>
   </section>
 
@@ -211,7 +223,7 @@
 
 <footer>
   <div class="wrap">
-    <a href="https://github.com/ice5kysl/MuM">Source</a><span class="dot">·</span><a href="https://github.com/ice5kysl/MuM/issues/new/choose">反馈</a><span class="dot">·</span><a href="https://github.com/ice5kysl/MuM/blob/main/CHANGELOG.md">Changelog</a><span class="dot">·</span>MIT<span class="dot">·</span><a href="https://github.com/ice5kysl">ice5kysl</a>
+    <a href="https://github.com/ice5kysl/MuM">Source</a><span class="dot">·</span><a href="https://github.com/ice5kysl/MuM/issues/new/choose">Feedback</a><span class="dot">·</span><a href="https://github.com/ice5kysl/MuM/blob/main/CHANGELOG.md">Changelog</a><span class="dot">·</span>MIT<span class="dot">·</span><a href="https://github.com/ice5kysl">ice5kysl</a>
   </div>
 </footer>
 
