@@ -11,7 +11,7 @@
 MIT
 
 > 签名并公证，双击即开 —— 不需要右键绕过 Gatekeeper。
-> macOS 14+ · DMG 1.7 MB
+> macOS 14+ · DMG 1.6 MB
 
 ![MuM 主窗口：左侧项目与文件树，右侧排版好的 Markdown 文档](docs/images/app.png)
 

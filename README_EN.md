@@ -10,7 +10,7 @@
 MIT
 
 > Signed and notarized — double-click to open, no Gatekeeper dance.
-> macOS 14+ · 1.7 MB DMG
+> macOS 14+ · 1.6 MB DMG
 
 ![MuM main window: projects and file tree on the left, a typeset Markdown document on the right](docs/images/app.png)
 
