@@ -13,14 +13,25 @@
 <meta property="og:title" content="MuM — A reading-first Markdown engine">
 <meta property="og:description" content="Hand-built AppKit typesetting for humans; CLI rendering for agents.">
 <meta property="og:image" content="/assets/app-dark.png">
+<script>
+// Theme: localStorage first (light/dark/auto), system preference otherwise.
+// data-theme is set before CSS applies — no light/dark flash.
+(function () {
+  var t = localStorage.getItem('mum-theme');
+  if (t !== 'light' && t !== 'dark') {
+    t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  document.documentElement.dataset.theme = t;
+})();
+</script>
 <style>
   :root{
     --bg:#faf9f7; --fg:#1c1c1e; --dim:#6f6e73; --line:#e6e4df;
     --accent:#23a03c; --code:#f1efeb; --panel:#17181c;
   }
-  @media (prefers-color-scheme:dark){
-    :root{ --bg:#17171a; --fg:#f4f3f1; --dim:#9b9aa0; --line:#2c2c31;
-           --accent:#34c759; --code:#222226; --panel:#101014; }
+  :root[data-theme="dark"]{
+    --bg:#17171a; --fg:#f4f3f1; --dim:#9b9aa0; --line:#2c2c31;
+    --accent:#34c759; --code:#222226; --panel:#101014;
   }
   *{box-sizing:border-box}
   body{
@@ -73,9 +84,19 @@
     border:1px solid var(--line);
     box-shadow:0 24px 64px -24px rgba(28,28,30,.25);
   }
-  @media (prefers-color-scheme:dark){
-    .shot img{box-shadow:0 24px 64px -24px rgba(0,0,0,.6)}
+  .shot .dark{display:none}
+  :root[data-theme="dark"] .shot img{box-shadow:0 24px 64px -24px rgba(0,0,0,.6)}
+  :root[data-theme="dark"] .shot .dark{display:block}
+  :root[data-theme="dark"] .shot .light{display:none}
+
+  .theme-btn{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:28px;height:28px;border:1px solid var(--line);border-radius:8px;
+    background:none;color:var(--dim);cursor:pointer;padding:0;
+    transition:color .2s,border-color .2s;
   }
+  .theme-btn:hover{color:var(--fg);border-color:var(--dim)}
+  .theme-btn svg{width:15px;height:15px}
 
   .nums{
     display:grid;grid-template-columns:repeat(4,1fr);gap:24px;
@@ -138,6 +159,7 @@
   </svg>
   <span class="name">MuM</span>
   <span class="sp"></span>
+  <button class="theme-btn" id="themeBtn" type="button" aria-label="Toggle theme" title="Theme: system"></button>
   <a class="link" href="/">中文</a>
   <a class="link" href="/en/" aria-current="page">English</a>
   <a class="link" href="https://github.com/ice5kysl/MuM">GitHub</a>
@@ -163,10 +185,8 @@
   </div>
 
   <div class="shot">
-    <picture>
-      <source srcset="/assets/app-dark.png" media="(prefers-color-scheme: dark)">
-      <img src="/assets/app-light.png" alt="MuM's main window: projects and file tree on the left, a typeset Markdown document on the right" width="2880" height="1800">
-    </picture>
+    <img class="light" src="/assets/app-light.png" alt="MuM's main window: projects and file tree on the left, a typeset Markdown document on the right" width="2880" height="1800">
+    <img class="dark" src="/assets/app-dark.png" alt="" width="2880" height="1800" aria-hidden="true">
   </div>
 </header>
 
@@ -226,6 +246,41 @@
     <a href="https://github.com/ice5kysl/MuM">Source</a><span class="dot">·</span><a href="https://github.com/ice5kysl/MuM/issues/new/choose">Feedback</a><span class="dot">·</span><a href="https://github.com/ice5kysl/MuM/blob/main/CHANGELOG.md">Changelog</a><span class="dot">·</span>MIT<span class="dot">·</span><a href="https://github.com/ice5kysl">ice5kysl</a>
   </div>
 </footer>
+
+<script>
+// Theme toggle: auto (system) → light → dark, persisted in localStorage.
+// In auto, system changes are followed; a manual choice sticks.
+(function () {
+  var KEY = 'mum-theme';
+  var btn = document.getElementById('themeBtn');
+  var mq = matchMedia('(prefers-color-scheme: dark)');
+  var ICONS = {
+    auto: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="5.6"/><path d="M8 2.4a5.6 5.6 0 0 1 0 11.2z" fill="currentColor" stroke="none"/></svg>',
+    light: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="3.2"/><path d="M8 1.2v1.6M8 13.2v1.6M1.2 8h1.6M13.2 8h1.6M3.2 3.2l1.1 1.1M11.7 11.7l1.1 1.1M12.8 3.2l-1.1 1.1M4.3 11.7l-1.1 1.1"/></svg>',
+    dark: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M13.5 9.5A6 6 0 1 1 6.5 2.5a4.8 4.8 0 0 0 7 7z"/></svg>'
+  };
+  var TITLES = { auto: 'Theme: system', light: 'Theme: light', dark: 'Theme: dark' };
+
+  function stored() {
+    var t = localStorage.getItem(KEY);
+    return (t === 'light' || t === 'dark') ? t : 'auto';
+  }
+  function apply() {
+    var s = stored();
+    var resolved = s === 'auto' ? (mq.matches ? 'dark' : 'light') : s;
+    document.documentElement.dataset.theme = resolved;
+    btn.innerHTML = ICONS[s];
+    btn.title = TITLES[s];
+  }
+  btn.addEventListener('click', function () {
+    var next = { auto: 'light', light: 'dark', dark: 'auto' }[stored()];
+    localStorage.setItem(KEY, next);
+    apply();
+  });
+  mq.addEventListener('change', function () { if (stored() === 'auto') apply(); });
+  apply();
+})();
+</script>
 
 </body>
 </html>

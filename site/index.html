@@ -13,15 +13,26 @@
 <meta property="og:title" content="MuM — 阅读优先的 Markdown 引擎">
 <meta property="og:description" content="纯 AppKit 手写排版，打开就是读：多项目并排、记住阅读位置、跨项目搜索。">
 <meta property="og:image" content="/assets/app-dark.png">
+<script>
+// 主题：先 localStorage（light/dark/auto），auto 或未设置时跟随系统。
+// 在 CSS 生效前写死 data-theme，杜绝明暗闪烁。
+(function () {
+  var t = localStorage.getItem('mum-theme');
+  if (t !== 'light' && t !== 'dark') {
+    t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  document.documentElement.dataset.theme = t;
+})();
+</script>
 <style>
   /* 纸感暖灰：MuM 是阅读工具，页面本身就是第一份样品 */
   :root{
     --bg:#faf9f7; --fg:#1c1c1e; --dim:#6f6e73; --line:#e6e4df;
     --accent:#23a03c; --code:#f1efeb; --panel:#17181c;
   }
-  @media (prefers-color-scheme:dark){
-    :root{ --bg:#17171a; --fg:#f4f3f1; --dim:#9b9aa0; --line:#2c2c31;
-           --accent:#34c759; --code:#222226; --panel:#101014; }
+  :root[data-theme="dark"]{
+    --bg:#17171a; --fg:#f4f3f1; --dim:#9b9aa0; --line:#2c2c31;
+    --accent:#34c759; --code:#222226; --panel:#101014;
   }
   *{box-sizing:border-box}
   body{
@@ -70,16 +81,27 @@
   .meta{font-size:13px;color:var(--dim);font-variant-numeric:tabular-nums}
   .note{font-size:13px;color:var(--dim);margin:0 0 56px}
 
-  /* ── 产品截图：真图，明暗跟随系统 ── */
+  /* ── 产品截图：真图，明暗跟随主题 ── */
   .shot{margin:0 0 72px}
   .shot img{
     display:block;width:100%;height:auto;border-radius:14px;
     border:1px solid var(--line);
     box-shadow:0 24px 64px -24px rgba(28,28,30,.25);
   }
-  @media (prefers-color-scheme:dark){
-    .shot img{box-shadow:0 24px 64px -24px rgba(0,0,0,.6)}
+  .shot .dark{display:none}
+  :root[data-theme="dark"] .shot img{box-shadow:0 24px 64px -24px rgba(0,0,0,.6)}
+  :root[data-theme="dark"] .shot .dark{display:block}
+  :root[data-theme="dark"] .shot .light{display:none}
+
+  /* ── 主题切换：导航里的小圆钮，icon 随状态换 ── */
+  .theme-btn{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:28px;height:28px;border:1px solid var(--line);border-radius:8px;
+    background:none;color:var(--dim);cursor:pointer;padding:0;
+    transition:color .2s,border-color .2s;
   }
+  .theme-btn:hover{color:var(--fg);border-color:var(--dim)}
+  .theme-btn svg{width:15px;height:15px}
 
   /* ── 数字条：等宽数字 + 分隔线，不用卡片 ── */
   .nums{
@@ -145,6 +167,7 @@
   </svg>
   <span class="name">MuM</span>
   <span class="sp"></span>
+  <button class="theme-btn" id="themeBtn" type="button" aria-label="切换主题" title="主题：跟随系统"></button>
   <a class="link" href="/" aria-current="page">中文</a>
   <a class="link" href="/en/">English</a>
   <a class="link" href="https://github.com/ice5kysl/MuM">GitHub</a>
@@ -169,10 +192,8 @@
   </div>
 
   <div class="shot">
-    <picture>
-      <source srcset="/assets/app-dark.png" media="(prefers-color-scheme: dark)">
-      <img src="/assets/app-light.png" alt="MuM 主窗口：左侧项目与文件树，右侧排版好的 Markdown 文档" width="2880" height="1800">
-    </picture>
+    <img class="light" src="/assets/app-light.png" alt="MuM 主窗口：左侧项目与文件树，右侧排版好的 Markdown 文档" width="2880" height="1800">
+    <img class="dark" src="/assets/app-dark.png" alt="" width="2880" height="1800" aria-hidden="true">
   </div>
 </header>
 
@@ -232,6 +253,41 @@
     <a href="https://github.com/ice5kysl/MuM">源码</a><span class="dot">·</span><a href="https://github.com/ice5kysl/MuM/issues/new/choose">反馈</a><span class="dot">·</span><a href="https://github.com/ice5kysl/MuM/blob/main/CHANGELOG.md">更新日志</a><span class="dot">·</span>MIT<span class="dot">·</span><a href="https://github.com/ice5kysl">ice5kysl</a>
   </div>
 </footer>
+
+<script>
+// 主题切换：auto（跟随系统）→ light → dark 循环，选择存 localStorage。
+// auto 状态下系统主题变了跟着变；手动选过就钉住。
+(function () {
+  var KEY = 'mum-theme';
+  var btn = document.getElementById('themeBtn');
+  var mq = matchMedia('(prefers-color-scheme: dark)');
+  var ICONS = {
+    auto: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="5.6"/><path d="M8 2.4v11.2" stroke-width="0"/><path d="M8 2.4a5.6 5.6 0 0 1 0 11.2z" fill="currentColor" stroke="none"/></svg>',
+    light: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="3.2"/><path d="M8 1.2v1.6M8 13.2v1.6M1.2 8h1.6M13.2 8h1.6M3.2 3.2l1.1 1.1M11.7 11.7l1.1 1.1M12.8 3.2l-1.1 1.1M4.3 11.7l-1.1 1.1"/></svg>',
+    dark: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M13.5 9.5A6 6 0 1 1 6.5 2.5a4.8 4.8 0 0 0 7 7z"/></svg>'
+  };
+  var TITLES = { auto: '主题：跟随系统', light: '主题：浅色', dark: '主题：深色' };
+
+  function stored() {
+    var t = localStorage.getItem(KEY);
+    return (t === 'light' || t === 'dark') ? t : 'auto';
+  }
+  function apply() {
+    var s = stored();
+    var resolved = s === 'auto' ? (mq.matches ? 'dark' : 'light') : s;
+    document.documentElement.dataset.theme = resolved;
+    btn.innerHTML = ICONS[s];
+    btn.title = TITLES[s];
+  }
+  btn.addEventListener('click', function () {
+    var next = { auto: 'light', light: 'dark', dark: 'auto' }[stored()];
+    localStorage.setItem(KEY, next);
+    apply();
+  });
+  mq.addEventListener('change', function () { if (stored() === 'auto') apply(); });
+  apply();
+})();
+</script>
 
 </body>
 </html>
