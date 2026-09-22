@@ -30,6 +30,7 @@ enum UITestRunner {
         ("trash", "移到废纸篓"),
         ("csv", "CSV/TSV 表格渲染"),
         ("unsupported", "不支持格式的导向页"),
+        ("singlefile", "单文件模式（落单文件不开项目）"),
     ]
 
     static func run(arguments: [String]) -> Int32 {
@@ -117,6 +118,7 @@ enum UITestRunner {
             case "trash": scenarioTrash(controller, check)
             case "csv": scenarioCSV(controller, check)
             case "unsupported": scenarioUnsupported(controller, check)
+            case "singlefile": scenarioSingleFile(controller, check)
             default: break
             }
             checkers.append(check)
@@ -649,6 +651,43 @@ enum UITestRunner {
             return String(cString: resolved)
         }
         return resolve(a) == resolve(b)
+    }
+
+    /// 单文件模式：落单文件（不属于任何项目）从外面打开时不开项目、两栏收起；
+    /// 打开项目后自动退出、两栏还原（ice 拍板：比「把整个文件夹开成项目」轻）
+    private static func scenarioSingleFile(_ c: MainWindowController, _ check: Checker) {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("mum-uitest-singlefile-\(ProcessInfo.processInfo.processIdentifier)")
+        try? FileManager.default.removeItem(at: dir)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let loner = dir.appendingPathComponent("落单.md")
+        FileManager.default.createFile(atPath: loner.path, contents: Data("# 落单\n\n正文\n".utf8))
+
+        let store = WorkspaceStore.shared
+        let projectCountBefore = store.workspaces.count
+        c.openFileFromOutside(loner)
+
+        check.expect(store.workspaces.count == projectCountBefore, "所在文件夹没有被开成项目",
+                     expected: "项目数 \(projectCountBefore) 不变", actual: "\(store.workspaces.count)")
+        check.expect(c.debugSingleFileMode, "进入单文件模式",
+                     expected: "true", actual: "\(c.debugSingleFileMode)")
+        check.expect(!c.isProjectsVisible && !c.isFileTreeVisible, "两栏收起",
+                     expected: "项目栏/文件树都隐藏",
+                     actual: "项目栏=\(c.isProjectsVisible) 文件树=\(c.isFileTreeVisible)")
+        check.expect(sameFile(c.debugCurrentFileURL, loner), "文件正常打开",
+                     expected: loner.lastPathComponent,
+                     actual: c.debugCurrentFileURL?.lastPathComponent ?? "无")
+
+        // 打开项目 → 退出单文件模式、两栏还原
+        guard check.expect(store.open(url: dir) != nil, "打开文件夹为项目",
+                           expected: "项目打开成功", actual: "open 返回 nil") else { return }
+        check.expect(!c.debugSingleFileMode, "打开项目后退出单文件模式",
+                     expected: "false", actual: "\(c.debugSingleFileMode)")
+        check.expect(c.isProjectsVisible && c.isFileTreeVisible, "两栏还原",
+                     expected: "项目栏/文件树都可见",
+                     actual: "项目栏=\(c.isProjectsVisible) 文件树=\(c.isFileTreeVisible)")
     }
 
     /// 重命名 + 新建文件夹：行内编辑态、落盘、打开中的文件路径跟随、

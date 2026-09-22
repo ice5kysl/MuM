@@ -42,6 +42,10 @@ final class MainWindowController: NSWindowController {
     /// 脏文件时还会多弹一次确认框（E-2）。通知是同步发的，激活前立起、处理器里吃掉。
     private var suppressNextWorkspaceRestore = false
 
+    /// 单文件模式：从外面打开的落单文件（不属于任何项目）不开项目，
+    /// 两栏收起直接读；打开/切回项目时在 activeWorkspaceChanged 里退出
+    private var singleFileMode = false
+
 
     /// 用户偏好。设置面板改它，窗口控制器把它应用到排版和编辑器上。
     private var settings = SettingsStore.load()
@@ -350,6 +354,12 @@ final class MainWindowController: NSWindowController {
         // 吃掉标记要在脏检查之前：标记只对这一次通知有效，取消路径也不能留到下次
         let restoresFile = !suppressNextWorkspaceRestore
         suppressNextWorkspaceRestore = false
+        // 项目回来了就退出单文件模式：两栏还原
+        if singleFileMode {
+            singleFileMode = false
+            setPane(0, collapsed: false)
+            setPane(1, collapsed: false)
+        }
         if isDirty, !confirmDiscardIfNeeded() { return }
         closeCurrentFile()
         applyWorkspace(WorkspaceStore.shared.active, restoresFile: restoresFile)
@@ -410,8 +420,9 @@ final class MainWindowController: NSWindowController {
 
     /// 从访达 / `open` 命令打开单个文件。
     ///
-    /// 它可能不属于任何已打开的项目 —— 那就把它所在的文件夹作为项目打开，
-    /// 否则用户双击一个 .md 会什么都没发生。
+    /// 属于已打开的项目 → 切过去；**不属于 → 单文件模式**：不把所在文件夹
+    /// 开成项目（那会把整个文件夹的内容请进文件树，对「双击读一份文件」太重），
+    /// 两栏收起、内容区直接读。打开或切回项目时自动退出（activeWorkspaceChanged）。
     func openFileFromOutside(_ url: URL) {
         let file = url.standardizedFileURL
         let store = WorkspaceStore.shared
@@ -424,8 +435,9 @@ final class MainWindowController: NSWindowController {
             if index != store.activeIndex { suppressNextWorkspaceRestore = true }
             store.activate(index: index)
         } else {
-            suppressNextWorkspaceRestore = true
-            store.open(url: file.deletingLastPathComponent())
+            singleFileMode = true
+            setPane(0, collapsed: true)
+            setPane(1, collapsed: true)
         }
 
         open(url: file)
@@ -1174,6 +1186,9 @@ final class MainWindowController: NSWindowController {
     /// 模式控件三段（write/read/preview）的可用状态——
     /// 非文本文件只留 Read 可点、无文档时三段全灰的断言
     var debugModeControlEnabled: [Bool] { contentPane.debugModeControlEnabled }
+
+    /// 单文件模式（落单文件不开项目、两栏收起）的状态断言
+    var debugSingleFileMode: Bool { singleFileMode }
 
     /// 全局搜索：与 showGlobalSearch 相同的接线，但面板不上屏（见 GlobalSearchPanel.debugPresent）
     func debugShowGlobalSearch(prefill: String) {
