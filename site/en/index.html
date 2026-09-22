@@ -45,9 +45,6 @@
 
   nav.wrap{display:flex;align-items:center;gap:11px;padding-block:38px}
   nav .logo{width:32px;height:32px;border-radius:8px;display:block}
-  nav .logo.dark{display:none}
-  :root[data-theme="dark"] nav .logo.dark{display:block}
-  :root[data-theme="dark"] nav .logo.light{display:none}
   nav .name{font-weight:600;font-size:17px;letter-spacing:.01em}
   nav .sp{flex:1}
   nav a.link{color:var(--dim);text-decoration:none;font-size:13.5px;padding:5px 9px;border-radius:7px;transition:color .2s}
@@ -153,8 +150,7 @@
 <body>
 
 <nav class="wrap">
-  <img class="logo light" src="/assets/logo-l.png" alt="MuM" width="32" height="32">
-  <img class="logo dark" src="/assets/logo-d.png" alt="" width="32" height="32" aria-hidden="true">
+  <img class="logo" src="/assets/logo-d.png" alt="MuM" width="32" height="32">
   <span class="name">MuM</span>
   <span class="sp"></span>
   <button class="theme-btn" id="themeBtn" type="button" aria-label="Toggle theme" title="Theme: system"></button>
