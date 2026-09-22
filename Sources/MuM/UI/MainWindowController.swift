@@ -746,11 +746,24 @@ final class MainWindowController: NSWindowController {
     /// 有项目：落在文件树当前选中的目录（选中文件取其父目录，没选中取项目根），
     ///   递增命名 `未命名.md` / `未命名2.md` …，绝不覆盖；建好后打开 + Write 模式 +
     ///   光标进编辑器 —— 这个功能的诉求就是"立刻写"。
+    /// 单文件模式：落在当前打开的文件旁边（项目栏收起着呢，建进看不见的项目里
+    ///   等于丢了）；没有打开的文件才弹保存面板。
     /// 无项目：保存面板选位置和文件名，建好后走现有的"打开单个文件"路径。
     ///
     /// 返回创建成功的文件 URL（无项目的保存面板是异步的，那种情形返回 nil）。
     @discardableResult
     func newDocument() -> URL? {
+        if singleFileMode, let current = currentFileURL {
+            guard let candidate = createUntitled(in: current.deletingLastPathComponent()) else {
+                return nil
+            }
+            open(url: candidate)
+            guard currentFileURL == candidate.standardizedFileURL else { return nil }
+            setMode(.write)
+            contentPane.editorViewController.focusEditor()
+            return candidate
+        }
+
         guard let workspace = WorkspaceStore.shared.active else {
             presentNewFilePanel()
             return nil
@@ -760,7 +773,25 @@ final class MainWindowController: NSWindowController {
         let dir = selected.map { $0.isDirectory ? $0.url : $0.url.deletingLastPathComponent() }
             ?? workspace.rootURL
 
-        // 递增命名，绝不覆盖
+        guard let candidate = createUntitled(in: dir) else { return nil }
+
+        // 文件树的子节点缓存是落盘前建的，等 FSEvents 的异步刷新会让
+        // 紧接着的 reveal 找不到新文件。先失效再重载（重载会重建整层节点），
+        // open() 内部的 reveal 就能同步选中它
+        workspace.root.invalidate()
+        fileTreeViewController.refreshPreservingExpansion()
+
+        open(url: candidate)
+        guard currentFileURL == candidate.standardizedFileURL else { return nil }
+
+        // 打开即写：Write 模式 + 光标进编辑器
+        setMode(.write)
+        contentPane.editorViewController.focusEditor()
+        return candidate
+    }
+
+    /// 递增命名 `未命名.md` 落盘，绝不覆盖。失败弹错误并返回 nil。
+    private func createUntitled(in dir: URL) -> URL? {
         var candidate = dir.appendingPathComponent("未命名.md")
         var index = 2
         while FileManager.default.fileExists(atPath: candidate.path) {
@@ -776,19 +807,6 @@ final class MainWindowController: NSWindowController {
             presentError(message: "新建文件失败", detail: error.localizedDescription)
             return nil
         }
-
-        // 文件树的子节点缓存是落盘前建的，等 FSEvents 的异步刷新会让
-        // 紧接着的 reveal 找不到新文件。先失效再重载（重载会重建整层节点），
-        // open() 内部的 reveal 就能同步选中它
-        workspace.root.invalidate()
-        fileTreeViewController.refreshPreservingExpansion()
-
-        open(url: candidate)
-        guard currentFileURL == candidate.standardizedFileURL else { return nil }
-
-        // 打开即写：Write 模式 + 光标进编辑器
-        setMode(.write)
-        contentPane.editorViewController.focusEditor()
         return candidate
     }
 

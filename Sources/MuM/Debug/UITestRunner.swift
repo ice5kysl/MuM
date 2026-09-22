@@ -680,6 +680,21 @@ enum UITestRunner {
                      expected: loner.lastPathComponent,
                      actual: c.debugCurrentFileURL?.lastPathComponent ?? "无")
 
+        // 单文件模式下 ⌘N：建在当前文件旁边、留在单文件模式 —— 项目栏收起着呢，
+        // 建进看不见的项目里等于丢了
+        let created = c.newDocument()
+        check.expect(created != nil && sameFile(created?.deletingLastPathComponent(), dir),
+                     "⌘N 建在当前文件旁边",
+                     expected: dir.lastPathComponent,
+                     actual: created?.deletingLastPathComponent().lastPathComponent ?? "创建失败")
+        check.expect(c.debugSingleFileMode && store.workspaces.count == projectCountBefore,
+                     "新建后仍在单文件模式、仍没开项目",
+                     expected: "单文件模式 + 项目数不变",
+                     actual: "单文件=\(c.debugSingleFileMode) 项目数=\(store.workspaces.count)")
+        check.expect(sameFile(c.debugCurrentFileURL, created), "新文件立即打开",
+                     expected: created?.lastPathComponent ?? "-",
+                     actual: c.debugCurrentFileURL?.lastPathComponent ?? "无")
+
         // 打开项目 → 退出单文件模式、两栏还原
         guard check.expect(store.open(url: dir) != nil, "打开文件夹为项目",
                            expected: "项目打开成功", actual: "open 返回 nil") else { return }
