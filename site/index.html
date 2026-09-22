@@ -46,15 +46,16 @@
 
   /* ── 顶栏 ── */
   nav.wrap{display:flex;align-items:center;gap:11px;padding-block:38px}
+  nav .logo{width:32px;height:32px;border-radius:8px;display:block}
+  nav .logo.dark{display:none}
+  :root[data-theme="dark"] nav .logo.dark{display:block}
+  :root[data-theme="dark"] nav .logo.light{display:none}
   nav .name{font-weight:600;font-size:17px;letter-spacing:.01em}
   nav .sp{flex:1}
   nav a.link{color:var(--dim);text-decoration:none;font-size:13.5px;padding:5px 9px;border-radius:7px;transition:color .2s}
   nav a.link:hover{color:var(--fg)}
   nav a.link[aria-current]{color:var(--fg);background:var(--code)}
 
-  .cursor{transform-box:fill-box;transform-origin:center;animation:breathe 2.4s ease-in-out infinite}
-  @keyframes breathe{0%,100%{opacity:.66;transform:scaleX(.94)}50%{opacity:1;transform:scaleX(1)}}
-  @media (prefers-reduced-motion:reduce){.cursor{animation:none;opacity:1}}
 
   /* ── Hero：左对齐，右侧留白是刻意的 ── */
   .hero{padding-top:64px}
@@ -160,11 +161,8 @@
 <body>
 
 <nav class="wrap">
-  <svg width="32" height="32" viewBox="0 0 30 30" aria-hidden="true">
-    <rect width="30" height="30" rx="7" fill="#1c1c1e"/>
-    <path d="M11.3 17.7V9.15l3.7 4.95L18.7 9.15v8.55" fill="none" stroke="#fff" stroke-width="1.75" stroke-linecap="butt" stroke-linejoin="round"/>
-    <rect class="cursor" x="9.3" y="19.35" width="11.4" height="1.5" rx="0.6" fill="#2ecc4a"/>
-  </svg>
+  <img class="logo light" src="/assets/logo-l.png" alt="MuM" width="32" height="32">
+  <img class="logo dark" src="/assets/logo-d.png" alt="" width="32" height="32" aria-hidden="true">
   <span class="name">MuM</span>
   <span class="sp"></span>
   <button class="theme-btn" id="themeBtn" type="button" aria-label="切换主题" title="主题：跟随系统"></button>
