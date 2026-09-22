@@ -33,6 +33,13 @@
   单文件模式下 ⌘N 新建落在当前文件旁边（项目栏收起着呢，建进看不见的
   项目里等于丢了）；没有打开的文件时才弹保存面板
 
+### 修复
+
+- **Finder「打开方式」里 MuM 真的出现了** —— 0.7.4 声称注册了 srt/log/csv 等
+  扩展名，实测并没有生效：LaunchServices 在同一文档类型组里见到
+  LSItemContentTypes 就忽略 CFBundleTypeExtensions，扩展名根本没进 bindings。
+  拆成扩展名-only 的「字幕与纯文本」组后才真正注册（dump 实证）
+
 ## [0.7.4] - 2026-09-22
 
 **更新不用自己找，字幕直接读。**
@@ -46,7 +53,6 @@
 - **字幕文件按文本打开** —— srt / ass / ssa / vtt（带时间轴的纯文本，
   GBK 编码走 TextDecoding 的往返校验兜底）；Finder「打开方式」里也注册了
   这些扩展名（顺带补上 log / csv / tsv / vcf / ics），右键直接可选 MuM
-
 ## [0.7.3] - 2026-09-21
 
 **Markdown 里的 HTML 讲规矩，PDF 导出认分页。**
