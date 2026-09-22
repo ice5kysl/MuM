@@ -65,6 +65,10 @@ final class FileKindTests: XCTestCase {
         // vcf / ics 是纯文本格式
         XCTAssertEqual(kind("/tmp/a.vcf"), .plainText)
         XCTAssertEqual(kind("/tmp/a.ics"), .plainText)
+        // 字幕家族是带时间轴的纯文本
+        for ext in ["srt", "ass", "ssa", "vtt"] {
+            XCTAssertEqual(kind("/tmp/a.\(ext)"), .plainText, "\(ext) 字幕应按纯文本打开")
+        }
     }
 
     func testDirectoryAlwaysFolder() {

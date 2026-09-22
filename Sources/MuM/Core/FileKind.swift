@@ -71,6 +71,8 @@ enum FileKind {
     private static let plainTextExtensions: Set<String> = [
         "txt", "text", "log", "csv", "tsv", "tex", "bib",
         "vcf", "ics",
+        // 字幕家族：本质都是带时间轴的纯文本（GBK 编码由 TextDecoding 兜底）
+        "srt", "ass", "ssa", "vtt",
         "gitignore", "env", "editorconfig", "npmrc", "lock",
     ]
 

@@ -71,6 +71,15 @@
 				<string>mkdn</string>
 				<string>txt</string>
 				<string>text</string>
+				<string>log</string>
+				<string>csv</string>
+				<string>tsv</string>
+				<string>vcf</string>
+				<string>ics</string>
+				<string>srt</string>
+				<string>ass</string>
+				<string>ssa</string>
+				<string>vtt</string>
 			</array>
 		</dict>
 		<dict>
@@ -115,7 +124,6 @@
 				<string>yml</string>
 				<string>toml</string>
 				<string>xml</string>
-				<string>html</string>
 				<string>css</string>
 				<string>scss</string>
 				<string>sql</string>
