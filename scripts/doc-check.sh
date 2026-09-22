@@ -13,13 +13,13 @@ say() { printf '  %-34s %s\n' "$1" "$2"; }
 V=$(cat VERSION | tr -d '\n')
 PLIST=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' dist/MuM.app/Contents/Info.plist 2>/dev/null || echo '未构建')
 TAG=$(git tag -l 'v*' | tail -1)
-say "版本三处一致" "$([ "$V" = "$PLIST" ] && [ "v$V" = "$TAG" ] && echo "✅ $V / $PLIST / $TAG" || { fail=1; echo "❌ $V / $PLIST / $TAG"; })"
+if [ "$V" = "$PLIST" ] && [ "v$V" = "$TAG" ]; then say "版本三处一致" "✅ $V / $PLIST / $TAG"; else say "版本三处一致" "❌ $V / $PLIST / $TAG"; fail=1; fi
 
 N=$(ls -1 *.md 2>/dev/null | wc -l | tr -d ' ')
-say "根目录 *.md ≤2" "$([ "$N" -le 2 ] && echo "✅ $N" || { fail=1; echo "❌ $N 个"; })"
+if [ "$N" -le 2 ]; then say "根目录 *.md ≤2" "✅ $N"; else say "根目录 *.md ≤2" "❌ $N 个"; fail=1; fi
 
 L=$(wc -l < README.md | tr -d ' ')
-say "README ≤200 行" "$([ "$L" -le 200 ] && echo "✅ $L" || { fail=1; echo "❌ $L 行"; })"
+if [ "$L" -le 200 ]; then say "README ≤200 行" "✅ $L"; else say "README ≤200 行" "❌ $L 行"; fail=1; fi
 
 B=$(python3 - <<'PY'
 import pathlib, re
@@ -32,15 +32,15 @@ for f in [pathlib.Path("README.md")]+list(pathlib.Path("docs").rglob("*.md")):
 print(len(bad))
 PY
 )
-say "文档无断链" "$([ "$B" = "0" ] && echo "✅ 0" || { fail=1; echo "❌ $B 处"; })"
+if [ "$B" = "0" ]; then say "文档无断链" "✅ 0"; else say "文档无断链" "❌ $B 处"; fail=1; fi
 
 S=$(grep -rl "fast, native Markdown engine\|multi-project Markdown reader" README.md docs/vision.md docs/roadmap.md docs/metrics.md docs/status.md site/ 2>/dev/null | wc -l | tr -d ' ')
-say "无旧定位句（在外文件）" "$([ "$S" = "0" ] && echo "✅ 0" || { fail=1; echo "❌ $S 处"; })"
+if [ "$S" = "0" ]; then say "无旧定位句（在外文件）" "✅ 0"; else say "无旧定位句（在外文件）" "❌ $S 处"; fail=1; fi
 
 # status.md 的「最后更新」不能比最新 tag 落后太多 —— 只能提醒，无法自动判
 # 发版时最容易漏的一步：落地页的下载链接与版本号
 SITE=$(grep -ohE 'releases/download/v[0-9.]+' site/index.html 2>/dev/null | head -1 | grep -oE 'v[0-9.]+')
-say "落地页下载链接跟上版本" "$([ "v$V" = "$SITE" ] && echo "✅ $SITE" || { fail=1; echo "❌ 页面是 $SITE，版本是 v$V"; })"
+if [ "v$V" = "$SITE" ]; then say "落地页下载链接跟上版本" "✅ $SITE"; else say "落地页下载链接跟上版本" "❌ 页面是 ${SITE}，版本是 v$V"; fail=1; fi
 
 say "roadmap 当前版本" "$(grep -oE "v0\\.[0-9]+\\.[0-9]+" docs/roadmap.md | head -1)"
 

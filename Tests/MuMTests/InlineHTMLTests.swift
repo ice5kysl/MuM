@@ -49,6 +49,17 @@ final class InlineHTMLTests: XCTestCase {
                       "白名单外的标签保持原始文本输出（README 里贴 HTML 片段的场景）")
     }
 
+    func testSpanIsSwallowedWithoutStyleChange() {
+        // <span> 无语义：吞掉标签、不改样式（dsh 验收 F2：行为合理但要有测试钉住）
+        let out = renderer.render("<span class=\"hl\">关键词</span>\n")
+        XCTAssertFalse(out.string.contains("<span"), "span 标签被吞掉")
+        XCTAssertTrue(out.string.contains("关键词"))
+        let font: NSFont? = attribute(.font, contains: "关键词", in: out)
+        XCTAssertEqual(font?.pointSize, theme.bodyFont.pointSize, "span 不改字号")
+        let background: NSColor? = attribute(.backgroundColor, contains: "关键词", in: out)
+        XCTAssertNil(background, "span 不加底色")
+    }
+
     func testUnmatchedCloseTagIsSwallowed() {
         let out = renderer.render("</small>正文\n")
         XCTAssertFalse(out.string.contains("</small"))
