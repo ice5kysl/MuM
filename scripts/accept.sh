@@ -13,7 +13,7 @@
 # worktree 是同一仓库的另一个检出：共用对象库，但有自己的工作目录和 HEAD。
 # 所以既能拿到确切的提交，又完全不碰任何人的工作区。
 #
-# 用完自动清理（见 docs/collaboration.md 的收尾规范）。
+# 用完自动清理：先注销 LaunchServices 注册，再删 worktree 并 prune（见下方 cleanup）。
 
 set -euo pipefail
 

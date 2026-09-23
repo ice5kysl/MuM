@@ -21,10 +21,10 @@
 
 | 类型 | 去哪 |
 | :--- | :--- |
-| 定位 / 路线图 | `docs/` 根 |
+| 定位 / 路线图 / 已知边界 | `docs/` 根 |
 | 设计（技术选型、界面） | `docs/design/` |
 | 工程（构建、仓库结构） | `docs/development/` |
 | 性能 | `docs/perf/` |
 
-**根目录的 `*.md` 不超过 2 个**（`README` + `CHANGELOG`）。
-**README 不超过 200 行。** 这两条由 `scripts/doc-check.sh` 强制。
+**根目录的 `*.md` 不超过 3 个**（`README.md` + `README_EN.md` + `CHANGELOG.md`）。
+**两个 README 各不超过 200 行。** 这几条由 `scripts/doc-check.sh` 强制。
