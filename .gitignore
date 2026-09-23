@@ -17,5 +17,8 @@ xcuserdata/
 # 本机私有配置（代理地址等）
 .mumenv.local
 
+# 内部草稿（发布帖、复盘等，不进公开仓库）
+.drafts/
+
 # 图标生成的中间产物
 AppIcon.iconset/
