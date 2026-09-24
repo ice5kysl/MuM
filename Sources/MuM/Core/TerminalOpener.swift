@@ -46,20 +46,14 @@ enum TerminalOpener {
     /// 在探测到的终端里打开这个目录（新窗口，cwd = 目录）。
     /// Ghostty / iTerm / Terminal 都声明了能开 public.folder，走 LaunchServices 即可。
     ///
-    /// 这里**故意**不走 `ExternalOpener`：`open(_:withApplicationAt:configuration:)` 是
-    /// 异步重载（completionHandler 默认 nil），本来就是非阻塞的，再包一层反而多余。
-    /// 上面那几处 `urlForApplication(withBundleIdentifier:)` 是同步 LS 查询且**必须同步** ——
-    /// 菜单标题和图标要在弹菜单那一刻就拿到；它查的是注册表，不是 open 事务，
-    /// 与「等 LS 事务梗死」不是同一类风险。
+    /// 交给 `ExternalOpener`：那里用的是异步重载，主线程不等 LS 事务
+    /// （`urlForApplication` 那几处是同步**查询**且必须同步 —— 菜单标题和图标要在弹菜单
+    /// 那一刻拿到；查注册表不是 open 事务，不是同一类风险，注释里留着这个判断）。
     static func open(_ directory: URL) {
         let terminal = detected()
         guard let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: terminal.bundleID) else {
             return
         }
-        NSWorkspace.shared.open(
-            [directory],
-            withApplicationAt: appURL,
-            configuration: NSWorkspace.OpenConfiguration()
-        )
+        ExternalOpener.open([directory], withApplicationAt: appURL)
     }
 }

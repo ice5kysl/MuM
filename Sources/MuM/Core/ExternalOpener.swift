@@ -12,8 +12,12 @@ import AppKit
 /// - **打开**走异步重载 `open(_:configuration:completionHandler:)`，主线程不参与等待
 /// - **在访达中显示**没有异步重载，挪到后台队列去调
 ///
-/// 新增调用点一律走这里。**不要在别处直接调 `NSWorkspace` 的同步方法** ——
-/// 这条约束没有编译期闸门，只能靠注释和 review 守住。
+/// **这个文件是唯一的例外**：`scripts/doc-check.sh` 里有一条锚点，禁止 `Sources/`
+/// 其它任何地方出现同步的 `NSWorkspace.shared.open(` / `activateFileViewerSelecting(`。
+/// 要加新的「交给系统」动作，往这里加一个方法，别绕过去。
+///
+/// （`urlForApplication(...)` 这类**查询**不在此列：它们要在弹菜单那一刻同步拿到
+/// 应用名和图标，查的是注册表而不是 open 事务，不是同一类风险。）
 enum ExternalOpener {
 
     /// 打开 URL（网页 / 文档 / 应用 / DMG 挂载）。
@@ -23,13 +27,20 @@ enum ExternalOpener {
         let configuration = NSWorkspace.OpenConfiguration()
         configuration.activates = true
         NSWorkspace.shared.open(url, configuration: configuration) { _, error in
-            guard let error else { return }
-            // 失败必须留痕：用户点了「用 Safari 打开」而毫无反应，是最难查的那类反馈。
-            // 但**不弹模态框** —— 阅读面不该被系统错误挡住；要不要给 UI 提示，交给调用方
-            // 按自己的语境决定。
-            DispatchQueue.main.async {
-                NSLog("[MuM] 打开失败 %@：%@", url.absoluteString, error.localizedDescription)
-            }
+            report(error, for: url.absoluteString)
+        }
+    }
+
+    /// 用指定应用打开（「在终端中打开」走这条）。
+    ///
+    /// 同样是异步重载 —— 别因为参数多就退回同步那个。
+    static func open(_ urls: [URL], withApplicationAt applicationURL: URL) {
+        NSWorkspace.shared.open(
+            urls,
+            withApplicationAt: applicationURL,
+            configuration: NSWorkspace.OpenConfiguration()
+        ) { _, error in
+            report(error, for: urls.first?.path ?? applicationURL.path)
         }
     }
 
@@ -41,6 +52,16 @@ enum ExternalOpener {
         guard !urls.isEmpty else { return }
         DispatchQueue.global(qos: .userInitiated).async {
             NSWorkspace.shared.activateFileViewerSelecting(urls)
+        }
+    }
+
+    /// 失败必须留痕：用户点了「用 Safari 打开」而毫无反应，是最难查的那类反馈。
+    /// 但**不弹模态框** —— 阅读面不该被系统错误挡住；要不要给 UI 提示，交给调用方
+    /// 按自己的语境决定。
+    private static func report(_ error: Error?, for target: String) {
+        guard let error else { return }
+        DispatchQueue.main.async {
+            NSLog("[MuM] 打开失败 %@：%@", target, error.localizedDescription)
         }
     }
 }

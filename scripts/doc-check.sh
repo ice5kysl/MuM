@@ -45,6 +45,18 @@ if [ "$S" = "0" ]; then say "无旧定位句（在外文件）" "✅ 0"; else sa
 SITE=$(grep -ohE 'releases/download/v[0-9.]+' site/index.html 2>/dev/null | head -1 | grep -oE 'v[0-9.]+')
 if [ "v$V" = "$SITE" ]; then say "落地页下载链接跟上版本" "✅ $SITE"; else say "落地页下载链接跟上版本" "❌ 页面是 ${SITE}，版本是 v$V"; fail=1; fi
 
+# 「外部打开」同步调用锚点。
+#
+# 为什么要有这条：NSWorkspace 的同步 open / activateFileViewerSelecting 走的是
+# LaunchServices 的**同步 XPC**（xpc_connection_send_message_with_reply_sync）。
+# LS 事务一回不来，主线程就无限等 —— 界面永久转圈（0.7.7 修的就是这个，
+# 同类 13 处）。收口在 Core/ExternalOpener.swift，只允许它内部出现同步调用。
+# 这条锚点的意义是挡住**第 14 处**：新加一个「用 X 打开」时忘了走收口，红灯亮。
+SYNC=$(grep -rn --include='*.swift' -E 'NSWorkspace\.shared\.(open\(|activateFileViewerSelecting\()' Sources/MuM/ 2>/dev/null \
+    | grep -v '^Sources/MuM/Core/ExternalOpener\.swift:' \
+    | grep -vE ':[0-9]+: *(///|//)' | wc -l | tr -d ' ')
+if [ "$SYNC" = "0" ]; then say "外部打开走收口" "✅ 0 处绕过"; else say "外部打开走收口" "❌ $SYNC 处绕过（应走 Core/ExternalOpener.swift）"; fail=1; fi
+
 say "roadmap 当前版本" "$(grep -oE "v0\\.[0-9]+\\.[0-9]+" docs/roadmap.md | head -1)"
 
 echo
