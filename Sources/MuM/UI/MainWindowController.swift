@@ -256,7 +256,7 @@ final class MainWindowController: NSWindowController {
         }
         projectsViewController.onReveal = { index in
             guard WorkspaceStore.shared.workspaces.indices.contains(index) else { return }
-            NSWorkspace.shared.activateFileViewerSelecting([WorkspaceStore.shared.workspaces[index].rootURL])
+            ExternalOpener.reveal([WorkspaceStore.shared.workspaces[index].rootURL])
         }
         projectsViewController.onAdd = {
             WorkspaceStore.shared.promptForFolder()
@@ -288,7 +288,7 @@ final class MainWindowController: NSWindowController {
         }
         contentPane.onOpenExternally = { [weak self] in
             guard let url = self?.currentFileURL else { return }
-            NSWorkspace.shared.open(url)
+            ExternalOpener.open(url)
         }
 
         rootViewController.statusBar.onShowDisplaySettings = { [weak self] anchor in
@@ -1506,7 +1506,7 @@ final class MainWindowController: NSWindowController {
 
     func revealInFinder() {
         guard let url = currentFileURL else { return }
-        NSWorkspace.shared.activateFileViewerSelecting([url])
+        ExternalOpener.reveal([url])
     }
 
     // MARK: - 模式

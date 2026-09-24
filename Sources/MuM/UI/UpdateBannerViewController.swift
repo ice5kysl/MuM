@@ -89,7 +89,7 @@ final class UpdateBannerViewController: NSTitlebarAccessoryViewController {
     }
 
     @objc private func openReleaseNotes() {
-        NSWorkspace.shared.open(update.url)
+        ExternalOpener.open(update.url)
     }
 
     private var downloadButton: NSButton?
@@ -99,7 +99,7 @@ final class UpdateBannerViewController: NSTitlebarAccessoryViewController {
     /// 没有直链时这个按钮就是原来的「查看更新」（跳 Release 页）。
     @objc private func downloadOrOpenRelease() {
         guard let downloadURL = update.downloadURL else {
-            NSWorkspace.shared.open(update.url)
+            ExternalOpener.open(update.url)
             dismissBanner()
             return
         }

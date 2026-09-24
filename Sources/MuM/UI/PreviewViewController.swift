@@ -533,11 +533,11 @@ final class PreviewViewController: NSViewController {
     private var messageURL: URL?
 
     @objc private func openMessageURLExternally() {
-        if let messageURL { NSWorkspace.shared.open(messageURL) }
+        if let messageURL { ExternalOpener.open(messageURL) }
     }
 
     @objc private func revealMessageURLInFinder() {
-        if let messageURL { NSWorkspace.shared.activateFileViewerSelecting([messageURL]) }
+        if let messageURL { ExternalOpener.reveal([messageURL]) }
     }
 
     // MARK: - 滚动同步
@@ -616,7 +616,7 @@ extension PreviewViewController: NSTextViewDelegate {
             return true
         }
 
-        NSWorkspace.shared.open(url)
+        ExternalOpener.open(url)
         return true
     }
 }

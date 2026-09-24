@@ -221,7 +221,7 @@ final class FileTreeViewController: NSViewController {
 
     @objc private func revealProject() {
         guard let url = WorkspaceStore.shared.active?.rootURL else { return }
-        NSWorkspace.shared.activateFileViewerSelecting([url])
+        ExternalOpener.reveal([url])
     }
 
     @objc private func openProjectInTerminal() {
@@ -309,7 +309,7 @@ final class FileTreeViewController: NSViewController {
 
     @objc private func contextRevealInFinder() {
         guard let node = selectedNode else { return }
-        NSWorkspace.shared.activateFileViewerSelecting([node.url])
+        ExternalOpener.reveal([node.url])
     }
 
     /// 选中的是文件夹直接开；是文件就开它所在的那层

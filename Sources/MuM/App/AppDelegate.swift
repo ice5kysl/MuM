@@ -345,7 +345,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ))
         components.queryItems = queryItems
         if let url = components.url {
-            NSWorkspace.shared.open(url)
+            ExternalOpener.open(url)
         }
     }
 

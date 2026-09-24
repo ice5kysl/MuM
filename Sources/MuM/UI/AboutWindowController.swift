@@ -210,7 +210,7 @@ private final class LinkButton: NSButton {
     }
 
     @objc private func open() {
-        NSWorkspace.shared.open(url)
+        ExternalOpener.open(url)
     }
 }
 
