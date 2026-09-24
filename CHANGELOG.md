@@ -16,6 +16,27 @@
 | `VERSION` 文件 / `CFBundleShortVersionString` | `0.3.0` | Apple 不接受前缀 |
 | git tag / Release | `v0.3.0` | 惯例，加 `v` |
 
+## [0.7.7] - 2026-09-24
+
+**不再转圈。**
+
+### 修复
+
+- **偶发永久转圈（卡死）** —— 界面里「用 X 打开」「在访达中显示」这类动作，是在
+  **主线程同步**等 LaunchServices 的 XPC 事务（`xpc_connection_send_message_with_reply_sync`）。
+  事务一回不来，主线程就无限等，界面永久转圈 —— ice 真机遇到多次。抓到的现场是：
+  两次 `sample` 间隔 5 分钟、100% 采样同一栈，而 `lsd` 是空闲的，**是事务梗死，不是慢**。
+
+  同类共 **13 处**（8 处 `open` + 5 处 `activateFileViewerSelecting`），不止导向页那一处。
+  全部收口到新的 `Core/ExternalOpener.swift`：打开走异步重载
+  `open(_:configuration:completionHandler:)`，访达显示没有异步重载、挪到后台队列。
+
+  **为什么原来不对**：同步 API 写起来最省事，代价是把系统的脾气直接接到自己的主线程上 ——
+  一次挂住的 XPC 就是一次永久假死。这类"看起来只是一行调用"的 API 最值得警惕。
+
+  同时补了发版闸门：`scripts/doc-check.sh` 现在会检查 `Sources/` 里有没有绕过收口的
+  同步调用（负向验证过：埋一处 → 红灯），挡住第 14 处。
+
 ## [0.7.6] - 2026-09-23
 
 **换了张脸。**

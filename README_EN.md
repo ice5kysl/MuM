@@ -4,7 +4,7 @@
 **Fast, native — for humans and agents.**
 
 [中文](README.md) ·
-[**Download for macOS**](https://github.com/ice5kysl/MuM/releases/download/v0.7.6/MuM-0.7.6.dmg) ·
+[**Download for macOS**](https://github.com/ice5kysl/MuM/releases/download/v0.7.7/MuM-0.7.7.dmg) ·
 [Homepage](https://mum.jiker.ai) ·
 [Changelog](CHANGELOG.md) ·
 MIT
