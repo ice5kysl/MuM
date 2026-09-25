@@ -254,6 +254,7 @@ final class FileTreeViewController: NSViewController {
             menu.addItem(.separator())
             menu.addItem(contextItem("在访达中显示", #selector(contextRevealInFinder), icon: Self.finderIcon))
             menu.addItem(contextItem(TerminalOpener.menuTitle, #selector(contextOpenInTerminal), icon: TerminalOpener.menuIcon))
+            menu.addItem(contextItem("拷贝路径", #selector(contextCopyPath), icon: Self.menuIcon("doc.on.clipboard")))
             menu.addItem(.separator())
             menu.addItem(contextItem("移到废纸篓", #selector(contextTrash), icon: Self.menuIcon("trash")))
         } else {
@@ -316,6 +317,13 @@ final class FileTreeViewController: NSViewController {
     @objc private func contextOpenInTerminal() {
         guard let node = selectedNode else { return }
         TerminalOpener.open(node.isDirectory ? node.url : node.url.deletingLastPathComponent())
+    }
+
+    /// 拷贝完整路径到剪贴板 —— 贴给别人/贴进终端的场景
+    @objc private func contextCopyPath() {
+        guard let node = selectedNode else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(node.url.path, forType: .string)
     }
 
     // MARK: - 行内重命名（Finder 式：回车确认、Esc 取消）
