@@ -33,6 +33,29 @@ final class MarkdownRenderer {
     /// 所以直接挂在实例上，不用回调。
     private(set) var outline: [OutlineItem] = []
 
+    /// 源码行 → 渲染字符位置的锚点（滚动联动用）。
+    ///
+    /// 编辑器与预览的滚动联动不能按比例（表格/代码块渲染后远高于源文本，
+    /// 比例对比例会随文档结构累积错位 —— 0.7.8 修的就是这个），要按内容：
+    /// 每个顶层块渲染前记下「源码起始行 → 渲染结果当前长度」，渲染完就得到
+    /// 一条单调递增的锚点序列，滚动时二分查找 + 段内线性插值。
+    struct BlockAnchor {
+        /// 源码行号（1 起，swift-markdown 的块 range 自带）
+        let sourceLine: Int
+        /// 该块在渲染结果里的起始字符位置
+        let renderedOffset: Int
+    }
+
+    /// 最近一次渲染收集到的锚点。渐进渲染时逐片累积（会话负责换算绝对位置）。
+    private(set) var blockAnchors: [BlockAnchor] = []
+
+    /// 段落内逐行锚点的收集中转：renderParagraph 期间为非空。
+    /// 连续行在 Markdown 里会并成一个段落，只靠块锚点时整段内部只能线性猜；
+    /// 逐行锚点让每个源码行都有精确的渲染落点（渲染顺序即源码顺序，序列保持单调）。
+    /// 记录的是段落局部偏移，renderParagraph 收尾时统一加上段落基址再入列。
+    private var pendingLineAnchors: [(line: Int, localOffset: Int)]?
+    private var lastAnchoredLine = 0
+
     func render(_ markdown: String) -> NSAttributedString {
         let renderStart = Date()
         let document = RenderProfiler.time(.parse) { Document(parsing: markdown) }
@@ -151,6 +174,10 @@ final class MarkdownRenderer {
 
     fileprivate func renderBlocks(_ blocks: [Markup], into out: NSMutableAttributedString, context: BlockContext) {
         for block in blocks {
+            // 滚动联动的内容锚点：渲染顺序即源码顺序，锚点序列天然双单调
+            if let line = block.range?.lowerBound.line {
+                blockAnchors.append(BlockAnchor(sourceLine: line, renderedOffset: out.length))
+            }
             renderBlock(block, into: out, context: context)
         }
     }
@@ -267,6 +294,12 @@ final class MarkdownRenderer {
             spacingAfter: 8
         )
 
+        // 逐行锚点：段落块锚点已由 renderBlocks 记下（段首），这里补段内每一行。
+        // 段首行不用重复记（块锚点就是它）。
+        let anchorBase = out.length
+        pendingLineAnchors = []
+        lastAnchoredLine = paragraph.range?.lowerBound.line ?? 0
+
         let text = NSMutableAttributedString()
         RenderProfiler.time(.inlines) {
             renderInlines(Array(paragraph.children), into: text, style: InlineStyle(), context: context)
@@ -275,6 +308,13 @@ final class MarkdownRenderer {
         text.addAttribute(.paragraphStyle, value: style, range: NSRange(location: 0, length: text.length))
         applyQuoteMarkers(to: text, context: context)
         out.append(text)
+
+        if let pending = pendingLineAnchors, !pending.isEmpty {
+            blockAnchors.append(contentsOf: pending.map {
+                BlockAnchor(sourceLine: $0.line, renderedOffset: anchorBase + $0.localOffset)
+            })
+        }
+        pendingLineAnchors = nil
     }
 
     private func renderParagraphText(_ raw: String, into out: NSMutableAttributedString, context: BlockContext) {
@@ -591,6 +631,12 @@ final class MarkdownRenderer {
     }
 
     private func renderInline(_ node: Markup, into out: NSMutableAttributedString, style: InlineStyle, context: BlockContext) {
+        // 段落逐行锚点：新源码行的第一个行内节点，记下它此刻的落点
+        if pendingLineAnchors != nil,
+           let line = node.range?.lowerBound.line, line > lastAnchoredLine {
+            pendingLineAnchors?.append((line: line, localOffset: out.length))
+            lastAnchoredLine = line
+        }
         switch node {
 
         case let text as Text:
@@ -808,6 +854,10 @@ final class ProgressiveRenderSession {
     /// 已收集的标题，location 是全文绝对位置。填充完成前不完整，别拿去跳转。
     private(set) var outline: [MarkdownRenderer.OutlineItem] = []
 
+    /// 已产出的滚动联动锚点（全文绝对位置）。填充期间只覆盖已渲染的前缀，
+    /// 覆盖不到的源码区域联动时退回比例（预览那边兜底）。
+    private(set) var blockAnchors: [MarkdownRenderer.BlockAnchor] = []
+
     init(renderer: MarkdownRenderer, markdown: String) {
         self.renderer = renderer
         blocks = Array(RenderProfiler.time(.parse) { Document(parsing: markdown) }.children)
@@ -832,6 +882,7 @@ final class ProgressiveRenderSession {
 
     private func renderChunk(upTo end: Int) -> NSAttributedString {
         let outlineStart = renderer.outline.count
+        let anchorStart = renderer.blockAnchors.count
         let chunk = NSMutableAttributedString()
         renderer.renderBlocks(Array(blocks[nextIndex..<end]), into: chunk, context: MarkdownRenderer.BlockContext())
         nextIndex = end
@@ -846,6 +897,14 @@ final class ProgressiveRenderSession {
             let base = producedLength
             outline.append(contentsOf: renderer.outline[outlineStart...].map {
                 MarkdownRenderer.OutlineItem(level: $0.level, title: $0.title, location: $0.location + base)
+            })
+        }
+        // 锚点同大纲：片内相对位置 + 已产出长度 = 全文绝对位置。
+        // 渲染器跨片复用会累积所有片的锚点，只取本片新增的那段。
+        if renderer.blockAnchors.count > anchorStart {
+            let base = producedLength
+            blockAnchors.append(contentsOf: renderer.blockAnchors[anchorStart...].map {
+                MarkdownRenderer.BlockAnchor(sourceLine: $0.sourceLine, renderedOffset: $0.renderedOffset + base)
             })
         }
         producedLength += chunk.length

@@ -322,7 +322,13 @@ final class MainWindowController: NSWindowController {
         }
         editor.onScroll = { [weak self] fraction in
             guard let self, self.contentPane.isSideBySide else { return }
-            self.contentPane.previewViewController.scrollToFractionFromEditor(fraction)
+            // 按内容联动：视口顶源码行 → 预览渲染位置（锚点不全时内部退回比例）
+            let editor = self.contentPane.editorViewController
+            self.contentPane.previewViewController.scrollToSourceLine(
+                editor.topVisibleSourceLine(),
+                sourceLineCount: editor.sourceLineCount,
+                fallbackFraction: fraction
+            )
         }
 
         contentPane.previewViewController.onOpenInternalLink = { [weak self] url in
@@ -614,7 +620,10 @@ final class MainWindowController: NSWindowController {
         contentPane.editorViewController.setEditable(true)
         contentPane.editorViewController.setText(decoded.text)
         LaunchTimer.mark("    编辑器 setText 完成")
-        pendingScrollFraction = WorkspaceStore.shared.readingPosition(for: url).map { CGFloat($0) }
+        // 换文件必须给出一个显式落点：没保存过位置就回顶（0）。
+        // 传 nil 会被 show() 当成「同一文件重排」而保持原滚动位 —— 上一个是长文档时，
+        // 短文档会落在越界位置，读完一屏空白（ice 2026-09-25 实测撞见）。
+        pendingScrollFraction = WorkspaceStore.shared.readingPosition(for: url).map { CGFloat($0) } ?? 0
         renderPreview(immediately: true, allowProgressive: true)
     }
 
@@ -685,8 +694,10 @@ final class MainWindowController: NSWindowController {
         case .markdown:
             attributed = renderer.render(text)
             contentPane.previewViewController.setOutline(renderer.outline)
+            contentPane.previewViewController.setBlockAnchors(renderer.blockAnchors, complete: true)
         case .code:
             attributed = renderer.renderCode(text, language: FileKind.language(for: url))
+            contentPane.previewViewController.setBlockAnchors([], complete: false)
         case .plainText:
             // csv / tsv 按表格渲染 —— 表格排版是手工调过的，阅读优先；
             // 解析失败（空文件、单列、超行数上限）退回纯文本，内容完整可见
@@ -694,11 +705,15 @@ final class MainWindowController: NSWindowController {
                let table = DelimitedTable.markdown(from: text, delimiter: delimiter) {
                 attributed = renderer.render(table)
                 contentPane.previewViewController.setOutline([])
+                // csv 是从纯文本折算的 Markdown，块锚点的源码行对不上原文 —— 退回比例
+                contentPane.previewViewController.setBlockAnchors([], complete: false)
             } else {
                 attributed = renderer.renderPlainText(text)
+                contentPane.previewViewController.setBlockAnchors([], complete: false)
             }
         default:
             attributed = renderer.renderPlainText(text)
+            contentPane.previewViewController.setBlockAnchors([], complete: false)
         }
         LaunchTimer.mark("    render 返回（AST→富文本）")
 
@@ -713,6 +728,7 @@ final class MainWindowController: NSWindowController {
         let first = session.renderFirst(count: RenderTuning.firstScreenBlocks)
         // 新文档一律从顶部开始；保存的阅读位置等全文补齐后再还 ——
         // 填充到一半时全文高度还是错的，按比例恢复会落错地方
+        contentPane.previewViewController.setBlockAnchors(session.blockAnchors, complete: session.isFinished)
         contentPane.previewViewController.show(attributed: first, restoreFraction: 0)
         LaunchTimer.mark("    渐进：首屏已写入（TTFR 的 R）")
         fillProgressively(session: session, generation: progressiveGeneration, restore: restore)
@@ -723,6 +739,7 @@ final class MainWindowController: NSWindowController {
             guard let self, generation == self.progressiveGeneration else { return }
             if let chunk = session.renderNext(timeBudget: RenderTuning.fillSliceBudget) {
                 self.contentPane.previewViewController.append(attributed: chunk)
+                self.contentPane.previewViewController.setBlockAnchors(session.blockAnchors, complete: session.isFinished)
             }
             guard session.isFinished else {
                 self.fillProgressively(session: session, generation: generation, restore: restore)

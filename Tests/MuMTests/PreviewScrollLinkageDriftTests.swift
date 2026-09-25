@@ -11,23 +11,17 @@ import XCTest
 ///
 /// 方法：源码里均匀埋 20 个唯一标记行；对目标标记 i（第 5/10/15 个），把编辑器滚到
 /// 「标记 i 恰在视口顶」；读预览视口顶的 Y 在标记版面序列里的插值位置 j；
-/// 漂移 = j − i（标记均匀分布，单位即「文档全长百分比」）。测量工具，非回归锚点。
+/// 漂移 = j − i（标记均匀分布，单位即「文档全长百分比」）。
+///
+/// 0.7.8 起本测试是**回归锚点**：内容映射联动（`scrollToSourceLine`）落地后，
+/// 三个采样点的 |漂移| 必须 ≤ 2% 全长（0.7.8 立项验收线）。修前基线：i=5 → +31%。
 final class PreviewScrollLinkageDriftTests: XCTestCase {
 
     private static let markerCount = 20
 
+    /// 异构样本：散文段 + 后半段密集表格（渲染后远高于源文本，比例联动的最坏情况）。
+    /// 修前基线 i=5 → +31% 全长；0.7.8 判定线：|漂移| ≤ 2%。
     func testContentDriftSampling() throws {
-        let app = NSApplication.shared
-        app.setActivationPolicy(.accessory)
-        app.appearance = NSAppearance(named: .aqua)
-
-        let controller = MainWindowController()
-        guard let window = controller.window else { return XCTFail("无法建立窗口") }
-        window.setContentSize(MuMDesign.defaultWindowContentSize)
-        window.setFrameOrigin(NSPoint(x: -20_000, y: -20_000))
-        window.orderFrontRegardless()
-
-        // 异构文档：散文段（渲染后与源码高度接近）+ 密集表格段（渲染后远高于源文本）
         var parts: [String] = ["# 漂移采样样本\n"]
         let marks = Self.markerCount
         let perSection = 12
@@ -41,6 +35,35 @@ final class PreviewScrollLinkageDriftTests: XCTestCase {
                 for r in 1...6 { parts.append("| 项\(r) | \(r * 10) | \(r * 100) |\n") }
             }
         }
+        try measureDrift(parts: parts, label: "异构（散文+表格）")
+    }
+
+    /// 均匀样本：纯散文。比例联动在这种文档上本来就是对的，
+    /// 换成内容映射不许把它弄坏（0.7.8 验收第 2 条）。
+    func testUniformDocumentNoDrift() throws {
+        var parts: [String] = ["# 均匀文档样本\n"]
+        for m in 1...Self.markerCount {
+            for l in 1...12 {
+                parts.append("第 \(m)-\(l) 行散文。MuM 是原生阅读器，阅读是目的，快而不吵。\n")
+            }
+            parts.append("MARKER-\(String(format: "%02d", m))-TXZQ\n")
+        }
+        try measureDrift(parts: parts, label: "均匀（纯散文）")
+    }
+
+    /// 采样主体：把编辑器滚到标记 i 恰在视口顶，读预览视口顶落在标记 j，断言 |j−i| 达标。
+    private func measureDrift(parts: [String], label: String) throws {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.accessory)
+        app.appearance = NSAppearance(named: .aqua)
+
+        let controller = MainWindowController()
+        guard let window = controller.window else { return XCTFail("无法建立窗口") }
+        window.setContentSize(MuMDesign.defaultWindowContentSize)
+        window.setFrameOrigin(NSPoint(x: -20_000, y: -20_000))
+        window.orderFrontRegardless()
+
+        let marks = Self.markerCount
         let doc = FileManager.default.temporaryDirectory
             .appendingPathComponent("mum-linkage-drift-\(UUID().uuidString).md")
         try parts.joined().write(to: doc, atomically: true, encoding: .utf8)
@@ -80,14 +103,23 @@ final class PreviewScrollLinkageDriftTests: XCTestCase {
             return ys
         }
         guard editorText.length > 0, previewText.length > 0 else { return XCTFail("两侧文本未就位") }
+
+        // 非连续排版下，两侧文本视图此刻都只排了首屏一带 —— 先强制全文排版再量标记，
+        // 否则 boundingRect 只能基于未完成的布局给出「当时的」Y（实测 stride 差近一倍），
+        // 滚动目标全部落空。测试文档很小，全文排版一次没成本。
+        editorTextView.layoutManager?.ensureLayout(for: editorTextView.textContainer!)
+        preview.previewTextView.layoutManager?.ensureLayout(for: preview.previewTextView.textContainer!)
+        _ = wait(1) { editorTextView.frame.height > 0 }  // frame 高度等一次布局刷新
+
         let eYs = markerYs(in: editorText, textView: editorTextView)
         let pYs = markerYs(in: previewText, textView: preview.previewTextView)
         guard eYs.count == marks, pYs.count == marks else {
             return XCTFail("标记定位失败 editor=\(eYs.count) preview=\(pYs.count)")
         }
 
-        var report = "\n[linkage-drift] 内容错位采样（编辑器顶到标记 i → 预览顶部实际落在标记 j）："
-        var results: [String] = []
+        var report = "\n[linkage-drift] \(label)：内容错位采样（编辑器顶到标记 i → 预览顶部实际落在标记 j）："
+        var drifts: [(i: Int, pct: Double)] = []
+        var js: [Double] = []
         for i in [5, 10, 15] {
             // 编辑器：滚到标记 i 恰在视口顶
             let eClip = editorScroll.contentView
@@ -107,14 +139,27 @@ final class PreviewScrollLinkageDriftTests: XCTestCase {
                 }
             }
             let driftPct = (j - Double(i)) / Double(marks) * 100
-            results.append(String(format: "i=%d → j=%.1f（漂移 %+.1f%% 全长）", i, j, driftPct))
-            report += "\n[linkage-drift] " + results.last!
+            drifts.append((i, driftPct))
+            js.append(j)
+            let line = String(format: "i=%d → j=%.1f（漂移 %+.1f%% 全长）", i, j, driftPct)
+            report += "\n[linkage-drift] " + line
+            // 诊断：编辑器自己报告的顶行号与预览落点
+            let topLine = editor.topVisibleSourceLine()
+            // 对照：用纯字符串数出标记 i 的真实源码行
+            let needle = "MARKER-\(String(format: "%02d", i))-TXZQ" as NSString
+            let mLoc = editorText.range(of: needle as String).location
+            let trueLine = editorText.substring(to: mLoc).reduce(0) { $0 + ($1 == "\n" ? 1 : 0) } + 1
+            report += String(format: "\n[linkage-drift]   debug i=%d 编辑器顶行=%d 真行号=%d 编辑器分数=%.3f 预览topY=%.0f %@", i, topLine, trueLine, editor.scrollFraction(), pTop, preview.debugLinkageStatus)
         }
         print(report)
         // 联动必须在工作（预览跟动了）——否则测的是死水。跟动的证据：三次采样 j 不全等
         // （预览若纹丝不动，j 会停在同一个值）
-        let js = results.count
-        XCTAssertGreaterThanOrEqual(js, 3)
+        XCTAssertGreaterThanOrEqual(js.count, 3)
+        XCTAssertFalse(js.allSatisfy { $0 == js.first }, "\(label)：预览没有跟随编辑器滚动，联动是死水")
+        // 回归锚点（0.7.8 立项判定线）：内容映射联动下，每个采样点 |漂移| ≤ 2% 全长
+        for (i, pct) in drifts {
+            XCTAssertLessThanOrEqual(abs(pct), 2.0, "\(label)：i=\(i) 处内容漂移 \(String(format: "%.1f", pct))% 超过 2% 判定线")
+        }
     }
 
     /// 轮询等待（uitest 同款：runloop 转圈而非睡死），nil=条件满足

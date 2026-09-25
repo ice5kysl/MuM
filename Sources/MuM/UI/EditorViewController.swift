@@ -98,6 +98,7 @@ final class EditorViewController: NSViewController, NSTextViewDelegate {
     func setText(_ text: String, resetUndo: Bool = true) {
         isProgrammaticChange = true
         textView.string = text
+        lineStartOffsets = nil
         textView.setSelectedRange(NSRange(location: 0, length: 0))
         if resetUndo {
             textView.undoManager?.removeAllActions()
@@ -189,6 +190,55 @@ final class EditorViewController: NSViewController, NSTextViewDelegate {
         return min(max(clip.bounds.origin.y / scrollable, 0), 1)
     }
 
+    /// 视口顶那行的源码行号（1 起）——滚动联动的内容锚点侧。
+    ///
+    /// 行号表缓存：建一次 O(n)，滚动事件里只做二分 O(log n)。
+    /// 定位不用 `characterIndex(for:)`：非连续排版下视口顶落在未排版区域时它
+    /// 返回估计值（实测偏差 4~50 行，先 ensureLayout 也救不回来）。改为拿
+    /// 行起点字符做 `boundingRect` 二分 —— 它会强制精确排版到那一行，必然准。
+    private var lineStartOffsets: [Int]?
+
+    func topVisibleSourceLine() -> Int {
+        guard let manager = textView.layoutManager, let container = textView.textContainer else { return 1 }
+        let length = (textView.string as NSString).length
+        guard length > 0 else { return 1 }
+        let targetY = max(scrollView.contentView.bounds.origin.y - textView.textContainerInset.height, 0)
+        let starts = lineStarts()
+
+        // 行（0 起）第一个字符的版面顶 Y；末行是空行时起点越界，钳到文末
+        func lineTopY(_ lineIndex: Int) -> CGFloat {
+            let location = min(starts[lineIndex], length - 1)
+            let glyph = manager.glyphRange(forCharacterRange: NSRange(location: location, length: 1), actualCharacterRange: nil)
+            return manager.boundingRect(forGlyphRange: glyph, in: container).minY
+        }
+
+        // 二分：最后一个 lineTopY ≤ targetY 的行
+        var lo = 0, hi = starts.count - 1
+        while lo < hi {
+            let mid = (lo + hi + 1) / 2
+            if lineTopY(mid) <= targetY { lo = mid } else { hi = mid - 1 }
+        }
+        return lo + 1
+    }
+
+    /// 源码总行数（联动映射的文末虚拟锚点用；行走 lineStarts 缓存，O(1)）
+    var sourceLineCount: Int { lineStarts().count }
+
+    private func lineStarts() -> [Int] {
+        if let lineStartOffsets { return lineStartOffsets }
+        let ns = textView.string as NSString
+        var offsets = [0]
+        var i = 0
+        while i < ns.length {
+            let next = NSMaxRange(ns.lineRange(for: NSRange(location: i, length: 0)))
+            guard next > i else { break }
+            if next < ns.length { offsets.append(next) }
+            i = next
+        }
+        lineStartOffsets = offsets
+        return offsets
+    }
+
     // MARK: - NSTextViewDelegate
 
     func textViewDidChangeSelection(_ notification: Notification) {
@@ -197,6 +247,7 @@ final class EditorViewController: NSViewController, NSTextViewDelegate {
 
     func textDidChange(_ notification: Notification) {
         lineNumberRuler?.needsDisplay = true
+        lineStartOffsets = nil
         centerCaretIfNeeded()
         guard !isProgrammaticChange else { return }
         onTextChanged?(textView.string)

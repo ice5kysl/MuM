@@ -39,6 +39,12 @@ final class PreviewViewController: NSViewController {
     /// 诊断/基准用：预览的滚动视图（ScrollBench 程序化滚动要走真实滚动路径）
     var debugScrollView: NSScrollView { textScrollView }
 
+    /// 诊断用：滚动联动锚点状态（数量/是否完整/最后一次请求的落点）
+    var debugLinkageStatus: String {
+        "anchors=\(blockAnchors.count) complete=\(anchorsComplete) lastMap=\(debugLastLinkageMap)"
+    }
+    private var debugLastLinkageMap = "无"
+
     // MARK: - 查找
 
     /// ⌘F：显示查找条并聚焦。已经显示时只重新聚焦。
@@ -163,8 +169,7 @@ final class PreviewViewController: NSViewController {
     }
 
     /// 诊断用：离屏快照里没法敲键盘，用它触发一次查找
-    func debugRunFind(_ query: String) {
-        showFindBar()
+    func debugRunFind(_ query: String) {        showFindBar()
         findBar.setQuery(query)
         runFind(query)
     }
@@ -592,6 +597,85 @@ final class PreviewViewController: NSViewController {
     /// 按行号比例滚动到指定位置（编辑器滚动时联动预览）
     func scrollToFractionFromEditor(_ fraction: CGFloat) {
         restoreScrollFraction(fraction)
+    }
+
+    // MARK: - 滚动联动（按内容，不按比例）
+
+    /// 当前渲染结果的源码行 → 渲染位置锚点（渲染器产出，窗口控制器写入）。
+    /// 渐进填充期间只覆盖已渲染前缀，`anchorsComplete=false`，
+    /// 覆盖不到的源码区域退回比例联动。
+    private var blockAnchors: [MarkdownRenderer.BlockAnchor] = []
+    private var anchorsComplete = false
+
+    func setBlockAnchors(_ anchors: [MarkdownRenderer.BlockAnchor], complete: Bool) {
+        blockAnchors = anchors
+        anchorsComplete = complete
+    }
+
+    /// 编辑器滚动联动入口：把「编辑器视口顶那一行」映射到预览里的渲染位置。
+    ///
+    /// 为什么不能用比例：表格/代码块渲染后远高于其源文本，比例对比例会随
+    /// 文档结构累积错位（异构样本实测 25% 处漂 +31% 全长）。
+    /// 映射在 **Y 空间按行插值**（不是字符空间）：Markdown 会把没空行隔开的
+    /// 连续行并成一个段落，字符比例会受行长度差异影响，而行高是均匀的。
+    /// 最后一个锚点之后补一个「文末虚拟锚点」—— 否则整篇一个段落的文档
+    /// 只有 2 个锚点，正文全被钳到段落开头。
+    ///
+    /// 性能：二分查找 O(log n) + 两次单字符 boundingRect（非连续排版下只做
+    /// 增量布局）+ 缓存的文档总高 —— 与文档长度无关，不许在这里扫全文。
+    func scrollToSourceLine(_ line: Int, sourceLineCount: Int, fallbackFraction: CGFloat) {
+        guard !blockAnchors.isEmpty,
+              let manager = textView.layoutManager,
+              let container = textView.textContainer else {
+            restoreScrollFraction(fallbackFraction)
+            return
+        }
+        guard line >= blockAnchors[0].sourceLine else {
+            restoreScrollFraction(fallbackFraction)
+            return
+        }
+        let length = (textView.string as NSString).length
+        guard length > 0 else { return }
+
+        // 锚点序列 + 文末虚拟锚点（只在全文排完时可信；渐进填充中越过
+        // 已映射前缀的区域退回比例）
+        var lines = blockAnchors.map { $0.sourceLine }
+        var offsets = blockAnchors.map { $0.renderedOffset }
+        if anchorsComplete, sourceLineCount > (lines.last ?? 0) {
+            lines.append(sourceLineCount + 1)
+            offsets.append(length)
+        }
+
+        // 二分：最后一个 sourceLine ≤ line 的锚点
+        var lo = 0, hi = lines.count - 1
+        while lo < hi {
+            let mid = (lo + hi + 1) / 2
+            if lines[mid] <= line { lo = mid } else { hi = mid - 1 }
+        }
+        guard lo + 1 < lines.count else {
+            // 没有上界（只剩一个锚点且越过了它）：渐进填充中退回比例
+            restoreScrollFraction(fallbackFraction)
+            return
+        }
+        let lowerLine = lines[lo], upperLine = lines[lo + 1]
+        let lowerOffset = offsets[lo], upperOffset = min(offsets[lo + 1], length - 1)
+
+        func renderedY(at offset: Int) -> CGFloat {
+            let clamped = min(max(offset, 0), length - 1)
+            let glyph = manager.glyphRange(forCharacterRange: NSRange(location: clamped, length: 1), actualCharacterRange: nil)
+            return manager.boundingRect(forGlyphRange: glyph, in: container).minY
+        }
+        let lowerY = renderedY(at: lowerOffset)
+        let upperY = renderedY(at: upperOffset)
+
+        let span = upperLine - lowerLine
+        let t = span > 0 ? CGFloat(line - lowerLine) / CGFloat(span) : 0
+        let y = lowerY + t * max(upperY - lowerY, 0)
+
+        debugLastLinkageMap = String(format: "line=%d → y=%.0f（锚行 %d…%d）", line, y, lowerLine, upperLine)
+        let clip = textScrollView.contentView
+        clip.scroll(to: NSPoint(x: 0, y: y + textView.textContainerInset.height))
+        textScrollView.reflectScrolledClipView(clip)
     }
 }
 
