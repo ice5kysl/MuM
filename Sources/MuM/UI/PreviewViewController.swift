@@ -594,30 +594,52 @@ final class PreviewViewController: NSViewController {
     /// 由窗口控制器驱动：渐进填充期间 .loading，全文就位 .done，
     /// 图片/PDF/提示页由 showOnly 统一收 .hidden
     func setEndMarker(_ state: EndMarkerState) {
+        endMarkerState = state
         switch state {
         case .hidden:
             endMarker.isHidden = true
         case .loading:
-            endMarker.stringValue = "正在加载…"
+            // 显式设回默认字属性 —— 从 done 的 kern 属性串切回来时别带残留
+            endMarker.font = NSFont.systemFont(ofSize: 11)
             endMarker.textColor = .secondaryLabelColor
+            endMarker.stringValue = "正在加载…"
             endMarker.isHidden = false
         case .done:
-            endMarker.stringValue = "— END —"
-            endMarker.textColor = .tertiaryLabelColor
+            // 信纸式收尾：细线 + 加宽字距的 END，淡到不读第二眼
+            //（字体/颜色/居中/kern 全写进属性串 —— 属性串会盖掉 cell 的
+            //  alignment，后设 font 也会把 kern 冲掉，都得在这里一次给齐）
+            let centered = NSMutableParagraphStyle()
+            centered.alignment = .center
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: 10, weight: .medium),
+                .foregroundColor: NSColor.tertiaryLabelColor,
+                .paragraphStyle: centered,
+            ]
+            let text = NSMutableAttributedString(string: "──  ", attributes: attrs)
+            text.append(NSAttributedString(string: "END", attributes: attrs.merging([.kern: 3]) { $1 }))
+            text.append(NSAttributedString(string: "  ──", attributes: attrs))
+            endMarker.attributedStringValue = text
             endMarker.isHidden = false
         }
         positionEndMarker()
+        // show() 之后 textView 的 frame 要等布局才真正长到位 —— 下一轮再校一次，
+        // 否则标识会按「上一篇文档的高度」落在半中间（ice 2026-09-25 撞见压在表格上）
+        DispatchQueue.main.async { [weak self] in self?.positionEndMarker() }
     }
 
+    private var endMarkerState: EndMarkerState = .hidden
+
     /// 标识居中放在底部内边距带（文本不会排进这个区域，不挡正文）。
-    /// 文档高度会随后续填充/布局变化，位置不缓存：append/show/布局后都重算。
+    /// 定位基准：loading 用 frame.maxY（已渲染前沿，便宜）；done 用 documentHeight
+    /// （真实内容底，会强制一次全文排版——但那是收尾时刻，一次性的）
     private func positionEndMarker() {
         guard !endMarker.isHidden else { return }
         let band = textView.textContainerInset.height
+        let bottom = endMarkerState == .loading ? textView.frame.maxY : documentHeight
         let h: CGFloat = 16
         endMarker.frame = NSRect(
             x: 0,
-            y: textView.frame.maxY - band + (band - h) / 2,
+            y: bottom - band + (band - h) / 2,
             width: textView.frame.width,
             height: h
         )
