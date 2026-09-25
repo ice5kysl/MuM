@@ -3,7 +3,7 @@ import AppKit
 /// 右侧大纲栏（ToC）。唯一的目录界面（⌘⇧O 开合；popover 已于 0.7.8 移除）。
 ///
 /// 常驻导航：列出标题（多级可折叠，三角在行尾）、点击跳转、跟随滚动高亮当前节。
-/// 底部细栏「› 大纲」（淡灰底、与窗口状态栏同色）整条可点 —— 点了收成窄条（rail）
+/// 顶部细栏「› 大纲」（淡灰底、与窗口状态栏同色）整条可点 —— 点了收成窄条（rail）
 /// 贴着右缘；窄条上的「×」彻底关掉（菜单/快捷键再开）。
 final class OutlinePanelController: NSViewController {
 
@@ -62,39 +62,39 @@ final class OutlinePanelController: NSViewController {
         scrollView.drawsBackground = false
         scrollView.translatesAutoresizingMaskIntoConstraints = false
 
-        // 底部细栏「› 大纲」：淡灰底（与窗口状态栏同色）、上沿一条细线，
-        // 整条可点收起大纲栏 —— 收起入口收在这里，不占栏顶一行（ice 2026-09-25）
-        let footer = FooterBarView()
-        footer.wantsLayer = true
-        footer.layer?.backgroundColor = MuMDesign.statusBarBackground.cgColor
-        footer.translatesAutoresizingMaskIntoConstraints = false
-        footer.onClick = { [weak self] in self?.onCollapseRequest?() }
+        // 顶部细栏「› 大纲」：淡灰底（与窗口状态栏同色）、下沿一条细线，
+        // 整条可点收起大纲栏（ice 2026-09-25：收起入口做成栏头，不悬浮）
+        let headerBar = OutlineBarView()
+        headerBar.wantsLayer = true
+        headerBar.layer?.backgroundColor = MuMDesign.statusBarBackground.cgColor
+        headerBar.translatesAutoresizingMaskIntoConstraints = false
+        headerBar.onClick = { [weak self] in self?.onCollapseRequest?() }
 
-        let footerLine = NSBox()
-        footerLine.boxType = .custom
-        footerLine.borderWidth = 0
-        footerLine.fillColor = MuMDesign.separator.withAlphaComponent(0.5)
-        footerLine.translatesAutoresizingMaskIntoConstraints = false
+        let headerLine = NSBox()
+        headerLine.boxType = .custom
+        headerLine.borderWidth = 0
+        headerLine.fillColor = MuMDesign.separator.withAlphaComponent(0.5)
+        headerLine.translatesAutoresizingMaskIntoConstraints = false
 
-        let footerChevron = NSImageView()
-        footerChevron.image = NSImage(systemSymbolName: "chevron.right", accessibilityDescription: nil)?
+        let headerChevron = NSImageView()
+        headerChevron.image = NSImage(systemSymbolName: "chevron.right", accessibilityDescription: nil)?
             .withSymbolConfiguration(.init(pointSize: 9, weight: .semibold))
-        footerChevron.contentTintColor = MuMDesign.tertiaryText
-        footerChevron.translatesAutoresizingMaskIntoConstraints = false
+        headerChevron.contentTintColor = MuMDesign.tertiaryText
+        headerChevron.translatesAutoresizingMaskIntoConstraints = false
 
-        let footerLabel = NSTextField(labelWithString: "大纲")
-        footerLabel.font = NSFont.systemFont(ofSize: 11, weight: .medium)
-        footerLabel.textColor = MuMDesign.tertiaryText
-        footerLabel.refusesFirstResponder = true
-        footerLabel.translatesAutoresizingMaskIntoConstraints = false
+        let headerLabel = NSTextField(labelWithString: "大纲")
+        headerLabel.font = NSFont.systemFont(ofSize: 11, weight: .medium)
+        headerLabel.textColor = MuMDesign.tertiaryText
+        headerLabel.refusesFirstResponder = true
+        headerLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        footer.addSubview(footerLine)
-        footer.addSubview(footerChevron)
-        footer.addSubview(footerLabel)
+        headerBar.addSubview(headerLine)
+        headerBar.addSubview(headerChevron)
+        headerBar.addSubview(headerLabel)
 
         view.addSubview(separator)
+        view.addSubview(headerBar)
         view.addSubview(scrollView)
-        view.addSubview(footer)
         view.addSubview(emptyLabel)
         NSLayoutConstraint.activate([
             separator.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -102,28 +102,28 @@ final class OutlinePanelController: NSViewController {
             separator.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             separator.widthAnchor.constraint(equalToConstant: 1),
 
-            footer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            footer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            footer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            footer.heightAnchor.constraint(equalToConstant: MuMDesign.statusBarHeight),
+            headerBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            headerBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            headerBar.topAnchor.constraint(equalTo: view.topAnchor),
+            headerBar.heightAnchor.constraint(equalToConstant: MuMDesign.statusBarHeight),
 
-            footerLine.leadingAnchor.constraint(equalTo: footer.leadingAnchor),
-            footerLine.trailingAnchor.constraint(equalTo: footer.trailingAnchor),
-            footerLine.topAnchor.constraint(equalTo: footer.topAnchor),
-            footerLine.heightAnchor.constraint(equalToConstant: 1),
+            headerLine.leadingAnchor.constraint(equalTo: headerBar.leadingAnchor),
+            headerLine.trailingAnchor.constraint(equalTo: headerBar.trailingAnchor),
+            headerLine.bottomAnchor.constraint(equalTo: headerBar.bottomAnchor),
+            headerLine.heightAnchor.constraint(equalToConstant: 1),
 
-            footerChevron.leadingAnchor.constraint(equalTo: footer.leadingAnchor, constant: 10),
-            footerChevron.centerYAnchor.constraint(equalTo: footer.centerYAnchor),
-            footerLabel.leadingAnchor.constraint(equalTo: footerChevron.trailingAnchor, constant: 4),
-            footerLabel.centerYAnchor.constraint(equalTo: footer.centerYAnchor),
+            headerChevron.leadingAnchor.constraint(equalTo: headerBar.leadingAnchor, constant: 10),
+            headerChevron.centerYAnchor.constraint(equalTo: headerBar.centerYAnchor),
+            headerLabel.leadingAnchor.constraint(equalTo: headerChevron.trailingAnchor, constant: 4),
+            headerLabel.centerYAnchor.constraint(equalTo: headerBar.centerYAnchor),
 
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: footer.topAnchor),
+            scrollView.topAnchor.constraint(equalTo: headerBar.bottomAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
             emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            emptyLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: 24),
+            emptyLabel.topAnchor.constraint(equalTo: headerBar.bottomAnchor, constant: 20),
 
             stackContainer.widthAnchor.constraint(equalTo: scrollView.contentView.widthAnchor),
         ])
@@ -343,8 +343,8 @@ final class OutlineRowButton: NSButton {
     }
 }
 
-/// 大纲栏底部的「› 大纲」细栏。整条可点，悬停出手型光标。
-final class FooterBarView: NSView {
+/// 大纲栏顶部的「› 大纲」细栏。整条可点，悬停出手型光标。
+final class OutlineBarView: NSView {
 
     var onClick: (() -> Void)?
 
