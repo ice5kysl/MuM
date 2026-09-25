@@ -56,9 +56,38 @@ final class MarkdownRenderer {
     private var pendingLineAnchors: [(line: Int, localOffset: Int)]?
     private var lastAnchoredLine = 0
 
+    /// 被隐藏的 YAML frontmatter 行数：解析前剥掉，锚点行号统一加回，
+    /// 保证滚动联动的行号始终对着**原始源码**（编辑器里的行）。
+    var frontmatterLineOffset = 0
+
+    /// 剥离文档开头的 YAML frontmatter（`---` 起、`---` 止）。
+    /// frontmatter 是元数据不是内容，阅读时隐藏（与 Typora/Obsidian 一致）；
+    /// 写模式永远显示原文，不受影响。没有闭合 `---` 时不认，按普通正文渲染。
+    /// 返回正文与被剥掉的行数（含两个分隔行）。
+    static func stripFrontmatter(_ markdown: String) -> (body: String, lineOffset: Int) {
+        guard markdown.hasPrefix("---\n") || markdown.hasPrefix("---\r\n") else { return (markdown, 0) }
+        guard let firstBreak = markdown.firstIndex(of: "\n") else { return (markdown, 0) }
+        var pos = markdown.index(after: firstBreak)
+        var lineCount = 1
+        while pos < markdown.endIndex {
+            let lineEnd = markdown[pos...].firstIndex(of: "\n") ?? markdown.endIndex
+            let line = markdown[pos..<lineEnd]
+            lineCount += 1
+            if line == "---" || line == "---\r" {
+                let bodyStart = lineEnd < markdown.endIndex ? markdown.index(after: lineEnd) : markdown.endIndex
+                return (String(markdown[bodyStart...]), lineCount)
+            }
+            guard lineEnd < markdown.endIndex else { break }
+            pos = markdown.index(after: lineEnd)
+        }
+        return (markdown, 0)
+    }
+
     func render(_ markdown: String) -> NSAttributedString {
         let renderStart = Date()
-        let document = RenderProfiler.time(.parse) { Document(parsing: markdown) }
+        let (body, lineOffset) = Self.stripFrontmatter(markdown)
+        frontmatterLineOffset = lineOffset
+        let document = RenderProfiler.time(.parse) { Document(parsing: body) }
         let output = NSMutableAttributedString()
         renderBlocks(Array(document.children), into: output, context: BlockContext())
         // 末尾多余的空行去掉，避免滚动区底部一大片空白
@@ -174,9 +203,10 @@ final class MarkdownRenderer {
 
     fileprivate func renderBlocks(_ blocks: [Markup], into out: NSMutableAttributedString, context: BlockContext) {
         for block in blocks {
-            // 滚动联动的内容锚点：渲染顺序即源码顺序，锚点序列天然双单调
+            // 滚动联动的内容锚点：渲染顺序即源码顺序，锚点序列天然双单调。
+            // 行号加回 frontmatter 偏移 —— 编辑器里的行号对着原始源码
             if let line = block.range?.lowerBound.line {
-                blockAnchors.append(BlockAnchor(sourceLine: line, renderedOffset: out.length))
+                blockAnchors.append(BlockAnchor(sourceLine: line + frontmatterLineOffset, renderedOffset: out.length))
             }
             renderBlock(block, into: out, context: context)
         }
@@ -631,10 +661,11 @@ final class MarkdownRenderer {
     }
 
     private func renderInline(_ node: Markup, into out: NSMutableAttributedString, style: InlineStyle, context: BlockContext) {
-        // 段落逐行锚点：新源码行的第一个行内节点，记下它此刻的落点
+        // 段落逐行锚点：新源码行的第一个行内节点，记下它此刻的落点。
+        // 行号加回 frontmatter 偏移，对着原始源码
         if pendingLineAnchors != nil,
            let line = node.range?.lowerBound.line, line > lastAnchoredLine {
-            pendingLineAnchors?.append((line: line, localOffset: out.length))
+            pendingLineAnchors?.append((line: line + frontmatterLineOffset, localOffset: out.length))
             lastAnchoredLine = line
         }
         switch node {
@@ -860,7 +891,10 @@ final class ProgressiveRenderSession {
 
     init(renderer: MarkdownRenderer, markdown: String) {
         self.renderer = renderer
-        blocks = Array(RenderProfiler.time(.parse) { Document(parsing: markdown) }.children)
+        // 与 render(_:) 同一条 frontmatter 剥离路径，锚点行号偏移口径一致
+        let (body, lineOffset) = MarkdownRenderer.stripFrontmatter(markdown)
+        renderer.frontmatterLineOffset = lineOffset
+        blocks = Array(RenderProfiler.time(.parse) { Document(parsing: body) }.children)
     }
 
     var isFinished: Bool { nextIndex >= blocks.count }
