@@ -346,8 +346,8 @@ final class MainWindowController: NSWindowController {
         contentPane.tocController.onSelect = { [weak self] location in
             self?.contentPane.previewViewController.revealRenderedOffset(location)
         }
-        // 竖线左侧「›」收成窄条；窄条「‹」拉回、「×」彻底关
-        contentPane.onTOCCollapse = { [weak self] in self?.setTOCState(.rail) }
+        // 底部细栏「› 大纲」收成窄条；窄条「‹」拉回、「×」彻底关
+        contentPane.tocController.onCollapseRequest = { [weak self] in self?.setTOCState(.rail) }
         contentPane.onTOCExpand = { [weak self] in self?.setTOCState(.open) }
         contentPane.onTOCClose = { [weak self] in self?.setTOCState(.closed) }
         contentPane.previewViewController.onScrollPosition = { [weak self] in

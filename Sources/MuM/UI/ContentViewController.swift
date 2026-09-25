@@ -260,19 +260,6 @@ final class ContentViewController: NSViewController {
         tocDragHandle.translatesAutoresizingMaskIntoConstraints = false
         tocView.addSubview(tocDragHandle)
 
-        // 「›」收起钮：竖线左侧、栏顶位置，跟着栏一起开/合
-        tocCollapseButton.isBordered = false
-        tocCollapseButton.title = ""
-        tocCollapseButton.image = NSImage(systemSymbolName: "chevron.right", accessibilityDescription: nil)?
-            .withSymbolConfiguration(.init(pointSize: 10, weight: .semibold))
-        tocCollapseButton.contentTintColor = MuMDesign.tertiaryText
-        tocCollapseButton.toolTip = "收起大纲栏（⇧⌘O 再开）"
-        tocCollapseButton.target = self
-        tocCollapseButton.action = #selector(tocCollapseTapped)
-        tocCollapseButton.isHidden = true
-        tocCollapseButton.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(tocCollapseButton)
-
         tocOpenConstraints = [
             splitView.trailingAnchor.constraint(equalTo: tocView.leadingAnchor),
             tocView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -292,13 +279,6 @@ final class ContentViewController: NSViewController {
             tocDragHandle.topAnchor.constraint(equalTo: tocView.topAnchor),
             tocDragHandle.bottomAnchor.constraint(equalTo: tocView.bottomAnchor),
             tocDragHandle.widthAnchor.constraint(equalToConstant: 6),
-
-            // 不钉 tocView.leading：栏收起时它的约束全下线，位置失去定义。
-            // splitView 右缘恒有约束，栏开着时它正好 = 栏的左缘（竖线）
-            tocCollapseButton.trailingAnchor.constraint(equalTo: splitView.trailingAnchor, constant: -4),
-            tocCollapseButton.topAnchor.constraint(equalTo: splitView.topAnchor, constant: 6),
-            tocCollapseButton.widthAnchor.constraint(equalToConstant: 18),
-            tocCollapseButton.heightAnchor.constraint(equalToConstant: 18),
         ])
         splitFullWidthConstraint = splitView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
 
@@ -328,11 +308,6 @@ final class ContentViewController: NSViewController {
     /// 窄条两个按钮的动作（窗口控制器接）
     var onTOCExpand: (() -> Void)?
     var onTOCClose: (() -> Void)?
-    /// 「›」收起钮的动作（窗口控制器接，切窄条态）
-    var onTOCCollapse: (() -> Void)?
-    /// 收起钮挂在竖线**左侧**（内容区一侧）——放进栏内就只能在竖线右边，
-    /// 放栏视图外又吃不到点击（命中测试不出 superview bounds），所以归这里装配
-    private let tocCollapseButton = NSButton()
 
     private var tocOpenConstraints: [NSLayoutConstraint] = []
     private var tocRailConstraints: [NSLayoutConstraint] = []
@@ -344,7 +319,6 @@ final class ContentViewController: NSViewController {
 
     @objc private func railExpandTapped() { onTOCExpand?() }
     @objc private func railCloseTapped() { onTOCClose?() }
-    @objc private func tocCollapseTapped() { onTOCCollapse?() }
 
     private func setupRail() {
         for (button, symbol, tip) in [
@@ -382,7 +356,6 @@ final class ContentViewController: NSViewController {
         tocState = state
         tocController.view.isHidden = (state != .open)
         railView.isHidden = (state != .rail)
-        tocCollapseButton.isHidden = (state != .open)
         NSLayoutConstraint.deactivate(tocOpenConstraints + tocRailConstraints)
         splitFullWidthConstraint?.isActive = false
         switch state {
