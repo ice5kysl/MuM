@@ -2,14 +2,13 @@ import AppKit
 
 /// 右侧大纲栏（ToC）。唯一的目录界面（⌘⇧O 开合；popover 已于 0.7.8 移除）。
 ///
-/// 常驻导航：列出标题（多级可折叠）、点击跳转、跟随滚动高亮当前节。
-/// 右上角「›」收成窄条（rail）贴着右缘——留一个随时拉回来的把手；
-/// 窄条上的「×」彻底关掉（菜单/快捷键再开）。
+/// 常驻导航：列出标题（多级可折叠，三角在行尾）、点击跳转、跟随滚动高亮当前节。
+/// 「›」收起钮不在栏内 —— 挂在竖线左侧（内容区一侧），由 ContentViewController 装配
+/// （按钮放栏外是因为 NSView 的命中测试不投到 superview bounds 之外的子视图）。
+/// 窄条（rail）贴着右缘，上面的「×」彻底关掉（菜单/快捷键再开）。
 final class OutlinePanelController: NSViewController {
 
     var onSelect: ((Int) -> Void)?
-    /// 头部「›」收起按钮（交窗口控制器切到窄条态）
-    var onCollapseRequest: (() -> Void)?
 
     private var items: [MarkdownRenderer.OutlineItem] = []
     private var rowButtons: [OutlineRowButton] = []
@@ -34,20 +33,6 @@ final class OutlinePanelController: NSViewController {
         separator.borderWidth = 0
         separator.fillColor = MuMDesign.separator.withAlphaComponent(0.5)
         separator.translatesAutoresizingMaskIntoConstraints = false
-
-        // 不放「大纲」标题字 —— 栏本身就是大纲，标题是冗余（ice 2026-09-25）。
-        // 收成窄条：「›」放左上、贴着与正文区分隔线的一侧
-        let collapse = NSButton()
-        collapse.isBordered = false
-        collapse.title = ""
-
-        collapse.image = NSImage(systemSymbolName: "chevron.right", accessibilityDescription: nil)?
-            .withSymbolConfiguration(.init(pointSize: 10, weight: .semibold))
-        collapse.contentTintColor = MuMDesign.tertiaryText
-        collapse.toolTip = "收起大纲栏（⇧⌘O 再开）"
-        collapse.target = self
-        collapse.action = #selector(collapseTapped)
-        collapse.translatesAutoresizingMaskIntoConstraints = false
 
         stack.orientation = .vertical
         stack.alignment = .leading
@@ -77,7 +62,6 @@ final class OutlinePanelController: NSViewController {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
 
         view.addSubview(separator)
-        view.addSubview(collapse)
         view.addSubview(scrollView)
         view.addSubview(emptyLabel)
         NSLayoutConstraint.activate([
@@ -86,18 +70,13 @@ final class OutlinePanelController: NSViewController {
             separator.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             separator.widthAnchor.constraint(equalToConstant: 1),
 
-            collapse.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
-            collapse.topAnchor.constraint(equalTo: view.topAnchor, constant: 6),
-            collapse.widthAnchor.constraint(equalToConstant: 18),
-            collapse.heightAnchor.constraint(equalToConstant: 18),
-
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.topAnchor.constraint(equalTo: collapse.bottomAnchor, constant: 2),
+            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
             emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            emptyLabel.topAnchor.constraint(equalTo: collapse.bottomAnchor, constant: 20),
+            emptyLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: 24),
 
             stackContainer.widthAnchor.constraint(equalTo: scrollView.contentView.widthAnchor),
         ])
@@ -192,10 +171,6 @@ final class OutlinePanelController: NSViewController {
         onSelect?(items[sender.tag].location)
     }
 
-    @objc private func collapseTapped() {
-        onCollapseRequest?()
-    }
-
     // MARK: - 诊断（UITestRunner）
 
     var debugRowCount: Int { rowButtons.count }
@@ -273,7 +248,9 @@ final class OutlineRowButton: NSButton {
             addSubview(triangle)
             disclosure = triangle
             NSLayoutConstraint.activate([
-                triangle.leadingAnchor.constraint(equalTo: leadingAnchor, constant: indent - 4),
+                // 折叠三角在行尾（ice 2026-09-25）：不抢文字前的缩进对齐，
+                // 长标题截断时也给它让位
+                triangle.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
                 triangle.centerYAnchor.constraint(equalTo: centerYAnchor),
                 triangle.widthAnchor.constraint(equalToConstant: 12),
             ])
@@ -289,10 +266,13 @@ final class OutlineRowButton: NSButton {
         applyStyle()
 
         translatesAutoresizingMaskIntoConstraints = false
+        // 有折叠三角的行，文字右缘给三角让位
+        let labelTrailing: NSLayoutXAxisAnchor = disclosure?.leadingAnchor ?? trailingAnchor
+        let labelTrailingConstant: CGFloat = disclosure != nil ? -4 : -10
         NSLayoutConstraint.activate([
-            // 缩进是版式的一部分；有无折叠三角的行文字左缘对齐（三角缩进位统一预留）
-            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: indent + 10),
-            label.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -10),
+            // 缩进是版式的一部分；三角挪到行尾后，文字左缘就是缩进本身
+            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: indent),
+            label.trailingAnchor.constraint(lessThanOrEqualTo: labelTrailing, constant: labelTrailingConstant),
             label.centerYAnchor.constraint(equalTo: centerYAnchor),
             heightAnchor.constraint(equalToConstant: item.level == 1 ? 26 : 22),
         ])
