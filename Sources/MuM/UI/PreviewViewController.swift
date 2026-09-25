@@ -9,6 +9,10 @@ final class PreviewViewController: NSViewController {
 
     private let findBar = PreviewFindBar()
     private let textScrollView = NSScrollView()
+    /// 文末标识：渐进填充期间显示「正在加载…」，全文就位后显示淡淡的「— END —」。
+    /// 是覆盖在底部内边距带的视图，不进文本 —— 不参与复制、导出、查找。
+    /// 解决的真实问题：长文档滚到当前已渲染的末尾时，分不清「到底了」还是「还没加载完」。
+    private let endMarker = NSTextField(labelWithString: "")
     private var findMatches: [NSRange] = []
     private var currentMatchIndex = 0
     private var findBarHeight: NSLayoutConstraint!
@@ -308,6 +312,14 @@ final class PreviewViewController: NSViewController {
         textView.drawsBackground = true
         textView.backgroundColor = .textBackgroundColor
         textView.textContainerInset = NSSize(width: 28, height: 24)
+
+        // 文末标识放在底部内边距带（24pt，文本不会排进这个区域）
+        endMarker.font = NSFont.systemFont(ofSize: 11)
+        endMarker.textColor = .tertiaryLabelColor
+        endMarker.alignment = .center
+        endMarker.isHidden = true
+        endMarker.translatesAutoresizingMaskIntoConstraints = true
+        textView.addSubview(endMarker)
         textView.isAutomaticLinkDetectionEnabled = false
         // 不用系统查找条（usesFindBar）—— 预览聚焦时它会和我们自己的查找条
         // 并存弹出，同一个动作两个 UI（审计 R-5）。查找统一走 PreviewFindBar
@@ -436,6 +448,8 @@ final class PreviewViewController: NSViewController {
         for candidate in [textScrollView, imageContainer, pdfView, messageContainer] {
             candidate.isHidden = (candidate !== target)
         }
+        // 非文本页没有「文末」可言
+        if target !== textScrollView { setEndMarker(.hidden) }
         // 切换到图片 / PDF / 提示页时收起查找条 —— 那些视图里没有可查找的文本
         if target !== textScrollView, isFindBarVisible {
             isFindBarVisible = false
@@ -451,6 +465,8 @@ final class PreviewViewController: NSViewController {
     func append(attributed: NSAttributedString) {
         cachedDocumentHeight = nil
         textView.textStorage?.append(attributed)
+        // frame 高度要等一次布局才长出来，文末标识下一轮 runloop 再挪
+        DispatchQueue.main.async { [weak self] in self?.positionEndMarker() }
     }
 
     /// - Parameter restoreFraction: 打开**另一个文件**时传它保存过的位置；
@@ -545,6 +561,50 @@ final class PreviewViewController: NSViewController {
         if let messageURL { ExternalOpener.reveal([messageURL]) }
     }
 
+    // MARK: - 文末标识
+
+    enum EndMarkerState { case hidden, loading, done }
+
+    /// 由窗口控制器驱动：渐进填充期间 .loading，全文就位 .done，
+    /// 图片/PDF/提示页由 showOnly 统一收 .hidden
+    func setEndMarker(_ state: EndMarkerState) {
+        switch state {
+        case .hidden:
+            endMarker.isHidden = true
+        case .loading:
+            endMarker.stringValue = "正在加载…"
+            endMarker.textColor = .secondaryLabelColor
+            endMarker.isHidden = false
+        case .done:
+            endMarker.stringValue = "— END —"
+            endMarker.textColor = .tertiaryLabelColor
+            endMarker.isHidden = false
+        }
+        positionEndMarker()
+    }
+
+    /// 标识居中放在底部内边距带（文本不会排进这个区域，不挡正文）。
+    /// 文档高度会随后续填充/布局变化，位置不缓存：append/show/布局后都重算。
+    private func positionEndMarker() {
+        guard !endMarker.isHidden else { return }
+        let band = textView.textContainerInset.height
+        let h: CGFloat = 16
+        endMarker.frame = NSRect(
+            x: 0,
+            y: textView.frame.maxY - band + (band - h) / 2,
+            width: textView.frame.width,
+            height: h
+        )
+    }
+
+    /// 用户是否滚到了已渲染内容的末尾附近（渐进填充据此加速追赶）。
+    /// 用 textView.frame（已排版部分的高度，便宜）而不是 documentHeight
+    /// （会触发全文排版，正是渐进渲染要避免的）
+    var isNearRenderedEnd: Bool {
+        let clip = textScrollView.contentView
+        return clip.bounds.maxY > textView.frame.height - clip.bounds.height * 2
+    }
+
     // MARK: - 滚动同步
 
     /// 文档总高度（含上下内边距）。
@@ -575,6 +635,7 @@ final class PreviewViewController: NSViewController {
         super.viewDidLayout()
         // 宽度变了要重新折行，缓存的高度作废
         cachedDocumentHeight = nil
+        positionEndMarker()
     }
 
     /// 返回 0…1 的滚动进度。注意它会触发 documentHeight（首查时全量排版，有缓存）——

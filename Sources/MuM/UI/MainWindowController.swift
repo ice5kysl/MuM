@@ -72,6 +72,8 @@ final class MainWindowController: NSWindowController {
         static let firstScreenBlocks = 80
         /// 渐进填充每片最多占主线程的时间，片间让出滚动和输入
         static let fillSliceBudget: TimeInterval = 0.04
+        /// 用户滚到已渲染末尾附近时的追赶片预算：他正盯着底部等，输入让路
+        static let fillCatchUpBudget: TimeInterval = 0.15
     }
 
     // MARK: - 初始化
@@ -718,6 +720,7 @@ final class MainWindowController: NSWindowController {
         LaunchTimer.mark("    render 返回（AST→富文本）")
 
         contentPane.previewViewController.show(attributed: attributed, restoreFraction: restore)
+        contentPane.previewViewController.setEndMarker(.done)
         LaunchTimer.mark("    预览已写入富文本")
     }
 
@@ -730,6 +733,7 @@ final class MainWindowController: NSWindowController {
         // 填充到一半时全文高度还是错的，按比例恢复会落错地方
         contentPane.previewViewController.setBlockAnchors(session.blockAnchors, complete: session.isFinished)
         contentPane.previewViewController.show(attributed: first, restoreFraction: 0)
+        contentPane.previewViewController.setEndMarker(session.isFinished ? .done : .loading)
         LaunchTimer.mark("    渐进：首屏已写入（TTFR 的 R）")
         fillProgressively(session: session, generation: progressiveGeneration, restore: restore)
     }
@@ -737,7 +741,12 @@ final class MainWindowController: NSWindowController {
     private func fillProgressively(session: ProgressiveRenderSession, generation: Int, restore: CGFloat?) {
         DispatchQueue.main.async { [weak self] in
             guard let self, generation == self.progressiveGeneration else { return }
-            if let chunk = session.renderNext(timeBudget: RenderTuning.fillSliceBudget) {
+            // 用户滚到已渲染末尾附近就加速追赶 —— 他正盯着底部等下一片，
+            // 「以为文档结束了」就是这个时刻的错觉
+            let budget: TimeInterval = self.contentPane.previewViewController.isNearRenderedEnd
+                ? RenderTuning.fillCatchUpBudget
+                : RenderTuning.fillSliceBudget
+            if let chunk = session.renderNext(timeBudget: budget) {
                 self.contentPane.previewViewController.append(attributed: chunk)
                 self.contentPane.previewViewController.setBlockAnchors(session.blockAnchors, complete: session.isFinished)
             }
@@ -746,6 +755,7 @@ final class MainWindowController: NSWindowController {
                 return
             }
             LaunchTimer.mark("    渐进：全文已补齐")
+            self.contentPane.previewViewController.setEndMarker(.done)
             self.contentPane.previewViewController.setOutline(session.outline)
             // 填充期间用户没滚动过，才把保存的阅读位置还回去；动过就以用户为准
             if let restore, restore > 0.001,
