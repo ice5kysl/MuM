@@ -16,6 +16,7 @@ final class OutlineLayoutTests: XCTestCase {
             MarkdownRenderer.OutlineItem(level: 2, title: "目录与使用百科", location: 10),
             MarkdownRenderer.OutlineItem(level: 2, title: "一段比较长的二级标题，应该被截断而不是塌掉", location: 20),
             MarkdownRenderer.OutlineItem(level: 3, title: "支持邮箱", location: 30),
+            MarkdownRenderer.OutlineItem(level: 1, title: "附录", location: 40),
         ]
         let controller = OutlinePanelController()
         controller.setOutline(items)
@@ -64,6 +65,21 @@ final class OutlineLayoutTests: XCTestCase {
 
         controller.debugToggleRowDisclosure(0)
         XCTAssertEqual(controller.debugVisibleRowCount, 4, "展开后还原")
+    }
+
+    /// 全文只有一个 H1 时它是文档标题不是目录条目：栏里摘掉，子级上提一层
+    /// （ice 2026-09-25：标题带上已经有文件名，再列一遍是啰嗦）
+    func testSingletonH1IsDropped() {
+        let items = [
+            MarkdownRenderer.OutlineItem(level: 1, title: "文档标题", location: 0),
+            MarkdownRenderer.OutlineItem(level: 2, title: "第一节", location: 10),
+            MarkdownRenderer.OutlineItem(level: 3, title: "小节", location: 20),
+        ]
+        let controller = OutlinePanelController()
+        _ = controller.view
+        controller.setOutline(items)
+        XCTAssertEqual(controller.debugRowCount, 2, "唯一 H1 不进大纲栏")
+        XCTAssertEqual(controller.debugFirstRowTitle, "第一节")
     }
 
     private func allSubviews(of view: NSView) -> [NSView] {

@@ -35,12 +35,8 @@ final class OutlinePanelController: NSViewController {
         separator.fillColor = MuMDesign.separator.withAlphaComponent(0.5)
         separator.translatesAutoresizingMaskIntoConstraints = false
 
-        let header = NSTextField(labelWithString: "大纲")
-        header.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
-        header.textColor = MuMDesign.tertiaryText
-        header.translatesAutoresizingMaskIntoConstraints = false
-
-        // 收成窄条：贴右缘的「›」
+        // 不放「大纲」标题字 —— 栏本身就是大纲，标题是冗余（ice 2026-09-25）。
+        // 收成窄条：「›」放左上、贴着与正文区分隔线的一侧
         let collapse = NSButton()
         collapse.isBordered = false
         collapse.title = ""
@@ -81,7 +77,6 @@ final class OutlinePanelController: NSViewController {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
 
         view.addSubview(separator)
-        view.addSubview(header)
         view.addSubview(collapse)
         view.addSubview(scrollView)
         view.addSubview(emptyLabel)
@@ -91,20 +86,18 @@ final class OutlinePanelController: NSViewController {
             separator.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             separator.widthAnchor.constraint(equalToConstant: 1),
 
-            header.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
-            header.topAnchor.constraint(equalTo: view.topAnchor, constant: 10),
-            collapse.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
-            collapse.centerYAnchor.constraint(equalTo: header.centerYAnchor),
+            collapse.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
+            collapse.topAnchor.constraint(equalTo: view.topAnchor, constant: 6),
             collapse.widthAnchor.constraint(equalToConstant: 18),
             collapse.heightAnchor.constraint(equalToConstant: 18),
 
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.topAnchor.constraint(equalTo: header.bottomAnchor, constant: 4),
+            scrollView.topAnchor.constraint(equalTo: collapse.bottomAnchor, constant: 2),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
             emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            emptyLabel.topAnchor.constraint(equalTo: header.bottomAnchor, constant: 24),
+            emptyLabel.topAnchor.constraint(equalTo: collapse.bottomAnchor, constant: 20),
 
             stackContainer.widthAnchor.constraint(equalTo: scrollView.contentView.widthAnchor),
         ])
@@ -112,8 +105,17 @@ final class OutlinePanelController: NSViewController {
 
     /// 每次重排后换入新大纲（location 针对当前渲染结果，旧的不能再用）。
     /// 折叠状态按标题+层级记着，重排后尽量还原
-    func setOutline(_ items: [MarkdownRenderer.OutlineItem]) {
+    func setOutline(_ rawItems: [MarkdownRenderer.OutlineItem]) {
         let previousCollapsed = collapsed
+        // 全文只有一个 H1 时它是「文档标题」而不是目录条目 —— 标题带上已经有
+        // 文件名，再列一遍只是啰嗦（ice 2026-09-25）。摘掉它，子级整体上提一层。
+        // 多个 H1 的文档照原样列（那时每个 H1 都是真章节）。
+        var items = rawItems
+        if rawItems.first?.level == 1, rawItems.filter({ $0.level == 1 }).count == 1 {
+            items = rawItems.dropFirst().map {
+                MarkdownRenderer.OutlineItem(level: $0.level - 1, title: $0.title, location: $0.location)
+            }
+        }
         self.items = items
         collapsed = []
         hasChildren = items.indices.map { i in
@@ -198,6 +200,7 @@ final class OutlinePanelController: NSViewController {
 
     var debugRowCount: Int { rowButtons.count }
     var debugVisibleRowCount: Int { rowButtons.filter { !$0.isHidden }.count }
+    var debugFirstRowTitle: String? { items.first?.title }
     var debugCurrentTitle: String? {
         guard let currentIndex else { return nil }
         return items[currentIndex].title

@@ -403,6 +403,10 @@ extension AppDelegate: NSMenuItemValidation {
             menuItem.state = (mainWindowController?.isFileTreeVisible ?? false) ? .on : .off
             return WorkspaceStore.shared.count > 0
 
+        case #selector(toggleTOC(_:)):
+            menuItem.state = (mainWindowController?.isTOCVisible ?? false) ? .on : .off
+            return mainWindowController?.hasOpenDocument ?? false
+
         case #selector(setWriteMode(_:)):
             menuItem.state = mainWindowController?.currentMode == .write ? .on : .off
             return mainWindowController?.hasOpenDocument ?? false

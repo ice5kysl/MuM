@@ -1597,6 +1597,9 @@ final class MainWindowController: NSWindowController {
         setTOCState(tocState == .open ? .closed : .open)
     }
 
+    /// 菜单勾选状态用：完整栏开着才算「可见」（窄条 = 收起来了）
+    var isTOCVisible: Bool { tocState == .open && contentPane.mode != .write }
+
     func setTOCState(_ state: ContentViewController.TOCState) {
         tocState = state
         applyTOCVisibility()

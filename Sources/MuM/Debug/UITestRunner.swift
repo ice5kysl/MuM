@@ -341,7 +341,7 @@ enum UITestRunner {
     // MARK: - 场景五：大纲
     //
     // 断言条目数、首条是文档 H1、位置严格递增且都落在渲染文本内，
-    // 最后触发大纲 popover 断言能弹出（重排后大纲必须换新，位置错了跳转会落空）。
+    // 再走一遍大纲栏：展开 → 行数（不列唯一 H1）→ 点击跳转 → 跟随高亮 → 收起。
 
     private static func scenarioOutline(_ c: MainWindowController, _ doc: URL, _ check: Checker) {
         guard openAndRender(c, doc, check) else { return }
@@ -363,23 +363,26 @@ enum UITestRunner {
 
         // 大纲栏（唯一的 ToC 界面，popover 已于 0.7.8 移除）：展开 → 行数一致 →
         // 点击跳转 → 跟随滚动高亮 → 收起
+        // 栏内不列文档唯一的 H1（是标题不是目录条目，0.7.9 起），行数跟着这个过滤走
+        let dropsSingletonH1 = items.first?.level == 1 && items.filter { $0.level == 1 }.count == 1
+        let panelItems = dropsSingletonH1 ? Array(items.dropFirst()) : items
         c.debugOutline()
         check.waitFor("大纲栏展开", expected: "可见",
                       condition: { c.debugTOCVisible },
                       actual: { "未展开" })
-        check.expect(c.debugTOCRowCount == items.count, "栏内行数与大纲一致",
-                     expected: "\(items.count) 行", actual: "\(c.debugTOCRowCount) 行")
-        if items.count > 2 {
+        check.expect(c.debugTOCRowCount == panelItems.count, "栏内行数与大纲一致（不列唯一 H1）",
+                     expected: "\(panelItems.count) 行", actual: "\(c.debugTOCRowCount) 行")
+        if panelItems.count > 2 {
             let beforeY = c.debugPreview.debugScrollView.contentView.bounds.origin.y
             // 点正中条目：末段的条目尾部余量不足一屏，滚不到顶，「当前节」按视口顶
             // 算仍是上面的节 —— 那是正确行为；中段条目尾部足够，必须点到顶
-            let target = items.count / 2
+            let target = panelItems.count / 2
             c.debugTOCClickRow(target)
             check.waitFor("点击后段条目 → 预览跳走", expected: "视口移动",
                           condition: { c.debugPreview.debugScrollView.contentView.bounds.origin.y != beforeY },
                           actual: { "原地不动" })
-            check.waitFor("跟随高亮落在所点节", expected: items[target].title,
-                          condition: { c.debugTOCCurrentTitle == items[target].title },
+            check.waitFor("跟随高亮落在所点节", expected: panelItems[target].title,
+                          condition: { c.debugTOCCurrentTitle == panelItems[target].title },
                           actual: { c.debugTOCCurrentTitle ?? "无" })
         }
         c.debugCloseTOC()

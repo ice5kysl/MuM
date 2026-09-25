@@ -229,7 +229,9 @@ final class ContentViewController: NSViewController {
 
         view.addSubview(splitView)
 
-        // 大纲栏三态：开（220pt）/ 窄条（26pt 把手）/ 关。钉在内容区右缘、工具栏条之下
+        // 大纲栏三态：开（可拖宽，默认 220pt）/ 窄条（26pt 把手）/ 关。
+        // 钉在内容区右缘；顶边跟着 splitView 顶边走 —— 标题带高度是运行期按安全区
+        // 算的（stripHeightConstraint），写死常量会顶进标题带、和「导出」按钮叠上
         let tocView = tocController.view
         tocView.translatesAutoresizingMaskIntoConstraints = false
         tocView.isHidden = true
@@ -241,20 +243,43 @@ final class ContentViewController: NSViewController {
         view.addSubview(railView)
         setupRail()
 
+        let savedTOCWidth = UserDefaults.standard.object(forKey: "MuM.tocWidth") as? CGFloat ?? 220
+        tocWidthConstraint = tocView.widthAnchor.constraint(
+            equalToConstant: min(420, max(160, savedTOCWidth))
+        )
+
+        // 左缘拖拽把手：压在分隔线上，左右拖动调栏宽
+        tocDragHandle.onDrag = { [weak self] delta in
+            guard let self else { return }
+            // 栏钉在右缘，往左拖 = 变宽
+            self.tocWidthConstraint.constant = min(420, max(160, self.tocWidthConstraint.constant - delta))
+        }
+        tocDragHandle.onDragEnd = {
+            UserDefaults.standard.set(self.tocWidthConstraint.constant, forKey: "MuM.tocWidth")
+        }
+        tocDragHandle.translatesAutoresizingMaskIntoConstraints = false
+        tocView.addSubview(tocDragHandle)
+
         tocOpenConstraints = [
             splitView.trailingAnchor.constraint(equalTo: tocView.leadingAnchor),
             tocView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tocView.topAnchor.constraint(equalTo: view.topAnchor, constant: MuMDesign.titleStripHeight),
+            tocView.topAnchor.constraint(equalTo: splitView.topAnchor),
             tocView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            tocView.widthAnchor.constraint(equalToConstant: 220),
+            tocWidthConstraint,
         ]
         tocRailConstraints = [
             splitView.trailingAnchor.constraint(equalTo: railView.leadingAnchor),
             railView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            railView.topAnchor.constraint(equalTo: view.topAnchor, constant: MuMDesign.titleStripHeight),
+            railView.topAnchor.constraint(equalTo: splitView.topAnchor),
             railView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             railView.widthAnchor.constraint(equalToConstant: 26),
         ]
+        NSLayoutConstraint.activate([
+            tocDragHandle.leadingAnchor.constraint(equalTo: tocView.leadingAnchor, constant: -2),
+            tocDragHandle.topAnchor.constraint(equalTo: tocView.topAnchor),
+            tocDragHandle.bottomAnchor.constraint(equalTo: tocView.bottomAnchor),
+            tocDragHandle.widthAnchor.constraint(equalToConstant: 6),
+        ])
         splitFullWidthConstraint = splitView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
 
         stripHeightConstraint = splitView.topAnchor.constraint(
@@ -288,6 +313,9 @@ final class ContentViewController: NSViewController {
     private var tocRailConstraints: [NSLayoutConstraint] = []
     private var splitFullWidthConstraint: NSLayoutConstraint?
     private var tocState: TOCState = .closed
+    /// 大纲栏宽度（左缘把手拖拽调整，存 MuM.tocWidth）
+    private var tocWidthConstraint: NSLayoutConstraint!
+    private let tocDragHandle = TOCDragHandleView()
 
     @objc private func railExpandTapped() { onTOCExpand?() }
     @objc private func railCloseTapped() { onTOCClose?() }
@@ -523,5 +551,25 @@ extension ContentViewController: NSSplitViewDelegate {
 
     func splitView(_ splitView: NSSplitView, holdingPriorityForSubviewAt dividerIndex: Int) -> NSLayoutConstraint.Priority {
         NSLayoutConstraint.Priority(251)
+    }
+}
+
+/// 大纲栏左缘的拖拽把手。透明，悬停变左右箭头光标；拖动向左 = 栏变宽。
+final class TOCDragHandleView: NSView {
+
+    /// 拖动增量（屏点）。向右为正，由调用方换算成宽度增减
+    var onDrag: ((CGFloat) -> Void)?
+    var onDragEnd: (() -> Void)?
+
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: .resizeLeftRight)
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        onDrag?(event.deltaX)
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        onDragEnd?()
     }
 }
