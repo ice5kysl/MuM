@@ -50,9 +50,9 @@ final class AboutWindowController: NSWindowController {
     // MARK: - 内容
 
     private func buildContent() -> NSView {
-        let content = NSView()
-        content.wantsLayer = true
-        content.layer?.backgroundColor = MuMDesign.paneBackground.cgColor
+        // 动态色必须走 PaneBackgroundView（updateLayer 每次按当前外观重解析）——
+        // 直接存 cgColor 是一次性快照，窗口缓存复用后切外观会旧底色配新文字（F1）
+        let content = PaneBackgroundView(color: MuMDesign.paneBackground)
 
         let icon = NSImageView(image: NSApp.applicationIconImage)
         icon.imageScaling = .scaleProportionallyUpOrDown

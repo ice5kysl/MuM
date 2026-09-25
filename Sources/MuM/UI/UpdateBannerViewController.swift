@@ -25,9 +25,8 @@ final class UpdateBannerViewController: NSTitlebarAccessoryViewController {
     }
 
     override func loadView() {
-        let container = NSView()
-        container.wantsLayer = true
-        container.layer?.backgroundColor = MuMDesign.paneBackground.cgColor
+        // 同 About：动态色走 PaneBackgroundView，不存 cgColor 快照（F1）
+        let container = PaneBackgroundView(color: MuMDesign.paneBackground)
 
         let label = NSTextField(labelWithString: "发现新版本 v\(update.version)")
         label.font = NSFont.systemFont(ofSize: 12)

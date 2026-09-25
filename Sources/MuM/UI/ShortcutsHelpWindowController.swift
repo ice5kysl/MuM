@@ -88,9 +88,8 @@ final class ShortcutsHelpWindowController: NSWindowController {
     // MARK: - 内容
 
     private func buildContent() -> NSView {
-        let content = NSView()
-        content.wantsLayer = true
-        content.layer?.backgroundColor = MuMDesign.paneBackground.cgColor
+        // 同 About：动态色走 PaneBackgroundView，不存 cgColor 快照（F1）
+        let content = PaneBackgroundView(color: MuMDesign.paneBackground)
 
         let title = NSTextField(labelWithString: "快捷键")
         title.font = MuMDesign.contentTitle
