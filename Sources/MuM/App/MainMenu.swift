@@ -95,7 +95,7 @@ enum MainMenuBuilder {
         menu.addItem(.separator())
         menu.addItem(item("在预览中查找…", #selector(AppDelegate.showPreviewFind(_:)), "f", target: target))
         menu.addItem(item("全局搜索…", #selector(AppDelegate.showGlobalSearch(_:)), "f", modifiers: [.command, .shift], target: target))
-        menu.addItem(item("文档大纲…", #selector(AppDelegate.showOutline(_:)), "o", modifiers: [.command, .shift], target: target))
+        menu.addItem(item("大纲栏", #selector(AppDelegate.toggleTOC(_:)), "o", modifiers: [.command, .shift], target: target))
         menu.addItem(item("查找下一处", #selector(AppDelegate.findNext(_:)), "g", target: target))
         menu.addItem(item("查找上一处", #selector(AppDelegate.findPrevious(_:)), "g", modifiers: [.command, .shift], target: target))
 
@@ -165,7 +165,6 @@ enum MainMenuBuilder {
 
         menu.addItem(item("项目列表", #selector(AppDelegate.toggleProjects(_:)), "0", target: target))
         menu.addItem(item("目录树", #selector(AppDelegate.toggleFileTree(_:)), "0", modifiers: [.command, .option], target: target))
-        menu.addItem(item("大纲栏", #selector(AppDelegate.toggleTOC(_:)), "o", modifiers: [.command, .option], target: target))
 
         menu.addItem(.separator())
 

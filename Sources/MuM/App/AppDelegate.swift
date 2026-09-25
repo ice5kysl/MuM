@@ -160,10 +160,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mainWindowController?.showGlobalSearch()
     }
 
-    @objc func showOutline(_ sender: Any?) {
-        mainWindowController?.showOutline()
-    }
-
     @objc func toggleTOC(_ sender: Any?) {
         mainWindowController?.toggleTOC()
     }

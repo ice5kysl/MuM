@@ -48,9 +48,9 @@ final class ContentViewController: NSViewController {
     private let externalOpenButton = NSButton()
     var onOpenExternally: (() -> Void)?
     private let modeControl = NSSegmentedControl()
-    /// 右上角的「···」操作菜单按钮。菜单由窗口控制器装配（它知道当前文档
-    /// 能不能导出）；按钮本身只是 chrome，与文件树栏头部的 ··· 同一语言
-    let moreButton = NSButton()
+    /// 右上角的「导出」按钮（下拉菜单由窗口控制器装配：PNG / PDF）。
+    /// 文字按钮而不是 ··· 图标 —— 图标的含义要猜，文字不用（ice 2026-09-25）
+    let exportButton = NSButton()
     /// 内容区顶部到 view 顶部的距离，等于标题带的高度（运行期按安全区自适应）
     private var stripHeightConstraint: NSLayoutConstraint!
     /// 标题带内控件的垂直中心
@@ -162,17 +162,15 @@ final class ContentViewController: NSViewController {
 
         // 右上 ···：操作菜单（导出为 PNG/PDF）。菜单内容由窗口控制器装配 ——
         // 它知道当前文档能不能导出。样式与文件树栏头部的 ··· 一致。
-        moreButton.image = NSImage(systemSymbolName: "ellipsis", accessibilityDescription: "文档操作")
-        moreButton.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
-        moreButton.isBordered = false
-        moreButton.bezelStyle = .inline
-        moreButton.contentTintColor = MuMDesign.secondaryText
-        moreButton.toolTip = "导出与更多操作"
-        moreButton.translatesAutoresizingMaskIntoConstraints = false
+        exportButton.title = "导出"
+        exportButton.bezelStyle = .rounded
+        exportButton.controlSize = .small
+        exportButton.font = NSFont.systemFont(ofSize: 12)
+        exportButton.translatesAutoresizingMaskIntoConstraints = false
         // NSButton 挂上 menu 不会在点击时自动弹出（那是 NSPopUpButton 的行为），
         // 得自己接住点击再 popUp —— 实测点击无反应的坑就在这
-        moreButton.target = self
-        moreButton.action = #selector(showMoreMenu(_:))
+        exportButton.target = self
+        exportButton.action = #selector(showMoreMenu(_:))
 
         let leftGroup = NSStackView(views: [fileIcon, fileNameLabel, dirtyDot, externalOpenButton])
         leftGroup.orientation = .horizontal
@@ -185,7 +183,7 @@ final class ContentViewController: NSViewController {
 
         view.addSubview(leftGroup)
         view.addSubview(modeControl)
-        view.addSubview(moreButton)
+        view.addSubview(exportButton)
 
         stripCenterConstraint = leftGroup.centerYAnchor.constraint(
             equalTo: view.topAnchor,
@@ -209,11 +207,9 @@ final class ContentViewController: NSViewController {
             modeControl.centerYAnchor.constraint(equalTo: leftGroup.centerYAnchor),
 
             // 右：··· 操作菜单
-            moreButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -14),
-            moreButton.centerYAnchor.constraint(equalTo: leftGroup.centerYAnchor),
-            moreButton.leadingAnchor.constraint(greaterThanOrEqualTo: modeControl.trailingAnchor, constant: 12),
-            moreButton.widthAnchor.constraint(equalToConstant: 22),
-            moreButton.heightAnchor.constraint(equalToConstant: 22),
+            exportButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -14),
+            exportButton.centerYAnchor.constraint(equalTo: leftGroup.centerYAnchor),
+            exportButton.leadingAnchor.constraint(greaterThanOrEqualTo: modeControl.trailingAnchor, constant: 12),
         ])
     }
 
@@ -233,19 +229,31 @@ final class ContentViewController: NSViewController {
 
         view.addSubview(splitView)
 
-        // 大纲栏：钉在内容区右缘、工具栏条之下。显示时正文区让出 220pt
+        // 大纲栏三态：开（220pt）/ 窄条（26pt 把手）/ 关。钉在内容区右缘、工具栏条之下
         let tocView = tocController.view
         tocView.translatesAutoresizingMaskIntoConstraints = false
         tocView.isHidden = true
         view.addSubview(tocView)
 
-        tocWidthConstraint = tocView.widthAnchor.constraint(equalToConstant: 220)
-        tocVisibleConstraints = [
+        // 窄条：只留两个小手按钮 —— 「‹」拉回完整栏、「×」彻底关掉
+        railView.isHidden = true
+        railView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(railView)
+        setupRail()
+
+        tocOpenConstraints = [
             splitView.trailingAnchor.constraint(equalTo: tocView.leadingAnchor),
             tocView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tocView.topAnchor.constraint(equalTo: view.topAnchor, constant: MuMDesign.titleStripHeight),
             tocView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            tocWidthConstraint!,
+            tocView.widthAnchor.constraint(equalToConstant: 220),
+        ]
+        tocRailConstraints = [
+            splitView.trailingAnchor.constraint(equalTo: railView.leadingAnchor),
+            railView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            railView.topAnchor.constraint(equalTo: view.topAnchor, constant: MuMDesign.titleStripHeight),
+            railView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            railView.widthAnchor.constraint(equalToConstant: 26),
         ]
         splitFullWidthConstraint = splitView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
 
@@ -262,21 +270,70 @@ final class ContentViewController: NSViewController {
         ])
     }
 
-    private var tocWidthConstraint: NSLayoutConstraint?
-    private var tocVisibleConstraints: [NSLayoutConstraint] = []
-    private var splitFullWidthConstraint: NSLayoutConstraint?
+    /// 大纲栏三态：open 完整栏 / rail 窄条把手 / closed 彻底关
+    enum TOCState { case open, rail, closed }
 
-    /// 大纲栏显隐。只是布局开合，不打断正文滚动位置
-    func setTOCVisible(_ visible: Bool) {
-        guard visible == tocController.view.isHidden else { return }
-        if visible {
-            splitFullWidthConstraint?.isActive = false
-            NSLayoutConstraint.activate(tocVisibleConstraints)
-            tocController.view.isHidden = false
-        } else {
-            tocController.view.isHidden = true
-            NSLayoutConstraint.deactivate(tocVisibleConstraints)
-            splitFullWidthConstraint?.isActive = true
+    /// 窄条把手。两个竖排小按钮：展开回完整栏 / 彻底关闭
+    private let railView: NSView = {
+        let v = PaneBackgroundView(color: MuMDesign.paneBackground)
+        return v
+    }()
+    private let railExpandButton = NSButton()
+    private let railCloseButton = NSButton()
+    /// 窄条两个按钮的动作（窗口控制器接）
+    var onTOCExpand: (() -> Void)?
+    var onTOCClose: (() -> Void)?
+
+    private var tocOpenConstraints: [NSLayoutConstraint] = []
+    private var tocRailConstraints: [NSLayoutConstraint] = []
+    private var splitFullWidthConstraint: NSLayoutConstraint?
+    private var tocState: TOCState = .closed
+
+    @objc private func railExpandTapped() { onTOCExpand?() }
+    @objc private func railCloseTapped() { onTOCClose?() }
+
+    private func setupRail() {
+        for (button, symbol, tip) in [
+            (railExpandButton, "chevron.left", "展开大纲栏"),
+            (railCloseButton, "xmark", "关闭大纲栏（⇧⌘O 再开）"),
+        ] as [(NSButton, String, String)] {
+            button.isBordered = false
+            button.title = ""
+            button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?
+                .withSymbolConfiguration(.init(pointSize: 10, weight: .semibold))
+            button.contentTintColor = MuMDesign.tertiaryText
+            button.toolTip = tip
+            button.translatesAutoresizingMaskIntoConstraints = false
+            railView.addSubview(button)
+        }
+        railExpandButton.target = self
+        railExpandButton.action = #selector(railExpandTapped)
+        railCloseButton.target = self
+        railCloseButton.action = #selector(railCloseTapped)
+        NSLayoutConstraint.activate([
+            railExpandButton.centerXAnchor.constraint(equalTo: railView.centerXAnchor),
+            railExpandButton.topAnchor.constraint(equalTo: railView.topAnchor, constant: 8),
+            railExpandButton.widthAnchor.constraint(equalToConstant: 20),
+            railExpandButton.heightAnchor.constraint(equalToConstant: 20),
+            railCloseButton.centerXAnchor.constraint(equalTo: railView.centerXAnchor),
+            railCloseButton.topAnchor.constraint(equalTo: railExpandButton.bottomAnchor, constant: 8),
+            railCloseButton.widthAnchor.constraint(equalToConstant: 20),
+            railCloseButton.heightAnchor.constraint(equalToConstant: 20),
+        ])
+    }
+
+    /// 切换大纲栏状态。只是布局开合，不打断正文滚动位置
+    func setTOCState(_ state: TOCState) {
+        guard state != tocState else { return }
+        tocState = state
+        tocController.view.isHidden = (state != .open)
+        railView.isHidden = (state != .rail)
+        NSLayoutConstraint.deactivate(tocOpenConstraints + tocRailConstraints)
+        splitFullWidthConstraint?.isActive = false
+        switch state {
+        case .open: NSLayoutConstraint.activate(tocOpenConstraints)
+        case .rail: NSLayoutConstraint.activate(tocRailConstraints)
+        case .closed: splitFullWidthConstraint?.isActive = true
         }
     }
 

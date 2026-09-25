@@ -30,8 +30,7 @@ final class ShortcutsHelpWindowController: NSWindowController {
             ("⌘F", "在预览中查找"),
             ("⇧⌘F", "全局搜索（跨所有项目）"),
             ("⌘G / ⇧⌘G", "下一处 / 上一处"),
-            ("⇧⌘O", "文档大纲"),
-            ("⌥⌘O", "大纲栏（常驻右侧）"),
+            ("⇧⌘O", "大纲栏"),
         ]),
         ("呈现方式", [
             ("⌥⌘1", "Write — 写源码"),

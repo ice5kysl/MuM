@@ -361,11 +361,31 @@ enum UITestRunner {
                      expected: "< \(textLength)",
                      actual: "最大 \(items.map(\.location).max() ?? -1)")
 
-        c.showOutline()
-        check.waitFor("大纲 popover 弹出", expected: "isShown",
-                      condition: { c.debugPreview.debugOutlinePopoverShown },
-                      actual: { "未显示" })
-        c.debugPreview.debugCloseOutline()
+        // 大纲栏（唯一的 ToC 界面，popover 已于 0.7.8 移除）：展开 → 行数一致 →
+        // 点击跳转 → 跟随滚动高亮 → 收起
+        c.debugOutline()
+        check.waitFor("大纲栏展开", expected: "可见",
+                      condition: { c.debugTOCVisible },
+                      actual: { "未展开" })
+        check.expect(c.debugTOCRowCount == items.count, "栏内行数与大纲一致",
+                     expected: "\(items.count) 行", actual: "\(c.debugTOCRowCount) 行")
+        if items.count > 2 {
+            let beforeY = c.debugPreview.debugScrollView.contentView.bounds.origin.y
+            // 点正中条目：末段的条目尾部余量不足一屏，滚不到顶，「当前节」按视口顶
+            // 算仍是上面的节 —— 那是正确行为；中段条目尾部足够，必须点到顶
+            let target = items.count / 2
+            c.debugTOCClickRow(target)
+            check.waitFor("点击后段条目 → 预览跳走", expected: "视口移动",
+                          condition: { c.debugPreview.debugScrollView.contentView.bounds.origin.y != beforeY },
+                          actual: { "原地不动" })
+            check.waitFor("跟随高亮落在所点节", expected: items[target].title,
+                          condition: { c.debugTOCCurrentTitle == items[target].title },
+                          actual: { c.debugTOCCurrentTitle ?? "无" })
+        }
+        c.debugCloseTOC()
+        check.waitFor("大纲栏收起", expected: "不可见",
+                      condition: { !c.debugTOCVisible },
+                      actual: { "仍可见" })
     }
 
     // MARK: - 场景六：全局搜索

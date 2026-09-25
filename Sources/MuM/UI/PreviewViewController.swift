@@ -91,8 +91,6 @@ final class PreviewViewController: NSViewController {
     var debugOutlineItems: [(level: Int, location: Int, title: String)] {
         outline.map { ($0.level, $0.location, $0.title) }
     }
-    var debugOutlinePopoverShown: Bool { outlinePopover?.isShown ?? false }
-    func debugCloseOutline() { outlinePopover?.performClose(nil) }
 
     /// 提示页（空状态 / 不支持格式）的可见性与内容
     var debugMessageInfo: (visible: Bool, title: String, subtitle: String, actions: [String]) {
@@ -120,9 +118,8 @@ final class PreviewViewController: NSViewController {
     // MARK: - 大纲
 
     private var outline: [MarkdownRenderer.OutlineItem] = []
-    private var outlinePopover: NSPopover?
 
-    /// 每次重排后由窗口控制器写入。
+    /// 每次重排后由窗口控制器写入（大纲栏的数据源，这里留一份供诊断）。
     /// 大纲的位置（字符下标）是针对**当前这份渲染结果**的，重排后必须换新的，
     /// 否则跳转会落到错的地方。
     func setOutline(_ items: [MarkdownRenderer.OutlineItem]) {
@@ -136,31 +133,7 @@ final class PreviewViewController: NSViewController {
             : "\(outline.count) 条：" + outline.prefix(4).map { "H\($0.level)@\($0.location) \($0.title)" }.joined(separator: " | ")
     }
 
-    func showOutline(from pane: NSView) {
-        guard !outline.isEmpty else { return }
-        if let existing = outlinePopover, existing.isShown {
-            existing.performClose(nil)
-            return
-        }
-
-        let list = PreviewOutlineView(items: outline)
-        list.onSelect = { [weak self] location in
-            self?.outlinePopover?.performClose(nil)
-            self?.scrollToCharacter(location)
-        }
-
-        let popover = NSPopover()
-        popover.behavior = .transient
-        popover.contentViewController = list
-        popover.contentSize = list.preferredContentSize
-        // 锚在内容区顶栏左端，向下弹出 —— 大纲是"从这里往下有什么"的地图，
-        // 贴着正文上沿出现最自然
-        let anchor = NSRect(x: 24, y: pane.bounds.height - 30, width: 1, height: 1)
-        popover.show(relativeTo: anchor, of: pane, preferredEdge: .minY)
-        outlinePopover = popover
-    }
-
-    /// 大纲栏/popover 跳转：滚到渲染字符位置（顶端留一点余量）
+    /// 大纲栏跳转：滚到渲染字符位置（顶端留一点余量）
     func revealRenderedOffset(_ location: Int) {
         scrollToCharacter(location)
     }
@@ -171,10 +144,11 @@ final class PreviewViewController: NSViewController {
         let range = NSRange(location: location, length: 1)
         let glyphRange = manager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
         let rect = manager.boundingRect(forGlyphRange: glyphRange, in: container)
-        // 顶端留一点余量，标题不要贴着上沿
-        textView.scrollToVisible(
-            rect.offsetBy(dx: 0, dy: textView.textContainerOrigin.y).insetBy(dx: 0, dy: -16)
-        )
+        // 滚到顶（留 16pt 余量）而不是「刚好可见」—— scrollToVisible 对下方的目标
+        // 只会把它挪到视口底缘，大纲跳转的语义是「从这节开始读」
+        let clip = textScrollView.contentView
+        clip.scroll(to: NSPoint(x: 0, y: rect.minY + textView.textContainerOrigin.y - 16))
+        textScrollView.reflectScrolledClipView(clip)
     }
 
     /// 诊断用：离屏快照里没法敲键盘，用它触发一次查找
@@ -586,7 +560,9 @@ final class PreviewViewController: NSViewController {
               let container = textView.textContainer else { return 0 }
         let length = (textView.string as NSString).length
         guard length > 0 else { return 0 }
-        let topY = textScrollView.contentView.bounds.origin.y
+        // +24pt 读数偏移：「当前节」按视口顶下一小截算 —— 点击跳转后标题会停在
+        // 距顶 16pt 处（scrollToCharacter 的余量），不偏移的话高亮会落在上一节
+        let topY = textScrollView.contentView.bounds.origin.y + 24
 
         func y(at offset: Int) -> CGFloat {
             let clamped = min(max(offset, 0), length - 1)
@@ -599,6 +575,16 @@ final class PreviewViewController: NSViewController {
             if y(at: blockAnchors[mid].renderedOffset) <= topY { lo = mid } else { hi = mid - 1 }
         }
         return blockAnchors[lo].renderedOffset
+    }
+
+    /// 诊断用：某渲染字符位置的版面 Y（文档坐标）
+    func debugY(atRenderedOffset offset: Int) -> CGFloat {
+        guard let manager = textView.layoutManager, let container = textView.textContainer else { return -1 }
+        let length = (textView.string as NSString).length
+        guard length > 0 else { return -1 }
+        let clamped = min(max(offset, 0), length - 1)
+        let glyph = manager.glyphRange(forCharacterRange: NSRange(location: clamped, length: 1), actualCharacterRange: nil)
+        return manager.boundingRect(forGlyphRange: glyph, in: container).minY + textView.textContainerInset.height
     }
 
     // MARK: - 文末标识

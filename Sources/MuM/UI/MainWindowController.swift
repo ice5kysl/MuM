@@ -301,7 +301,7 @@ final class MainWindowController: NSWindowController {
         }
 
         // 内容区右上 ···：导出菜单（无文档 / 非文本时置灰，见 NSMenuItemValidation 扩展）
-        contentPane.moreButton.menu = makeExportMenu()
+        contentPane.exportButton.menu = makeExportMenu()
 
         // 文件树的文件管理动作：新建文件/文件夹与重命名落盘都在窗口控制器 ——
         // 它要跟打开状态（重命名打开中的文件，路径要跟到新 URL）
@@ -346,8 +346,12 @@ final class MainWindowController: NSWindowController {
         contentPane.tocController.onSelect = { [weak self] location in
             self?.contentPane.previewViewController.revealRenderedOffset(location)
         }
+        // 栏内「›」收成窄条；窄条「‹」拉回、「×」彻底关
+        contentPane.tocController.onCollapseRequest = { [weak self] in self?.setTOCState(.rail) }
+        contentPane.onTOCExpand = { [weak self] in self?.setTOCState(.open) }
+        contentPane.onTOCClose = { [weak self] in self?.setTOCState(.closed) }
         contentPane.previewViewController.onScrollPosition = { [weak self] in
-            guard let self, self.tocVisible, self.contentPane.mode != .write else { return }
+            guard let self, self.tocState == .open, self.contentPane.mode != .write else { return }
             self.contentPane.tocController.setCurrentLocation(
                 self.contentPane.previewViewController.topVisibleRenderedOffset()
             )
@@ -1081,7 +1085,7 @@ final class MainWindowController: NSWindowController {
     }
 
     /// 诊断用（UITestRunner）：··· 菜单本体 —— 断言菜单项存在与置灰逻辑
-    var debugExportMenu: NSMenu? { contentPane.moreButton.menu }
+    var debugExportMenu: NSMenu? { contentPane.exportButton.menu }
 
     /// 诊断用（UITestRunner）：新建文件的断言点 —— 光标位置与文件树选中
     var debugEditorFocused: Bool { contentPane.editorViewController.debugIsFocused }
@@ -1173,9 +1177,6 @@ final class MainWindowController: NSWindowController {
         contentPane.previewViewController.showFindBar()
     }
 
-    func showOutline() {
-        contentPane.previewViewController.showOutline(from: contentPane.view)
-    }
 
     func findNext() { contentPane.previewViewController.findNext() }
     func findPrevious() { contentPane.previewViewController.findPrevious() }
@@ -1190,9 +1191,9 @@ final class MainWindowController: NSWindowController {
         WorkspaceStore.shared.rememberReadingPosition(Double(fraction), for: url)
     }
 
-    /// 诊断用：离屏弹出大纲
+    /// 诊断用：离屏展开大纲栏（快照 --outline）
     func debugOutline() {
-        showOutline()
+        setTOCState(.open)
     }
 
     /// 诊断用：离屏触发一次查找
@@ -1281,6 +1282,14 @@ final class MainWindowController: NSWindowController {
         return lines.joined(separator: "\n")
     }
 
+
+    /// 诊断用：大纲栏
+    var debugTOCVisible: Bool { !contentPane.tocController.view.isHidden }
+    var debugTOCState: String { ["open", "rail", "closed"][tocState == .open ? 0 : tocState == .rail ? 1 : 2] }
+    var debugTOCRowCount: Int { contentPane.tocController.debugRowCount }
+    var debugTOCCurrentTitle: String? { contentPane.tocController.debugCurrentTitle }
+    func debugTOCClickRow(_ index: Int) { contentPane.tocController.debugClickRow(index) }
+    func debugCloseTOC() { setTOCState(.closed) }
 
     /// 诊断用：大纲
     var debugOutlineDescription: String { contentPane.previewViewController.debugOutlineSummary }
@@ -1570,18 +1579,31 @@ final class MainWindowController: NSWindowController {
 
     // MARK: - 大纲栏
 
-    /// 大纲栏开关（用户偏好，跨窗口/跨启动记住）。Write 模式没有预览，
-    /// 栏位临时收起，回到 Read/Preview 自动恢复
-    private var tocVisible = UserDefaults.standard.bool(forKey: "MuM.tocVisible")
+    /// 大纲栏三态（用户偏好，跨窗口/跨启动记住）：
+    /// open 完整栏 / rail 窄条把手（贴着右缘留把手，不用翻菜单）/ closed 彻底关。
+    /// Write 模式没有预览，栏位临时收起，回到 Read/Preview 自动恢复
+    private var tocState: ContentViewController.TOCState = {
+        switch UserDefaults.standard.string(forKey: "MuM.tocState") {
+        case "open": return .open
+        case "rail": return .rail
+        default: return .closed
+        }
+    }() {
+        didSet { UserDefaults.standard.set(["open", "rail", "closed"][tocState == .open ? 0 : tocState == .rail ? 1 : 2], forKey: "MuM.tocState") }
+    }
 
+    /// ⇧⌘O：关 → 开；窄条 → 开；开 → 关
     func toggleTOC() {
-        tocVisible.toggle()
-        UserDefaults.standard.set(tocVisible, forKey: "MuM.tocVisible")
+        setTOCState(tocState == .open ? .closed : .open)
+    }
+
+    func setTOCState(_ state: ContentViewController.TOCState) {
+        tocState = state
         applyTOCVisibility()
     }
 
     private func applyTOCVisibility() {
-        contentPane.setTOCVisible(tocVisible && contentPane.mode != .write)
+        contentPane.setTOCState(contentPane.mode == .write ? .closed : tocState)
     }
 
     // MARK: - 设置
