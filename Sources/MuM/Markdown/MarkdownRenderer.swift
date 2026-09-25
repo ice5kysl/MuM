@@ -700,7 +700,9 @@ final class MarkdownRenderer {
             appendImage(image, into: out, style: style)
 
         case is SoftBreak:
-            out.append(NSAttributedString(string: " ", attributes: attributes(for: style)))
+            // 软换行按 GitHub 口径渲染成真实换行：GFM 文档（尤其中文一行一句）
+            // 的作者预期就是分行显示；渲染成空格会把引用块/列表连成一坨
+            out.append(NSAttributedString(string: "\n", attributes: attributes(for: style)))
 
         case is LineBreak:
             out.append(NSAttributedString(string: "\n", attributes: attributes(for: style)))
