@@ -342,6 +342,18 @@ final class MainWindowController: NSWindowController {
             return true
         }
 
+        // 大纲栏：点击跳转；预览滚动时跟随高亮「当前节」
+        contentPane.tocController.onSelect = { [weak self] location in
+            self?.contentPane.previewViewController.revealRenderedOffset(location)
+        }
+        contentPane.previewViewController.onScrollPosition = { [weak self] in
+            guard let self, self.tocVisible, self.contentPane.mode != .write else { return }
+            self.contentPane.tocController.setCurrentLocation(
+                self.contentPane.previewViewController.topVisibleRenderedOffset()
+            )
+        }
+        applyTOCVisibility()
+
         contentPane.previewViewController.onGlobalSearchSelection = { [weak self] query in
             self?.showGlobalSearch(prefill: query)
         }
@@ -696,6 +708,7 @@ final class MainWindowController: NSWindowController {
         case .markdown:
             attributed = renderer.render(text)
             contentPane.previewViewController.setOutline(renderer.outline)
+            contentPane.tocController.setOutline(renderer.outline)
             contentPane.previewViewController.setBlockAnchors(renderer.blockAnchors, complete: true)
         case .code:
             attributed = renderer.renderCode(text, language: FileKind.language(for: url))
@@ -707,6 +720,7 @@ final class MainWindowController: NSWindowController {
                let table = DelimitedTable.markdown(from: text, delimiter: delimiter) {
                 attributed = renderer.render(table)
                 contentPane.previewViewController.setOutline([])
+                contentPane.tocController.setOutline([])
                 // csv 是从纯文本折算的 Markdown，块锚点的源码行对不上原文 —— 退回比例
                 contentPane.previewViewController.setBlockAnchors([], complete: false)
             } else {
@@ -757,6 +771,7 @@ final class MainWindowController: NSWindowController {
             LaunchTimer.mark("    渐进：全文已补齐")
             self.contentPane.previewViewController.setEndMarker(.done)
             self.contentPane.previewViewController.setOutline(session.outline)
+            self.contentPane.tocController.setOutline(session.outline)
             // 填充期间用户没滚动过，才把保存的阅读位置还回去；动过就以用户为准
             if let restore, restore > 0.001,
                self.contentPane.previewViewController.scrollFraction() < 0.001 {
@@ -1546,10 +1561,27 @@ final class MainWindowController: NSWindowController {
         // 快捷键 ⌥⌘1/3 也一样要拦住 —— 放过去就是一片空白
         guard mode == .read || (currentKind?.isTextual ?? false) else { return }
         contentPane.mode = mode
+        applyTOCVisibility()
         if mode != .write {
             renderPreview(immediately: true)
         }
         refreshChrome()
+    }
+
+    // MARK: - 大纲栏
+
+    /// 大纲栏开关（用户偏好，跨窗口/跨启动记住）。Write 模式没有预览，
+    /// 栏位临时收起，回到 Read/Preview 自动恢复
+    private var tocVisible = UserDefaults.standard.bool(forKey: "MuM.tocVisible")
+
+    func toggleTOC() {
+        tocVisible.toggle()
+        UserDefaults.standard.set(tocVisible, forKey: "MuM.tocVisible")
+        applyTOCVisibility()
+    }
+
+    private func applyTOCVisibility() {
+        contentPane.setTOCVisible(tocVisible && contentPane.mode != .write)
     }
 
     // MARK: - 设置

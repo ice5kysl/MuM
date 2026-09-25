@@ -164,6 +164,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mainWindowController?.showOutline()
     }
 
+    @objc func toggleTOC(_ sender: Any?) {
+        mainWindowController?.toggleTOC()
+    }
+
     @objc func findNext(_ sender: Any?) {
         mainWindowController?.findNext()
     }

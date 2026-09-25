@@ -165,6 +165,7 @@ enum MainMenuBuilder {
 
         menu.addItem(item("项目列表", #selector(AppDelegate.toggleProjects(_:)), "0", target: target))
         menu.addItem(item("目录树", #selector(AppDelegate.toggleFileTree(_:)), "0", modifiers: [.command, .option], target: target))
+        menu.addItem(item("大纲栏", #selector(AppDelegate.toggleTOC(_:)), "o", modifiers: [.command, .option], target: target))
 
         menu.addItem(.separator())
 

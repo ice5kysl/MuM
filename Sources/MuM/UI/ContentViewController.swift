@@ -36,6 +36,8 @@ final class ContentViewController: NSViewController {
 
     let editorViewController = EditorViewController()
     let previewViewController = PreviewViewController()
+    /// 右侧大纲栏（可折叠，⌥⌘O）。常驻导航：跟随滚动高亮当前节
+    let tocController = OutlinePanelController()
 
     private let fileIcon = NSImageView()
     private let fileNameLabel = NSTextField(labelWithString: "")
@@ -220,6 +222,7 @@ final class ContentViewController: NSViewController {
     private func buildContent() {
         addChild(editorViewController)
         addChild(previewViewController)
+        addChild(tocController)
 
         splitView.isVertical = true
         splitView.dividerStyle = .thin
@@ -230,6 +233,22 @@ final class ContentViewController: NSViewController {
 
         view.addSubview(splitView)
 
+        // 大纲栏：钉在内容区右缘、工具栏条之下。显示时正文区让出 220pt
+        let tocView = tocController.view
+        tocView.translatesAutoresizingMaskIntoConstraints = false
+        tocView.isHidden = true
+        view.addSubview(tocView)
+
+        tocWidthConstraint = tocView.widthAnchor.constraint(equalToConstant: 220)
+        tocVisibleConstraints = [
+            splitView.trailingAnchor.constraint(equalTo: tocView.leadingAnchor),
+            tocView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tocView.topAnchor.constraint(equalTo: view.topAnchor, constant: MuMDesign.titleStripHeight),
+            tocView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            tocWidthConstraint!,
+        ]
+        splitFullWidthConstraint = splitView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+
         stripHeightConstraint = splitView.topAnchor.constraint(
             equalTo: view.topAnchor,
             constant: MuMDesign.titleStripHeight
@@ -238,9 +257,27 @@ final class ContentViewController: NSViewController {
         NSLayoutConstraint.activate([
             stripHeightConstraint,
             splitView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            splitView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            splitFullWidthConstraint!,
             splitView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
+    }
+
+    private var tocWidthConstraint: NSLayoutConstraint?
+    private var tocVisibleConstraints: [NSLayoutConstraint] = []
+    private var splitFullWidthConstraint: NSLayoutConstraint?
+
+    /// 大纲栏显隐。只是布局开合，不打断正文滚动位置
+    func setTOCVisible(_ visible: Bool) {
+        guard visible == tocController.view.isHidden else { return }
+        if visible {
+            splitFullWidthConstraint?.isActive = false
+            NSLayoutConstraint.activate(tocVisibleConstraints)
+            tocController.view.isHidden = false
+        } else {
+            tocController.view.isHidden = true
+            NSLayoutConstraint.deactivate(tocVisibleConstraints)
+            splitFullWidthConstraint?.isActive = true
+        }
     }
 
     private func buildEmptyState() {

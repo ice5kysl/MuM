@@ -160,6 +160,11 @@ final class PreviewViewController: NSViewController {
         outlinePopover = popover
     }
 
+    /// 大纲栏/popover 跳转：滚到渲染字符位置（顶端留一点余量）
+    func revealRenderedOffset(_ location: Int) {
+        scrollToCharacter(location)
+    }
+
     private func scrollToCharacter(_ location: Int) {
         guard let manager = textView.layoutManager, let container = textView.textContainer,
               location < (textView.string as NSString).length else { return }
@@ -334,6 +339,15 @@ final class PreviewViewController: NSViewController {
         textScrollView.autohidesScrollers = true
         textScrollView.drawsBackground = true
         textScrollView.backgroundColor = .textBackgroundColor
+
+        // 大纲栏跟随：预览滚动时通知窗口控制器刷新「当前节」
+        textScrollView.contentView.postsBoundsChangedNotifications = true
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(previewBoundsDidChange),
+            name: NSView.boundsDidChangeNotification,
+            object: textScrollView.contentView
+        )
 
         // 查找条贴在顶部，高度约束 0 = 收起；滚动视图在它下面。
         // 做成内容区自己的一条而不是独立浮层：查找是阅读的辅助动作，
@@ -561,6 +575,32 @@ final class PreviewViewController: NSViewController {
         if let messageURL { ExternalOpener.reveal([messageURL]) }
     }
 
+    /// 预览滚动（视口顶 Y）——大纲栏跟随高亮用
+    var onScrollPosition: (() -> Void)?
+
+    /// 视口顶对应的渲染字符位置：拿块锚点的渲染 Y 二分（boundingRect 强制
+    /// 精确排版到探测点，O(log n)）。锚点为空（代码/纯文本）时返回 0
+    func topVisibleRenderedOffset() -> Int {
+        guard !blockAnchors.isEmpty,
+              let manager = textView.layoutManager,
+              let container = textView.textContainer else { return 0 }
+        let length = (textView.string as NSString).length
+        guard length > 0 else { return 0 }
+        let topY = textScrollView.contentView.bounds.origin.y
+
+        func y(at offset: Int) -> CGFloat {
+            let clamped = min(max(offset, 0), length - 1)
+            let glyph = manager.glyphRange(forCharacterRange: NSRange(location: clamped, length: 1), actualCharacterRange: nil)
+            return manager.boundingRect(forGlyphRange: glyph, in: container).minY + textView.textContainerInset.height
+        }
+        var lo = 0, hi = blockAnchors.count - 1
+        while lo < hi {
+            let mid = (lo + hi + 1) / 2
+            if y(at: blockAnchors[mid].renderedOffset) <= topY { lo = mid } else { hi = mid - 1 }
+        }
+        return blockAnchors[lo].renderedOffset
+    }
+
     // MARK: - 文末标识
 
     enum EndMarkerState { case hidden, loading, done }
@@ -603,6 +643,10 @@ final class PreviewViewController: NSViewController {
     var isNearRenderedEnd: Bool {
         let clip = textScrollView.contentView
         return clip.bounds.maxY > textView.frame.height - clip.bounds.height * 2
+    }
+
+    @objc private func previewBoundsDidChange() {
+        onScrollPosition?()
     }
 
     // MARK: - 滚动同步

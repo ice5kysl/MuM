@@ -1,9 +1,9 @@
 import AppKit
 
-/// 文档大纲。按 ⌘⇧O 弹出一个 popover，列出标题，点一条跳过去。
+/// 文档大纲的弹出层。按 ⌘⇧O 弹出 popover，列出标题，点一条跳过去。
 ///
-/// 做成 popover 而不是常驻侧栏：MuM 的气质是"安静的工具"，而大纲是
-/// "长文档里偶尔用一次"的动作。常驻会永久占掉正文宽度，换来的便利不划算。
+/// popover 管「偶尔跳一下」；常驻导航在右侧大纲栏（OutlinePanelController，
+/// 可折叠，⌥⌘O）—— 0.7.8 起两者并存，各管各的场景。
 final class PreviewOutlineView: NSViewController {
 
     var onSelect: ((Int) -> Void)?
@@ -73,9 +73,23 @@ final class PreviewOutlineView: NSViewController {
 /// 不用 attributedTitle + 段落样式：NSButton 对带缩进段落样式的标题
 /// 自测量会算残（H2/H3 行塌到只剩一个字符）。标题交给真正的 NSTextField，
 /// 截断、缩进、颜色都归它管；按钮只负责点击和悬停。
-private final class OutlineRowButton: NSButton {
+/// 大纲 popover 与右侧大纲栏共用（0.7.8 起后者常驻可选）。
+final class OutlineRowButton: NSButton {
+
+    private let label: NSTextField
+    private let item: MarkdownRenderer.OutlineItem
+
+    /// 「读到这里」高亮：跟随滚动位置，当前节用强调色。默认 false
+    var isCurrent = false {
+        didSet {
+            guard isCurrent != oldValue else { return }
+            applyStyle()
+        }
+    }
 
     init(item: MarkdownRenderer.OutlineItem) {
+        label = NSTextField(labelWithString: item.title)
+        self.item = item
         super.init(frame: .zero)
 
         isBordered = false
@@ -83,17 +97,12 @@ private final class OutlineRowButton: NSButton {
         title = ""
         toolTip = item.title
 
-        let size: CGFloat = item.level == 1 ? 12.5 : (item.level == 2 ? 11.5 : 11)
-        let weight: NSFont.Weight = item.level == 1 ? .semibold : .regular
-
-        let label = NSTextField(labelWithString: item.title)
-        label.font = NSFont.systemFont(ofSize: size, weight: weight)
-        label.textColor = item.level == 1 ? MuMDesign.primaryText : MuMDesign.secondaryText
         label.lineBreakMode = .byTruncatingTail
         // 不抢响应：点击和悬停都归按钮
         label.refusesFirstResponder = true
         label.translatesAutoresizingMaskIntoConstraints = false
         addSubview(label)
+        applyStyle()
 
         translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -104,6 +113,15 @@ private final class OutlineRowButton: NSButton {
             label.centerYAnchor.constraint(equalTo: centerYAnchor),
             heightAnchor.constraint(equalToConstant: item.level == 1 ? 26 : 22),
         ])
+    }
+
+    private func applyStyle() {
+        let size: CGFloat = item.level == 1 ? 12.5 : (item.level == 2 ? 11.5 : 11)
+        let weight: NSFont.Weight = (item.level == 1 || isCurrent) ? .semibold : .regular
+        label.font = NSFont.systemFont(ofSize: size, weight: weight)
+        label.textColor = isCurrent
+            ? MuMDesign.accent
+            : (item.level == 1 ? MuMDesign.primaryText : MuMDesign.secondaryText)
     }
 
     required init?(coder: NSCoder) {
