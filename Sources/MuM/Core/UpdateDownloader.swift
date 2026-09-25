@@ -48,8 +48,11 @@ enum UpdateDownloader {
     /// 挂载 DMG 并打开安装盘窗口 —— NSWorkspace.open 对 .dmg 的语义就是
     /// 「挂载 + 在访达里显示」，正好是用户需要的下一步。
     /// 走 ExternalOpener：挂载要等 LS 事务，同步调会把主线程钉死。
-    static func mountAndReveal(_ dmg: URL) {
-        ExternalOpener.open(dmg)
+    ///
+    /// `then` 不能省：提示语说的是「安装盘**已**挂载」，只有挂载真的完成了才能说；
+    /// 异步化之后写在下一行就会抢在挂载前面弹出来（这个回归 0.7.7 发出去才发现）。
+    static func mountAndReveal(_ dmg: URL, then: @escaping () -> Void) {
+        ExternalOpener.open(dmg, then: then)
     }
 
     private final class Delegate: NSObject, URLSessionDownloadDelegate {

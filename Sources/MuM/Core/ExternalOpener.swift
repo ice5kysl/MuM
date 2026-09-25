@@ -23,11 +23,16 @@ enum ExternalOpener {
     /// 打开 URL（网页 / 文档 / 应用 / DMG 挂载）。
     ///
     /// 异步：主线程只负责发起，不等 LS 事务回来。
-    static func open(_ url: URL) {
+    ///
+    /// `then` 是**异步化之后才需要的口子**：原来同步调用会一直等到系统那边做完，
+    /// 所以调用点后面的代码天然是"打开之后"；现在不会了，凡是有"打开完再做下一步"
+    /// 的地方都必须把下一步放进 `then`，而不是写在下一行（更新流程的挂载提示踩过）。
+    static func open(_ url: URL, then: (() -> Void)? = nil) {
         let configuration = NSWorkspace.OpenConfiguration()
         configuration.activates = true
         NSWorkspace.shared.open(url, configuration: configuration) { _, error in
             report(error, for: url.absoluteString)
+            if let then { DispatchQueue.main.async { then() } }
         }
     }
 

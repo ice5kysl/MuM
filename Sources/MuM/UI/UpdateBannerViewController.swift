@@ -116,8 +116,10 @@ final class UpdateBannerViewController: NSTitlebarAccessoryViewController {
             switch result {
             case .success(let dmg):
                 self.downloadButton?.title = "已下载"
-                UpdateDownloader.mountAndReveal(dmg)
-                self.presentInstallHint()
+                // 提示语断言的是「安装盘已挂载」—— 必须等挂载真的完成再说
+                UpdateDownloader.mountAndReveal(dmg) { [weak self] in
+                    self?.presentInstallHint()
+                }
             case .failure(let error):
                 self.downloadButton?.isEnabled = true
                 self.downloadButton?.title = "下载更新"
