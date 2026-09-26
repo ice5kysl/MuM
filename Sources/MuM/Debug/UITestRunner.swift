@@ -254,6 +254,12 @@ enum UITestRunner {
         check.waitFor("Aa → 显示设置弹出", expected: "isShown 且内容为 SettingsPanelViewController",
                       condition: { c.debugDisplaySettingsShown && c.debugDisplaySettingsPanel != nil },
                       actual: { "isShown=\(c.debugDisplaySettingsShown)" })
+        // 加固（cc 2026-09-26）：popover 是 .transient —— 窗口失焦它会自己关掉，
+        // 这时「再点」走的是重开分支，「收起」断言必挂（实测长时间红/绿两种稳态
+        // 之间漂移）。第二次点之前钉住激活态并 drain runloop，让 isShown 读到定态
+        NSApp.activate(ignoringOtherApps: true)
+        c.window?.makeKeyAndOrderFront(nil)
+        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.1))
         c.debugShowDisplaySettings()
         check.waitFor("再点 Aa → 收起", expected: "popover 关闭",
                       condition: { !c.debugDisplaySettingsShown },
