@@ -109,6 +109,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func showAbout(_ sender: Any?) {
         let controller = aboutWindowController ?? AboutWindowController()
         aboutWindowController = controller
+        // 关于窗口的「反馈」链接和帮助菜单走同一条路径：应用内直发面板
+        controller.onFeedback = { [weak self] in self?.showFeedback(nil) }
         controller.present(relativeTo: mainWindowController?.window)
     }
 
@@ -328,33 +330,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.present(relativeTo: mainWindowController?.window)
     }
 
-    /// 帮助 → 反馈问题或建议…：直达反馈模板，并把版本 / macOS / 芯片预填进表单
-    /// （issue forms 支持用字段 id 作 URL 参数预填）—— 判断问题时第一个要问的就是版本，
-    /// 用户不会记得自己跑的是哪版，能自动带上的就别让人填
-    @objc func showFeedback(_ sender: Any?) {
-        var components = URLComponents(string: "https://github.com/ice5kysl/MuM/issues/new")!
-        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
-        let os = ProcessInfo.processInfo.operatingSystemVersion
-        var queryItems = [URLQueryItem(name: "template", value: "feedback.yml")]
-        if !version.isEmpty {
-            queryItems.append(URLQueryItem(name: "version", value: "v\(version)"))
-        }
-        queryItems.append(URLQueryItem(
-            name: "macos",
-            value: "macOS \(os.majorVersion).\(os.minorVersion).\(os.patchVersion) / \(Self.archName)"
-        ))
-        components.queryItems = queryItems
-        if let url = components.url {
-            ExternalOpener.open(url)
-        }
-    }
+    /// 帮助 → 反馈问题或建议…：首选应用内直发面板（不要 GitHub 账号）。
+    /// GitHub 预填页退居兜底，由面板在失败 / 通道不可用时自己打开（见 FeedbackSender）。
+    private var feedbackWindowController: FeedbackWindowController?
 
-    private static var archName: String {
-        #if arch(arm64)
-        return "Apple Silicon"
-        #else
-        return "Intel"
-        #endif
+    @objc func showFeedback(_ sender: Any?) {
+        let controller = feedbackWindowController ?? FeedbackWindowController()
+        feedbackWindowController = controller
+        controller.present(relativeTo: mainWindowController?.window)
     }
 }
 

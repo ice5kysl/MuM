@@ -11,6 +11,9 @@ import AppKit
 /// 一句话定位、链接行。间距按 4pt 节奏，组内密、组间疏。
 final class AboutWindowController: NSWindowController {
 
+    /// 「反馈」链接的动作。由 AppDelegate 注入，和帮助菜单走同一条路径（应用内面板）
+    var onFeedback: (() -> Void)?
+
     init() {
         let window = AboutWindow(
             contentRect: NSRect(x: 0, y: 0, width: 300, height: 368),
@@ -89,10 +92,11 @@ final class AboutWindowController: NSWindowController {
         audience.translatesAutoresizingMaskIntoConstraints = false
 
         // 链接行：GitHub 仓库 · 反馈 · 作者 · 许可证（许可证链到仓库里的 LICENSE）
+        // 「反馈」不是外链：跟随帮助菜单进应用内反馈面板
         let links = NSStackView(views: [
             LinkButton(title: "GitHub", url: "https://github.com/ice5kysl/MuM"),
             separatorDot(),
-            LinkButton(title: "反馈", url: "https://github.com/ice5kysl/MuM/issues/new/choose"),
+            LinkButton(title: "反馈") { [weak self] in self?.onFeedback?() },
             separatorDot(),
             LinkButton(title: "ice5kysl", url: "https://github.com/ice5kysl"),
             separatorDot(),
@@ -157,17 +161,32 @@ final class AboutWindowController: NSWindowController {
 /// 可交互元素 50ms 内必须回应
 private final class LinkButton: NSButton {
 
-    private let url: URL
+    private let url: URL?
+    private let actionHandler: (() -> Void)?
     private let titleText: String
 
     init(title: String, url: String) {
         self.titleText = title
         self.url = URL(string: url)!
+        self.actionHandler = nil
         super.init(frame: .zero)
+        setup(title)
+    }
+
+    /// 不跳外链的文字链接（如「反馈」进应用内面板），观感与 URL 版一致
+    init(title: String, action: @escaping () -> Void) {
+        self.titleText = title
+        self.url = nil
+        self.actionHandler = action
+        super.init(frame: .zero)
+        setup(title)
+    }
+
+    private func setup(_ title: String) {
         isBordered = false
         setButtonType(.momentaryChange)
         target = self
-        action = #selector(open)
+        self.action = #selector(open)
         attributedTitle = Self.makeTitle(title, underlined: false)
     }
 
@@ -210,7 +229,11 @@ private final class LinkButton: NSButton {
     }
 
     @objc private func open() {
-        ExternalOpener.open(url)
+        if let actionHandler {
+            actionHandler()
+        } else if let url {
+            ExternalOpener.open(url)
+        }
     }
 }
 
