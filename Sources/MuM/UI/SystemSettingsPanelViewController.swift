@@ -30,9 +30,9 @@ final class SystemSettingsPanelViewController: NSViewController {
 
         let column = SettingsControls.column(width: Self.columnWidth)
 
-        column.addArrangedSubview(SettingsControls.section("启动", width: Self.columnWidth))
+        column.addArrangedSubview(SettingsControls.section(L10n.t("启动"), width: Self.columnWidth))
         toggles["restoresLastSession"] = SettingsToggleRow(
-            title: "恢复上次打开的文件",
+            title: L10n.t("恢复上次打开的文件"),
             isOn: settings.restoresLastSession,
             width: Self.columnWidth
         ) { [weak self] isOn in
@@ -42,7 +42,7 @@ final class SystemSettingsPanelViewController: NSViewController {
         column.addArrangedSubview(toggles["restoresLastSession"]!.view)
 
         segments["startMode"] = SettingsSegmentedRow(
-            title: "启动时的呈现方式",
+            title: L10n.t("启动时的呈现方式"),
             labels: MuMSettings.StartMode.allCases.map(\.title),
             selected: MuMSettings.StartMode.allCases.firstIndex(of: settings.startMode) ?? 1,
             width: Self.columnWidth
@@ -54,11 +54,11 @@ final class SystemSettingsPanelViewController: NSViewController {
         }
         column.addArrangedSubview(segments["startMode"]!.view)
 
-        column.addArrangedSubview(SettingsControls.section("文件", width: Self.columnWidth))
+        column.addArrangedSubview(SettingsControls.section(L10n.t("文件"), width: Self.columnWidth))
         toggles["showsHiddenFiles"] = SettingsToggleRow(
-            title: "显示隐藏文件",
+            title: L10n.t("显示隐藏文件"),
             isOn: settings.showsHiddenFiles,
-            hint: "以 . 开头的文件与文件夹；.git、.build 这类仍在忽略列表里",
+            hint: L10n.t("以 . 开头的文件与文件夹；.git、.build 这类仍在忽略列表里"),
             width: Self.columnWidth
         ) { [weak self] isOn in
             self?.settings.showsHiddenFiles = isOn
@@ -66,10 +66,10 @@ final class SystemSettingsPanelViewController: NSViewController {
         }
         column.addArrangedSubview(toggles["showsHiddenFiles"]!.view)
 
-        column.addArrangedSubview(SettingsControls.section("编辑器", width: Self.columnWidth))
+        column.addArrangedSubview(SettingsControls.section(L10n.t("编辑器"), width: Self.columnWidth))
         segments["indentWidth"] = SettingsSegmentedRow(
-            title: "Tab 缩进",
-            labels: ["2 空格", "4 空格"],
+            title: L10n.t("Tab 缩进"),
+            labels: [L10n.t("2 空格"), L10n.t("4 空格")],
             selected: settings.indentWidth == 4 ? 1 : 0,
             width: Self.columnWidth
         ) { [weak self] index in
@@ -78,7 +78,7 @@ final class SystemSettingsPanelViewController: NSViewController {
         }
         column.addArrangedSubview(segments["indentWidth"]!.view)
 
-        column.addArrangedSubview(SettingsControls.section("系统集成", width: Self.columnWidth))
+        column.addArrangedSubview(SettingsControls.section(L10n.t("系统集成"), width: Self.columnWidth))
         column.addArrangedSubview(defaultEditorRow())
 
         view.addSubview(column)
@@ -88,7 +88,7 @@ final class SystemSettingsPanelViewController: NSViewController {
             column.topAnchor.constraint(equalTo: view.topAnchor, constant: 15),
         ])
 
-        let reset = NSButton(title: "恢复默认", target: self, action: #selector(resetTapped))
+        let reset = NSButton(title: L10n.t("恢复默认"), target: self, action: #selector(resetTapped))
         reset.bezelStyle = .rounded
         reset.controlSize = .small
         reset.translatesAutoresizingMaskIntoConstraints = false
@@ -119,16 +119,16 @@ final class SystemSettingsPanelViewController: NSViewController {
 
     /// 这一行不是开关，是"当前状态 + 一个动作按钮"，所以单独搭
     private func defaultEditorRow() -> NSView {
-        let title = NSTextField(labelWithString: "默认 Markdown 编辑器")
+        let title = NSTextField(labelWithString: L10n.t("默认 Markdown 编辑器"))
         title.font = .systemFont(ofSize: 12)
 
-        let state = NSTextField(labelWithString: Self.isDefaultMarkdownEditor ? "当前是 MuM" : "当前是其他应用")
+        let state = NSTextField(labelWithString: Self.isDefaultMarkdownEditor ? L10n.t("当前是 MuM") : L10n.t("当前是其他应用"))
         state.font = .systemFont(ofSize: 10.5)
         state.textColor = MuMDesign.tertiaryText
 
         let isDefault = Self.isDefaultMarkdownEditor
         let button = NSButton(
-            title: isDefault ? "已是默认" : "设为默认",
+            title: isDefault ? L10n.t("已是默认") : L10n.t("设为默认"),
             target: self,
             action: #selector(makeDefaultEditor)
         )
@@ -152,8 +152,8 @@ final class SystemSettingsPanelViewController: NSViewController {
     @objc private func makeDefaultEditor() {
         let bundleURL = Bundle.main.bundleURL
         guard bundleURL.pathExtension == "app" else {
-            present(title: "无法设为默认编辑器",
-                    detail: "MuM 当前不是从 .app 包中运行的。请先执行 scripts/build-app.sh，用生成的 dist/MuM.app 运行。")
+            present(title: L10n.t("无法设为默认编辑器"),
+                    detail: L10n.t("MuM 当前不是从 .app 包中运行的。请先执行 scripts/build-app.sh，用生成的 dist/MuM.app 运行。"))
             return
         }
 
@@ -163,10 +163,10 @@ final class SystemSettingsPanelViewController: NSViewController {
         NSWorkspace.shared.setDefaultApplication(at: bundleURL, toOpen: Self.markdownType) { [weak self] error in
             DispatchQueue.main.async {
                 if let error {
-                    self?.present(title: "设置失败", detail: error.localizedDescription)
+                    self?.present(title: L10n.t("设置失败"), detail: error.localizedDescription)
                 } else {
-                    self?.present(title: "已设为默认编辑器",
-                                  detail: "以后双击 .md 会用 MuM 打开。\n\n建议把 MuM 放进「应用程序」文件夹 —— 系统按路径记住绑定，移动位置后绑定会失效。")
+                    self?.present(title: L10n.t("已设为默认编辑器"),
+                                  detail: L10n.t("以后双击 .md 会用 MuM 打开。\n\n建议把 MuM 放进「应用程序」文件夹 —— 系统按路径记住绑定，移动位置后绑定会失效。"))
                 }
             }
         }
@@ -176,7 +176,7 @@ final class SystemSettingsPanelViewController: NSViewController {
         let alert = NSAlert()
         alert.messageText = title
         alert.informativeText = detail
-        alert.addButton(withTitle: "好")
+        alert.addButton(withTitle: L10n.t("好"))
         alert.runModal()
     }
 

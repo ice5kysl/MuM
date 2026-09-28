@@ -127,7 +127,7 @@ final class ContentViewController: NSViewController {
 
         externalOpenButton.image = NSImage(
             systemSymbolName: "arrow.up.forward.app",
-            accessibilityDescription: "用默认应用打开"
+            accessibilityDescription: L10n.t("用默认应用打开")
         )
         externalOpenButton.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 12, weight: .regular)
         externalOpenButton.isBordered = false
@@ -158,11 +158,11 @@ final class ContentViewController: NSViewController {
         modeControl.selectedSegment = mode.rawValue
         modeControl.target = self
         modeControl.action = #selector(modeControlChanged)
-        modeControl.toolTip = "Write 写源码 · Read 阅读 · Preview 并排对照（⌘⌥1 / ⌘⌥2 / ⌘⌥3）"
+        modeControl.toolTip = L10n.t("Write 写源码 · Read 阅读 · Preview 并排对照（⌘⌥1 / ⌘⌥2 / ⌘⌥3）")
 
         // 右上 ···：操作菜单（导出为 PNG/PDF）。菜单内容由窗口控制器装配 ——
         // 它知道当前文档能不能导出。样式与文件树栏头部的 ··· 一致。
-        exportButton.title = "导出"
+        exportButton.title = L10n.t("导出")
         exportButton.bezelStyle = .rounded
         exportButton.controlSize = .small
         exportButton.font = NSFont.systemFont(ofSize: 12)
@@ -322,8 +322,8 @@ final class ContentViewController: NSViewController {
 
     private func setupRail() {
         for (button, symbol, tip) in [
-            (railExpandButton, "chevron.left", "展开大纲栏"),
-            (railCloseButton, "xmark", "关闭大纲栏（⇧⌘O 再开）"),
+            (railExpandButton, "chevron.left", L10n.t("展开大纲栏")),
+            (railCloseButton, "xmark", L10n.t("关闭大纲栏（⇧⌘O 再开）")),
         ] as [(NSButton, String, String)] {
             button.isBordered = false
             button.title = ""
@@ -481,14 +481,14 @@ final class ContentViewController: NSViewController {
             if hasProject {
                 showEmptyState(
                     symbol: "doc.text.magnifyingglass",
-                    title: "选择一篇文档",
-                    subtitle: "在中间的目录树里点击文件即可打开"
+                    title: L10n.t("选择一篇文档"),
+                    subtitle: L10n.t("在中间的目录树里点击文件即可打开")
                 )
             } else {
                 showEmptyState(
                     symbol: "rectangle.stack.badge.plus",
                     title: "MuM",
-                    subtitle: "按 ⌘O 打开一个文件夹作为项目"
+                    subtitle: L10n.t("按 ⌘O 打开一个文件夹作为项目")
                 )
             }
             return

@@ -61,7 +61,7 @@ final class FileTreeViewController: NSViewController {
             WorkspaceStore.shared.activateShortcut(index)
         }
 
-        menuButton.image = NSImage(systemSymbolName: "ellipsis", accessibilityDescription: "项目操作")
+        menuButton.image = NSImage(systemSymbolName: "ellipsis", accessibilityDescription: L10n.t("项目操作"))
         menuButton.isBordered = false
         menuButton.bezelStyle = .inline
         menuButton.contentTintColor = MuMDesign.secondaryText
@@ -93,7 +93,7 @@ final class FileTreeViewController: NSViewController {
     }
 
     private func buildFilterField() {
-        filterField.placeholderString = "过滤文件"
+        filterField.placeholderString = L10n.t("过滤文件")
         filterField.font = NSFont.systemFont(ofSize: 12)
         filterField.controlSize = .small
         filterField.delegate = self
@@ -150,7 +150,7 @@ final class FileTreeViewController: NSViewController {
     private func buildEmptyState() {
         emptyState.translatesAutoresizingMaskIntoConstraints = false
 
-        let label = NSTextField(wrappingLabelWithString: "选择左侧的一个项目")
+        let label = NSTextField(wrappingLabelWithString: L10n.t("选择左侧的一个项目"))
         label.font = MuMDesign.rowSubtitle
         label.textColor = MuMDesign.tertiaryText
         label.alignment = .center
@@ -185,15 +185,15 @@ final class FileTreeViewController: NSViewController {
     private func makeProjectMenu() -> NSMenu {
         let menu = NSMenu()
         // target=nil 走响应链，最终到 AppDelegate 的对应动作（与菜单栏同一动作）
-        let newFile = NSMenuItem(title: "新建文件", action: #selector(AppDelegate.newDocument(_:)), keyEquivalent: "")
+        let newFile = NSMenuItem(title: L10n.t("新建文件"), action: #selector(AppDelegate.newDocument(_:)), keyEquivalent: "")
         newFile.image = Self.menuIcon("doc.badge.plus")
         menu.addItem(newFile)
-        let newFolder = NSMenuItem(title: "新建文件夹", action: #selector(AppDelegate.newFolder(_:)), keyEquivalent: "")
+        let newFolder = NSMenuItem(title: L10n.t("新建文件夹"), action: #selector(AppDelegate.newFolder(_:)), keyEquivalent: "")
         newFolder.image = Self.menuIcon("folder.badge.plus")
         menu.addItem(newFolder)
 
         menu.addItem(.separator())
-        let reveal = NSMenuItem(title: "在访达中显示", action: #selector(revealProject), keyEquivalent: "")
+        let reveal = NSMenuItem(title: L10n.t("在访达中显示"), action: #selector(revealProject), keyEquivalent: "")
         reveal.target = self
         reveal.image = Self.finderIcon
         menu.addItem(reveal)
@@ -203,13 +203,13 @@ final class FileTreeViewController: NSViewController {
         terminal.image = TerminalOpener.menuIcon
         menu.addItem(terminal)
 
-        let refresh = NSMenuItem(title: "刷新文件树", action: #selector(refreshTapped), keyEquivalent: "")
+        let refresh = NSMenuItem(title: L10n.t("刷新文件树"), action: #selector(refreshTapped), keyEquivalent: "")
         refresh.target = self
         refresh.image = Self.menuIcon("arrow.clockwise")
         menu.addItem(refresh)
 
         menu.addItem(.separator())
-        let close = NSMenuItem(title: "关闭当前项目", action: #selector(closeProject), keyEquivalent: "")
+        let close = NSMenuItem(title: L10n.t("关闭当前项目"), action: #selector(closeProject), keyEquivalent: "")
         close.target = self
         close.image = Self.menuIcon("xmark.circle")
         menu.addItem(close)
@@ -248,18 +248,18 @@ final class FileTreeViewController: NSViewController {
         let menu = NSMenu()
 
         if row >= 0, outlineView.item(atRow: row) is FileNode {
-            menu.addItem(contextItem("新建文件", #selector(contextNewFile), icon: Self.menuIcon("doc.badge.plus")))
-            menu.addItem(contextItem("新建文件夹", #selector(contextNewFolder), icon: Self.menuIcon("folder.badge.plus")))
-            menu.addItem(contextItem("重命名…", #selector(contextRename), icon: Self.menuIcon("pencil")))
+            menu.addItem(contextItem(L10n.t("新建文件"), #selector(contextNewFile), icon: Self.menuIcon("doc.badge.plus")))
+            menu.addItem(contextItem(L10n.t("新建文件夹"), #selector(contextNewFolder), icon: Self.menuIcon("folder.badge.plus")))
+            menu.addItem(contextItem(L10n.t("重命名…"), #selector(contextRename), icon: Self.menuIcon("pencil")))
             menu.addItem(.separator())
-            menu.addItem(contextItem("在访达中显示", #selector(contextRevealInFinder), icon: Self.finderIcon))
+            menu.addItem(contextItem(L10n.t("在访达中显示"), #selector(contextRevealInFinder), icon: Self.finderIcon))
             menu.addItem(contextItem(TerminalOpener.menuTitle, #selector(contextOpenInTerminal), icon: TerminalOpener.menuIcon))
-            menu.addItem(contextItem("拷贝路径", #selector(contextCopyPath), icon: Self.menuIcon("doc.on.clipboard")))
+            menu.addItem(contextItem(L10n.t("拷贝路径"), #selector(contextCopyPath), icon: Self.menuIcon("doc.on.clipboard")))
             menu.addItem(.separator())
-            menu.addItem(contextItem("移到废纸篓", #selector(contextTrash), icon: Self.menuIcon("trash")))
+            menu.addItem(contextItem(L10n.t("移到废纸篓"), #selector(contextTrash), icon: Self.menuIcon("trash")))
         } else {
-            menu.addItem(contextItem("新建文件", #selector(contextNewFileAtRoot), icon: Self.menuIcon("doc.badge.plus")))
-            menu.addItem(contextItem("新建文件夹", #selector(contextNewFolderAtRoot), icon: Self.menuIcon("folder.badge.plus")))
+            menu.addItem(contextItem(L10n.t("新建文件"), #selector(contextNewFileAtRoot), icon: Self.menuIcon("doc.badge.plus")))
+            menu.addItem(contextItem(L10n.t("新建文件夹"), #selector(contextNewFolderAtRoot), icon: Self.menuIcon("folder.badge.plus")))
         }
         return menu
     }
@@ -702,7 +702,7 @@ final class FileTreeCellView: NSTableCellView {
 
         // 悬停 ···：默认藏着，鼠标进出行才现身（tracking area 见 updateTrackingAreas）。
         // 行内入口比栏头 ··· 近得多 —— 要操作的就是这一行
-        hoverButton.image = NSImage(systemSymbolName: "ellipsis", accessibilityDescription: "更多操作")
+        hoverButton.image = NSImage(systemSymbolName: "ellipsis", accessibilityDescription: L10n.t("更多操作"))
         hoverButton.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 11, weight: .regular)
         hoverButton.isBordered = false
         hoverButton.bezelStyle = .inline

@@ -45,9 +45,9 @@ struct MuMSettings {
 
         var title: String {
             switch self {
-            case .system: return "跟随系统"
-            case .light: return "亮色"
-            case .dark: return "暗色"
+            case .system: return L10n.t("跟随系统")
+            case .light: return L10n.t("亮色")
+            case .dark: return L10n.t("暗色")
             }
         }
 

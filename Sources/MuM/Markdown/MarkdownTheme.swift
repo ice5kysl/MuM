@@ -25,9 +25,9 @@ enum PreviewFont: Int, CaseIterable {
 
     var title: String {
         switch self {
-        case .system: return "系统"
-        case .serif: return "衬线"
-        case .monospaced: return "等宽"
+        case .system: return L10n.t("系统")
+        case .serif: return L10n.t("衬线")
+        case .monospaced: return L10n.t("等宽")
         }
     }
 
@@ -36,6 +36,28 @@ enum PreviewFont: Int, CaseIterable {
         case .system: return .default
         case .serif: return .serif
         case .monospaced: return .monospaced
+        }
+    }
+}
+
+extension String {
+    /// 是否含 CJK 字符（汉字 / 假名 / 谚文 / 全角标点）。
+    /// 排版参数按书写系统分开调的依据：1.73 倍行高这类调校是 CJK 舒适区，
+    /// 对纯拉丁段落只做加法、不改 CJK 的账（0.8.0「English」）。
+    var mumContainsCJK: Bool {
+        unicodeScalars.contains { scalar in
+            switch scalar.value {
+            case 0x3000...0x303F,   // CJK 标点
+                 0x3040...0x30FF,   // 平/片假名
+                 0x3400...0x4DBF,   // 扩展 A
+                 0x4E00...0x9FFF,   // 基本汉字
+                 0xAC00...0xD7AF,   // 谚文音节
+                 0xF900...0xFAFF,   // 兼容汉字
+                 0xFF00...0xFF65:   // 全角 forms
+                return true
+            default:
+                return false
+            }
         }
     }
 }
@@ -58,6 +80,20 @@ struct MarkdownTheme {
     var blockSpacingScale: CGFloat = 1.0
     /// 字间距（pt）
     var letterSpacing: CGFloat = 0
+
+    // MARK: - 拉丁段落度量（0.8.0「English」）
+    //
+    // CJK 调校只作用在含 CJK 的段落上；纯拉丁段落用这一套，只做加法。
+    // 实测口径（SF 15pt）：自然行盒 ≈20pt，+2pt 额外行距 ≈ 1.46 倍行高；
+    // 拉丁均宽实测 6.87pt/字符，标尺宽 550pt ≈ 每行 80 个拉丁字符
+    // （CJK 780pt ≈ 50 个汉字；英文舒适区 60–85）。
+
+    /// 拉丁（无 CJK）段落的行距：跟随用户的行距旋钮按比例收，保底 2pt
+    var latinLineSpacing: CGFloat { max(2, (lineSpacing * 0.3).rounded()) }
+    /// 拉丁段落的字距：CJK 用户加的字距放进英文单词间会散，收六成
+    var latinLetterSpacing: CGFloat { (letterSpacing * 0.4 * 2).rounded() / 2 }
+    /// 纯拉丁文档的标尺宽上限（pt）
+    static let latinContentWidthCap: CGFloat = 550
     /// 正文字族
     var previewFont: PreviewFont = .system
     /// 阅读主题（纸色）
@@ -71,9 +107,9 @@ struct MarkdownTheme {
 
         var title: String {
             switch self {
-            case .narrow: return "窄"
-            case .standard: return "标准"
-            case .wide: return "宽"
+            case .narrow: return L10n.t("窄")
+            case .standard: return L10n.t("标准")
+            case .wide: return L10n.t("宽")
             }
         }
     }

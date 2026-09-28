@@ -19,7 +19,7 @@ enum TerminalOpener {
         Terminal(displayName: "iTerm", bundleID: "com.googlecode.iterm2"),
     ]
 
-    private static let systemTerminal = Terminal(displayName: "终端", bundleID: "com.apple.Terminal")
+    private static let systemTerminal = Terminal(displayName: L10n.t("终端"), bundleID: "com.apple.Terminal")
 
     /// 当前机器上该用的终端。`exists` 可注入 —— 探测逻辑（优先级、兜底）不进
     /// 单测就只能在装了特定终端的机器上跑。
@@ -29,8 +29,14 @@ enum TerminalOpener {
         candidates.first(where: { exists($0.bundleID) }) ?? systemTerminal
     }
 
-    /// 菜单项标题（每次弹菜单现取 —— 终端可能刚装/刚卸）
-    static var menuTitle: String { "在 \(detected().displayName) 中打开" }
+    /// 菜单项标题（每次弹菜单现取 —— 终端可能刚装/刚卸）。
+    /// 品牌名（Ghostty / iTerm）不翻；系统终端的「终端」翻成 Terminal。
+    /// `displayName` 保持中文原文不动 —— 单测直接断言它。
+    static var menuTitle: String {
+        let terminal = detected()
+        let name = terminal.bundleID == systemTerminal.bundleID ? L10n.t("终端") : terminal.displayName
+        return L10n.f("在 %@ 中打开", name)
+    }
 
     /// 菜单图标：终端自己的 app 图标（和「在访达中显示」用 Finder 图标一个道理）
     static var menuIcon: NSImage? {

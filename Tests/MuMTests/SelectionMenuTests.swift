@@ -7,6 +7,17 @@ final class SelectionMenuTests: XCTestCase {
 
     private static var retained: [AnyObject] = []
 
+    override func setUp() {
+        super.setUp()
+        // 断言的是中文 UI 文案：测试进程跑在英文 locale 下会被 L10n 翻成英文（0.8.0）
+        L10n.override = .zhHans
+    }
+
+    override func tearDown() {
+        L10n.override = .system
+        super.tearDown()
+    }
+
     private func makeTextView() -> PreviewTextView {
         let controller = PreviewViewController()
         _ = controller.view

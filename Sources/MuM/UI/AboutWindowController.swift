@@ -81,12 +81,12 @@ final class AboutWindowController: NSWindowController {
         // 定位语必须与 VISION.md 一字不差 —— 它是产品的全部自我认知，
         // 关于窗口没有资格改写它（v0.6：reader → engine，给人也给 agent）。
         // 破折号前后拆成两行：窄窗里整句折行的断点不可控（实测"agent 用"会孤行）
-        let tagline = NSTextField(labelWithString: "阅读优先的 Markdown 引擎")
+        let tagline = NSTextField(labelWithString: L10n.t("阅读优先的 Markdown 引擎"))
         tagline.font = NSFont.systemFont(ofSize: 12)
         tagline.textColor = MuMDesign.secondaryText
         tagline.translatesAutoresizingMaskIntoConstraints = false
 
-        let audience = NSTextField(labelWithString: "快、原生 —— 给人用，也给 agent 用")
+        let audience = NSTextField(labelWithString: L10n.t("快、原生 —— 给人用，也给 agent 用"))
         audience.font = NSFont.systemFont(ofSize: 12)
         audience.textColor = MuMDesign.secondaryText
         audience.translatesAutoresizingMaskIntoConstraints = false
@@ -96,7 +96,7 @@ final class AboutWindowController: NSWindowController {
         let links = NSStackView(views: [
             LinkButton(title: "GitHub", url: "https://github.com/ice5kysl/MuM"),
             separatorDot(),
-            LinkButton(title: "反馈") { [weak self] in self?.onFeedback?() },
+            LinkButton(title: L10n.t("反馈")) { [weak self] in self?.onFeedback?() },
             separatorDot(),
             LinkButton(title: "ice5kysl", url: "https://github.com/ice5kysl"),
             separatorDot(),

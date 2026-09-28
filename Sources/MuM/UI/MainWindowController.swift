@@ -538,7 +538,7 @@ final class MainWindowController: NSWindowController {
             contentPane.previewViewController.showMessage(
                 symbol: "questionmark.folder",
                 title: standardized.lastPathComponent,
-                subtitle: "这个格式暂时不支持预览"
+                subtitle: L10n.t("这个格式暂时不支持预览")
             )
             currentFileURL = standardized
             contentPane.editorViewController.setEditable(false)
@@ -580,7 +580,7 @@ final class MainWindowController: NSWindowController {
             .map { FileManager.default.displayName(atPath: $0.path) }
         contentPane.setExternalOpenAvailable(
             true,
-            tooltip: appName.map { "用 \($0) 打开" } ?? "用默认应用打开"
+            tooltip: L10n.f("用 %@ 打开", appName ?? L10n.t("默认应用"))
         )
     }
 
@@ -595,7 +595,7 @@ final class MainWindowController: NSWindowController {
         ) else {
             contentPane.previewViewController.showMessage(
                 symbol: "exclamationmark.triangle",
-                title: "无法读取",
+                title: L10n.t("无法读取"),
                 subtitle: url.lastPathComponent
             )
             contentPane.editorViewController.setText("")
@@ -620,7 +620,7 @@ final class MainWindowController: NSWindowController {
             // 否则对着空编辑器敲字再 ⌘S，会把文本盖到读不出来的原文件上（审计 D-8）
             contentPane.previewViewController.showMessage(
                 symbol: "exclamationmark.triangle",
-                title: "无法以文本读取",
+                title: L10n.t("无法以文本读取"),
                 subtitle: url.lastPathComponent
             )
             contentPane.editorViewController.setText("")
@@ -687,10 +687,14 @@ final class MainWindowController: NSWindowController {
         guard FileKind(url: url, isDirectory: false).isTextual else { return }
 
         LaunchTimer.mark("    performRender 开始（异步渲染）")
-        contentPane.previewViewController.previewTextView.maxContentWidth = theme.maxContentWidth
+        // 纯拉丁文档的标尺宽收窄到拉丁上限（0.8.0「English」）：
+        // 780pt 放英文 ≈100 字符/行，远超 75 的舒适区；含 CJK 的文档不动
+        let text = contentPane.editorViewController.text
+        contentPane.previewViewController.previewTextView.maxContentWidth = text.mumContainsCJK
+            ? theme.maxContentWidth
+            : min(theme.maxContentWidth, MarkdownTheme.latinContentWidthCap)
 
         let renderer = MarkdownRenderer(theme: theme, baseURL: url.deletingLastPathComponent())
-        let text = contentPane.editorViewController.text
         let kind = FileKind(url: url, isDirectory: false)
 
         let restore = pendingScrollFraction
@@ -838,10 +842,10 @@ final class MainWindowController: NSWindowController {
 
     /// 递增命名 `未命名.md` 落盘，绝不覆盖。失败弹错误并返回 nil。
     private func createUntitled(in dir: URL) -> URL? {
-        var candidate = dir.appendingPathComponent("未命名.md")
+        var candidate = dir.appendingPathComponent(L10n.t("未命名.md"))
         var index = 2
         while FileManager.default.fileExists(atPath: candidate.path) {
-            candidate = dir.appendingPathComponent("未命名\(index).md")
+            candidate = dir.appendingPathComponent(L10n.f("未命名%d.md", index))
             index += 1
         }
 
@@ -850,7 +854,7 @@ final class MainWindowController: NSWindowController {
             // withoutOverwriting 兜底命名竞态（命名检查后落盘前有人建了同名文件）
             try Data().write(to: candidate, options: .withoutOverwriting)
         } catch {
-            presentError(message: "新建文件失败", detail: error.localizedDescription)
+            presentError(message: L10n.t("新建文件失败"), detail: error.localizedDescription)
             return nil
         }
         return candidate
@@ -861,7 +865,7 @@ final class MainWindowController: NSWindowController {
         guard let window else { return }
         let panel = NSSavePanel()
         panel.allowedContentTypes = [UTType("net.daringfireball.markdown") ?? .plainText]
-        panel.nameFieldStringValue = "未命名.md"
+        panel.nameFieldStringValue = L10n.t("未命名.md")
         panel.beginSheetModal(for: window) { [weak self] response in
             guard let self, response == .OK, let url = panel.url else { return }
             // 已存在就不覆盖（保存面板已问过用户）：直接打开它；不存在才建空文件
@@ -869,7 +873,7 @@ final class MainWindowController: NSWindowController {
                 do {
                     try Data().write(to: url, options: .withoutOverwriting)
                 } catch {
-                    presentError(message: "新建文件失败", detail: error.localizedDescription)
+                    presentError(message: L10n.t("新建文件失败"), detail: error.localizedDescription)
                     return
                 }
             }
@@ -895,17 +899,17 @@ final class MainWindowController: NSWindowController {
         let dir = selected.map { $0.isDirectory ? $0.url : $0.url.deletingLastPathComponent() }
             ?? workspace.rootURL
 
-        var candidate = dir.appendingPathComponent("未命名文件夹")
+        var candidate = dir.appendingPathComponent(L10n.t("未命名文件夹"))
         var index = 2
         while FileManager.default.fileExists(atPath: candidate.path) {
-            candidate = dir.appendingPathComponent("未命名文件夹\(index)")
+            candidate = dir.appendingPathComponent(L10n.f("未命名文件夹%d", index))
             index += 1
         }
 
         do {
             try FileManager.default.createDirectory(at: candidate, withIntermediateDirectories: false)
         } catch {
-            presentError(message: "新建文件夹失败", detail: error.localizedDescription)
+            presentError(message: L10n.t("新建文件夹失败"), detail: error.localizedDescription)
             return nil
         }
 
@@ -919,11 +923,11 @@ final class MainWindowController: NSWindowController {
     /// 行内重命名的校验。返回 nil = 可以改；提成独立方法让测试直接断言校验规则
     func renameValidationError(node: FileNode, newName: String) -> String? {
         let trimmed = newName.trimmingCharacters(in: .whitespaces)
-        if trimmed.isEmpty { return "名字不能为空" }
-        if trimmed.contains("/") { return "名字不能包含「/」" }
+        if trimmed.isEmpty { return L10n.t("名字不能为空") }
+        if trimmed.contains("/") { return L10n.t("名字不能包含「/」") }
         guard trimmed != node.name else { return nil }
         let target = node.url.deletingLastPathComponent().appendingPathComponent(trimmed)
-        if FileManager.default.fileExists(atPath: target.path) { return "「\(trimmed)」已存在" }
+        if FileManager.default.fileExists(atPath: target.path) { return L10n.f("「%@」已存在", trimmed) }
         return nil
     }
 
@@ -935,7 +939,7 @@ final class MainWindowController: NSWindowController {
         // 没改名 = 直接算成功（等于用户看了看又放弃了）
         guard trimmed != node.name else { return true }
         if let message = renameValidationError(node: node, newName: trimmed) {
-            if presentErrors { presentError(message: "重命名失败", detail: message) }
+            if presentErrors { presentError(message: L10n.t("重命名失败"), detail: message) }
             return false
         }
 
@@ -945,7 +949,7 @@ final class MainWindowController: NSWindowController {
             // moveItem 不覆盖已存在的目标（校验已挡过，这里是第二道）
             try FileManager.default.moveItem(at: oldURL, to: target)
         } catch {
-            if presentErrors { presentError(message: "重命名失败", detail: error.localizedDescription) }
+            if presentErrors { presentError(message: L10n.t("重命名失败"), detail: error.localizedDescription) }
             return false
         }
 
@@ -1008,7 +1012,7 @@ final class MainWindowController: NSWindowController {
         do {
             try FileManager.default.trashItem(at: url, resultingItemURL: nil)
         } catch {
-            if presentErrors { presentError(message: "移到废纸篓失败", detail: error.localizedDescription) }
+            if presentErrors { presentError(message: L10n.t("移到废纸篓失败"), detail: error.localizedDescription) }
             return false
         }
         WorkspaceStore.shared.active?.root.invalidate()
@@ -1074,7 +1078,7 @@ final class MainWindowController: NSWindowController {
         do {
             try exportRenderedOrThrow(to: output)
         } catch {
-            presentError(message: "导出失败", detail: error.localizedDescription)
+            presentError(message: L10n.t("导出失败"), detail: error.localizedDescription)
         }
     }
 
@@ -1314,12 +1318,12 @@ final class MainWindowController: NSWindowController {
             let conflict = onDisk.map { $0 != loaded } ?? true
             if conflict {
                 let alert = NSAlert()
-                alert.messageText = "「\(url.lastPathComponent)」在磁盘上已被修改"
+                alert.messageText = L10n.f("「%@」在磁盘上已被修改", url.lastPathComponent)
                 alert.informativeText = onDisk == nil
-                    ? "磁盘上的版本已被删除或无法读取，保存会用编辑器里的内容重新写入。"
-                    : "保存会用编辑器里的内容覆盖磁盘上的版本，那部分改动会丢失。"
-                alert.addButton(withTitle: "仍然写入")
-                alert.addButton(withTitle: "取消")
+                    ? L10n.t("磁盘上的版本已被删除或无法读取，保存会用编辑器里的内容重新写入。")
+                    : L10n.t("保存会用编辑器里的内容覆盖磁盘上的版本，那部分改动会丢失。")
+                alert.addButton(withTitle: L10n.t("仍然写入"))
+                alert.addButton(withTitle: L10n.t("取消"))
                 guard alert.runModal() == .alertFirstButtonReturn else { return }
             }
         }
@@ -1339,7 +1343,7 @@ final class MainWindowController: NSWindowController {
                 .attributesOfItem(atPath: url.path)[.modificationDate] as? Date
             refreshChrome()
         } catch {
-            presentError(message: "保存失败", detail: error.localizedDescription)
+            presentError(message: L10n.t("保存失败"), detail: error.localizedDescription)
         }
     }
 
@@ -1376,11 +1380,11 @@ final class MainWindowController: NSWindowController {
         guard isDirty, let url = currentFileURL else { return true }
 
         let alert = NSAlert()
-        alert.messageText = "「\(url.lastPathComponent)」有未保存的修改"
-        alert.informativeText = "离开前要先保存吗？"
-        alert.addButton(withTitle: "保存")
-        alert.addButton(withTitle: "不保存")
-        alert.addButton(withTitle: "取消")
+        alert.messageText = L10n.f("「%@」有未保存的修改", url.lastPathComponent)
+        alert.informativeText = L10n.t("离开前要先保存吗？")
+        alert.addButton(withTitle: L10n.t("保存"))
+        alert.addButton(withTitle: L10n.t("不保存"))
+        alert.addButton(withTitle: L10n.t("取消"))
 
         switch alert.runModal() {
         case .alertFirstButtonReturn:
@@ -1415,10 +1419,10 @@ final class MainWindowController: NSWindowController {
 
         guard !isDirty else {
             let alert = NSAlert()
-            alert.messageText = "文件在磁盘上被修改了"
-            alert.informativeText = "你本地还有未保存的修改，要放弃它们并载入磁盘版本吗？"
-            alert.addButton(withTitle: "载入磁盘版本")
-            alert.addButton(withTitle: "保留我的修改")
+            alert.messageText = L10n.t("文件在磁盘上被修改了")
+            alert.informativeText = L10n.t("你本地还有未保存的修改，要放弃它们并载入磁盘版本吗？")
+            alert.addButton(withTitle: L10n.t("载入磁盘版本"))
+            alert.addButton(withTitle: L10n.t("保留我的修改"))
             if alert.runModal() == .alertFirstButtonReturn {
                 loadTextFile(url: url, kind: kind)
                 refreshChrome()
@@ -1746,7 +1750,7 @@ final class MainWindowController: NSWindowController {
             window.subtitle = workspace?.name ?? url.deletingLastPathComponent().path
         } else {
             window.title = "MuM"
-            window.subtitle = workspace?.name ?? "未打开项目"
+            window.subtitle = workspace?.name ?? L10n.t("未打开项目")
         }
 
         updateStatusBar()
@@ -1796,7 +1800,7 @@ final class MainWindowController: NSWindowController {
             if scalar.value == 0x0A { lines += 1 }
             if !CharacterSet.whitespacesAndNewlines.contains(scalar) { characters += 1 }
         }
-        return "\(formatted(characters)) 字 · \(formatted(lines)) 行 · \(modeName)"
+        return L10n.f("%@ 字 · %@ 行 · %@", formatted(characters), formatted(lines), modeName)
     }
 
     private func formatted(_ value: Int) -> String {
@@ -1808,7 +1812,7 @@ final class MainWindowController: NSWindowController {
         alert.alertStyle = .warning
         alert.messageText = message
         alert.informativeText = detail
-        alert.addButton(withTitle: "好")
+        alert.addButton(withTitle: L10n.t("好"))
         alert.runModal()
     }
 }

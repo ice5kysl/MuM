@@ -60,3 +60,246 @@
 
 /* MARK: 设置 */
 "跟随系统" = "System";
+
+/* MARK: 状态栏与标题带 */
+"%@ 字 · %@ 行 · %@" = "%@ words · %@ lines · %@";
+"%@ › %@ · 第 %d 行" = "%@ › %@ · Line %d";
+"用 %@ 打开" = "Open with %@";
+"在 %@ 中打开" = "Open in %@";
+"⌥%d 切换这个项目" = "⌥%d switches to this project";
+"Write 写源码 · Read 阅读 · Preview 并排对照（⌘⌥1 / ⌘⌥2 / ⌘⌥3）" = "Write for source · Read for reading · Preview side by side (⌘⌥1 / ⌘⌥2 / ⌘⌥3)";
+
+/* MARK: 空状态与引导 */
+"按 ⌘O 打开一个文件夹作为项目" = "Press ⌘O to open a folder as a project";
+"选择一个文件夹作为 MuM 项目" = "Choose a folder as a MuM project";
+"在中间的目录树里点击文件即可打开" = "Click a file in the tree to open it";
+"这篇文档没有标题" = "No headings in this document";
+"这个格式暂时不支持预览" = "This format can't be previewed yet";
+"MuM 是 Markdown 阅读器，这个格式交给更合适的工具：" = "MuM is a Markdown reader. This format belongs to a better tool:";
+
+/* MARK: 面板与窗口标题 */
+"显示设置：界面、阅读主题、排版" = "Display: Appearance, Theme, Typography";
+"系统设置：启动、文件、缩进" = "System: Startup, Files, Indentation";
+"关闭（Esc）" = "Close (Esc)";
+"关闭大纲栏（⇧⌘O 再开）" = "Close outline (⇧⌘O to reopen)";
+"显示 / 隐藏项目列表（⌘0）" = "Show / hide project list (⌘0)";
+
+/* MARK: 查找与搜索 */
+"在文档中查找「%@」" = "Find “%@” in Document";
+"在 %d 个项目中搜索文件名和内容" = "Search file names and contents in %d projects";
+"搜索中… 已扫 %d 个文件（Esc 关闭）" = "Searching… %d files scanned (Esc to close)";
+"%d 条结果 · 共扫 %d 个文件" = "%d results · %d files scanned";
+"结果过多已截断，请把查询写得更具体" = "Too many results. Try a more specific query";
+"已跳过 %d 个超过 10MB 的文件" = "Skipped %d files over 10MB";
+
+/* MARK: 对话框与错误 */
+"「%@」有未保存的修改" = "“%@” has unsaved changes";
+"「%@」在磁盘上已被修改" = "“%@” was modified on disk";
+"「%@」已存在" = "“%@” already exists";
+"离开前要先保存吗？" = "Save before leaving?";
+"文件在磁盘上被修改了" = "The file was modified on disk";
+"你本地还有未保存的修改，要放弃它们并载入磁盘版本吗？" = "You have unsaved changes. Discard them and load the disk version?";
+"保存会用编辑器里的内容覆盖磁盘上的版本，那部分改动会丢失。" = "Saving overwrites the disk version with the editor contents. Those changes will be lost.";
+"磁盘上的版本已被删除或无法读取，保存会用编辑器里的内容重新写入。" = "The disk version was deleted or is unreadable. Saving will rewrite it from the editor.";
+"名字不能包含「/」" = "Names can't contain “/”";
+"找不到图片：%@" = "Image not found: %@";
+"不支持的导出格式：.%@（只支持 png / pdf）" = "Unsupported export format: .%@ (png and pdf only)";
+
+/* MARK: 更新 */
+"检查更新需要访问 GitHub，请稍后再试。" = "Checking for updates needs access to GitHub. Please try again later.";
+"v%@ 是当前发布的最新版。" = "v%@ is the latest release.";
+"下载失败（HTTP %d）" = "Download failed (HTTP %d)";
+
+/* MARK: 大纲栏与导出 */
+"导出" = "Export";
+"展开大纲栏" = "Expand outline";
+"用默认应用打开" = "Open with Default App";
+"选择一篇文档" = "Select a document";
+
+/* MARK: 对话框按钮 */
+"好" = "OK";
+"不保存" = "Don't Save";
+"无法读取" = "Unreadable";
+
+/* MARK: 反馈面板 */
+"反馈问题或建议" = "Send Feedback";
+"会附上 MuM 版本 / macOS 版本 / 芯片，不带其他任何标识" = "Attaches MuM version, macOS version, and chip. Nothing else.";
+"邮箱（可选，想收到回复就留一个）" = "Email (optional — leave one if you'd like a reply)";
+"改用 GitHub 反馈" = "Use GitHub Instead";
+"发送" = "Send";
+"发送中…" = "Sending…";
+"已收到，谢谢。" = "Got it. Thank you.";
+"发送太频繁，请 %d 秒后再试。" = "Sending too often. Try again in %d seconds.";
+"发送太频繁，请稍后再试。" = "Sending too often. Please try again later.";
+"网络不通，没能发出去。请检查网络后重试，或改用 GitHub 反馈。" = "No network connection. Check your network and try again, or use GitHub instead.";
+"反馈服务暂时不可用（%d）。请稍后再试，或改用 GitHub 反馈。" = "The feedback service is unavailable (%d). Try again later, or use GitHub instead.";
+
+/* MARK: 更新横幅 */
+"发现新版本 v%@" = "MuM v%@ is available";
+"下载更新" = "Download Update";
+"查看更新" = "View Update";
+"更新说明" = "Release Notes";
+"忽略此版本" = "Skip This Version";
+"关闭" = "Close";
+"下载中…" = "Downloading…";
+"下载中 %d%%" = "Downloading %d%%";
+"已下载" = "Downloaded";
+"安装盘已打开" = "Installer Disk Opened";
+"把 MuM 拖进「应用程序」文件夹替换旧版即可。退出 MuM 再替换更稳妥。" = "Drag MuM into the Applications folder to replace the old version. Quitting MuM first is safer.";
+"稍后" = "Later";
+"下载失败" = "Download Failed";
+"%@。也可以点「更新说明」去 Release 页手动下载。" = "%@. You can also open Release Notes to download it manually.";
+
+/* MARK: 快捷键窗口 */
+"快捷键" = "Keyboard Shortcuts";
+"打开项目文件夹" = "Open Project Folder";
+"切换到第 N 个项目" = "Switch to Project N";
+"上一个 / 下一个项目" = "Previous / Next Project";
+"移动当前项目的位置" = "Move Current Project";
+"快速打开（按名字模糊搜索）" = "Quick Open (fuzzy search by name)";
+"上一篇 / 下一篇（阅读历史）" = "Previous / Next Document (history)";
+"在预览中查找" = "Find in Preview";
+"全局搜索（跨所有项目）" = "Global Search (all projects)";
+"下一处 / 上一处" = "Next / Previous Match";
+"呈现方式" = "Modes";
+"预览字号" = "Preview Font Size";
+"全屏幕" = "Full Screen";
+
+/* MARK: 关于窗口 */
+"阅读优先的 Markdown 引擎" = "A reading-first Markdown engine";
+"快、原生 —— 给人用，也给 agent 用" = "Fast and native — for people, and for agents";
+"反馈" = "Feedback";
+
+/* MARK: 设置面板 */
+"启动" = "Startup";
+"恢复上次打开的文件" = "Reopen last files";
+"启动时的呈现方式" = "Start mode";
+"显示隐藏文件" = "Show hidden files";
+"以 . 开头的文件与文件夹；.git、.build 这类仍在忽略列表里" = "Files and folders starting with .; .git and .build stay ignored";
+"Tab 缩进" = "Tab indent";
+"2 空格" = "2 spaces";
+"4 空格" = "4 spaces";
+"系统集成" = "Integration";
+"恢复默认" = "Reset to Defaults";
+"默认 Markdown 编辑器" = "Default Markdown Editor";
+"当前是 MuM" = "Currently MuM";
+"当前是其他应用" = "Currently another app";
+"已是默认" = "Is Default";
+"设为默认" = "Set as Default";
+"无法设为默认编辑器" = "Can't Set as Default Editor";
+"MuM 当前不是从 .app 包中运行的。请先执行 scripts/build-app.sh，用生成的 dist/MuM.app 运行。" = "MuM isn't running from an .app bundle. Run scripts/build-app.sh and launch the generated dist/MuM.app first.";
+"设置失败" = "Setting Failed";
+"已设为默认编辑器" = "Set as Default Editor";
+"以后双击 .md 会用 MuM 打开。\n\n建议把 MuM 放进「应用程序」文件夹 —— 系统按路径记住绑定，移动位置后绑定会失效。" = "Double-clicking .md files will open them in MuM.\n\nKeeping MuM in the Applications folder is recommended — the system remembers the binding by path, and moving the app breaks it.";
+"外观" = "Appearance";
+"界面" = "Theme";
+"语言" = "Language";
+"编辑器" = "Editor";
+"字号" = "Font size";
+"显示行号" = "Show line numbers";
+"只作用于源码编辑区（Write 模式）" = "Only applies to the source editor (Write mode)";
+"高亮当前行" = "Highlight current line";
+"打字机模式" = "Typewriter mode";
+"让光标所在行始终停在编辑区中间" = "Keeps the current line centered";
+"排版" = "Typography";
+"字体" = "Font";
+"行距" = "Line spacing";
+"段间距" = "Paragraph spacing";
+"字间距" = "Letter spacing";
+"阅读宽度" = "Reading width";
+"阅读主题" = "Reading Theme";
+"系统" = "System";
+"亮色" = "Light";
+"暗色" = "Dark";
+"衬线" = "Serif";
+"等宽" = "Mono";
+"窄" = "Narrow";
+"标准" = "Standard";
+"宽" = "Wide";
+
+/* MARK: 项目列表 */
+"打开项目" = "Open Project";
+"打开项目文件夹（⌘O）" = "Open Project Folder (⌘O)";
+"还没有打开的项目" = "No projects yet";
+"打开一个文件夹，MuM 会记住它的位置和上次读到哪里。" = "Open a folder and MuM will remember its place and where you left off.";
+"打开文件夹…" = "Open Folder…";
+"关闭「%@」" = "Close “%@”";
+
+/* MARK: 新建默认名 */
+"未命名.md" = "Untitled.md";
+"未命名%d.md" = "Untitled%d.md";
+"未命名文件夹" = "Untitled Folder";
+"未命名文件夹%d" = "Untitled Folder%d";
+
+/* MARK: 其他 */
+"终端" = "Terminal";
+
+/* MARK: 查找栏 */
+"查找" = "Find";
+"在文档中查找" = "Find in Document";
+"下一处（⏎）" = "Next (⏎)";
+"上一处（⇧⏎）" = "Previous (⇧⏎)";
+"没有匹配" = "No matches";
+"无匹配" = "No matches";
+
+/* MARK: 快速打开与过滤 */
+"过滤文件" = "Filter Files";
+"输入文件名…" = "Type a file name…";
+"没有匹配的文件" = "No matching files";
+
+/* MARK: 全局搜索 */
+"在所有项目中搜索…" = "Search all projects…";
+"在所有项目中搜索「%@」" = "Search “%@” in all projects";
+"搜索中…" = "Searching…";
+"索引构建中…" = "Building index…";
+"所有项目都被排除了" = "All projects are excluded";
+
+/* MARK: 文件树 */
+"更多操作" = "More Actions";
+"新建文件夹" = "New Folder";
+"拷贝路径" = "Copy Path";
+"移到废纸篓" = "Move to Trash";
+"重命名…" = "Rename…";
+"打开" = "Open";
+"项目操作" = "Project Actions";
+"图片" = "Image";
+"新建文件失败" = "Couldn't Create File";
+"新建文件夹失败" = "Couldn't Create Folder";
+"移到废纸篓失败" = "Couldn't Move to Trash";
+"重命名失败" = "Couldn't Rename";
+"名字不能为空" = "Name can't be empty";
+"无法以文本读取" = "Not readable as text";
+"显示 / 隐藏目录树（⌥⌘0）" = "Show / hide file tree (⌥⌘0)";
+"未打开项目" = "No Project Open";
+"选择左侧的一个项目" = "Select a project on the left";
+"没有打开的项目" = "No projects open";
+"从左侧点击一个文件开始" = "Click a file on the left to start";
+
+/* MARK: 保存与冲突 */
+"保存失败" = "Save Failed";
+"载入磁盘版本" = "Load Disk Version";
+"保留我的修改" = "Keep My Changes";
+"仍然写入" = "Write Anyway";
+"取消" = "Cancel";
+"下载完成但保存文件失败" = "Download finished but couldn't save the file";
+
+/* MARK: 导出 */
+"只有文本类文档可以导出渲染结果" = "Only text documents can be exported";
+"导出失败" = "Export Failed";
+"渲染结果编码失败" = "Couldn't encode the rendered output";
+
+/* MARK: 阅读主题名 */
+"纸" = "Paper";
+"静" = "Calm";
+"高对比" = "High Contrast";
+"跟随外观" = "Match Appearance";
+
+/* MARK: 更新提示 */
+"已是最新版本" = "You're up to date";
+"暂时连不上更新源" = "Can't reach the update server";
+"系统设置" = "System Settings";
+"切换项目" = "Switch Project";
+"正在加载…" = "Loading…";
+"大纲" = "Outline";
+"面板" = "Panels";
+"默认应用" = "the Default App";

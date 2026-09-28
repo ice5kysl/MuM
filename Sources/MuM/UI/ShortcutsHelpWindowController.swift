@@ -10,38 +10,38 @@ final class ShortcutsHelpWindowController: NSWindowController {
     /// （分组名， [（快捷键， 说明）]）。与菜单里的实际键位保持同步 ——
     /// 改键位的人必须同步改这里
     private static let sections: [(String, [(String, String)])] = [
-        ("项目", [
-            ("⌘O", "打开项目文件夹"),
-            ("⌘1 … ⌘9", "切换到第 N 个项目"),
-            ("⇧⌘[ / ⇧⌘]", "上一个 / 下一个项目"),
-            ("⌥⌘[ / ⌥⌘]", "移动当前项目的位置"),
-            ("⇧⌘W", "关闭当前项目"),
+        (L10n.t("项目"), [
+            ("⌘O", L10n.t("打开项目文件夹")),
+            ("⌘1 … ⌘9", L10n.t("切换到第 N 个项目")),
+            ("⇧⌘[ / ⇧⌘]", L10n.t("上一个 / 下一个项目")),
+            ("⌥⌘[ / ⌥⌘]", L10n.t("移动当前项目的位置")),
+            ("⇧⌘W", L10n.t("关闭当前项目")),
         ]),
-        ("文件", [
-            ("⌘P", "快速打开（按名字模糊搜索）"),
-            ("⌘S", "保存"),
-            ("⌘R", "从磁盘重新载入"),
-            ("⌘W", "关闭当前文件"),
-            ("⌘[ / ⌘]", "上一篇 / 下一篇（阅读历史）"),
-            ("⇧⌘R", "刷新文件树"),
-            ("⇧⌘J", "在访达中显示"),
+        (L10n.t("文件"), [
+            ("⌘P", L10n.t("快速打开（按名字模糊搜索）")),
+            ("⌘S", L10n.t("保存")),
+            ("⌘R", L10n.t("从磁盘重新载入")),
+            ("⌘W", L10n.t("关闭当前文件")),
+            ("⌘[ / ⌘]", L10n.t("上一篇 / 下一篇（阅读历史）")),
+            ("⇧⌘R", L10n.t("刷新文件树")),
+            ("⇧⌘J", L10n.t("在访达中显示")),
         ]),
-        ("查找", [
-            ("⌘F", "在预览中查找"),
-            ("⇧⌘F", "全局搜索（跨所有项目）"),
-            ("⌘G / ⇧⌘G", "下一处 / 上一处"),
-            ("⇧⌘O", "大纲栏"),
+        (L10n.t("查找"), [
+            ("⌘F", L10n.t("在预览中查找")),
+            ("⇧⌘F", L10n.t("全局搜索（跨所有项目）")),
+            ("⌘G / ⇧⌘G", L10n.t("下一处 / 上一处")),
+            ("⇧⌘O", L10n.t("大纲栏")),
         ]),
-        ("呈现方式", [
-            ("⌥⌘1", "Write — 写源码"),
-            ("⌥⌘2", "Read — 阅读"),
-            ("⌥⌘3", "Preview — 并排对照"),
+        (L10n.t("呈现方式"), [
+            ("⌥⌘1", L10n.t("Write — 写源码")),
+            ("⌥⌘2", L10n.t("Read — 阅读")),
+            ("⌥⌘3", L10n.t("Preview — 并排对照")),
         ]),
-        ("面板", [
-            ("⌘0", "项目列表"),
-            ("⌥⌘0", "目录树"),
-            ("⌘+ / ⌘-", "预览字号"),
-            ("⌃⌘F", "全屏幕"),
+        (L10n.t("面板"), [
+            ("⌘0", L10n.t("项目列表")),
+            ("⌥⌘0", L10n.t("目录树")),
+            ("⌘+ / ⌘-", L10n.t("预览字号")),
+            ("⌃⌘F", L10n.t("全屏幕")),
         ]),
     ]
 
@@ -68,7 +68,7 @@ final class ShortcutsHelpWindowController: NSWindowController {
     }
 
     required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        fatalError("init(coder:) has not been implementedL10n.t(")
     }
 
     func present(relativeTo parent: NSWindow?) {
@@ -91,7 +91,7 @@ final class ShortcutsHelpWindowController: NSWindowController {
         // 同 About：动态色走 PaneBackgroundView，不存 cgColor 快照（F1）
         let content = PaneBackgroundView(color: MuMDesign.paneBackground)
 
-        let title = NSTextField(labelWithString: "快捷键")
+        let title = NSTextField(labelWithString: L10n.t("快捷键"))
         title.font = MuMDesign.contentTitle
 
         let stack = NSStackView()
@@ -131,7 +131,7 @@ final class ShortcutsHelpWindowController: NSWindowController {
     }
 
     /// 一行：快捷键固定一栏（右对齐、等宽感），说明占余宽。
-    /// 键位用主色 —— 速查卡的扫读路径是"找键位 → 看说明"
+    /// 键位用主色 —— 速查卡的扫读路径是")找键位 → 看说明"
     private func makeRow(keys: String, description: String) -> NSView {
         let row = NSView()
 

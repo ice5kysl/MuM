@@ -275,7 +275,7 @@ final class PreviewViewController: NSViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        showMessage(symbol: "doc.text.magnifyingglass", title: "MuM", subtitle: "从左侧点击一个文件开始")
+        showMessage(symbol: "doc.text.magnifyingglass", title: "MuM", subtitle: L10n.t("从左侧点击一个文件开始"))
     }
 
     // MARK: - 搭建
@@ -517,18 +517,19 @@ final class PreviewViewController: NSViewController {
         showOnly(messageContainer)
         messageIcon.image = NSImage(systemSymbolName: "doc.questionmark", accessibilityDescription: nil)
         messageTitle.stringValue = url.lastPathComponent
-        messageSubtitle.stringValue = "MuM 是 Markdown 阅读器，这个格式交给更合适的工具："
+        messageSubtitle.stringValue = L10n.t("MuM 是 Markdown 阅读器，这个格式交给更合适的工具：")
         messageSubtitle.isHidden = false
 
         let appName = NSWorkspace.shared
             .urlForApplication(toOpen: url)
             .map { FileManager.default.displayName(atPath: $0.path) }
 
-        let open = NSButton(title: "用 \(appName ?? "默认应用") 打开", target: self, action: #selector(openMessageURLExternally))
+        let openTitle = L10n.f("用 %@ 打开", appName ?? L10n.t("默认应用"))
+        let open = NSButton(title: openTitle, target: self, action: #selector(openMessageURLExternally))
         open.bezelStyle = .rounded
         open.controlSize = .regular
         open.keyEquivalent = "\r" // 回车 = 主行动
-        let reveal = NSButton(title: "在访达中显示", target: self, action: #selector(revealMessageURLInFinder))
+        let reveal = NSButton(title: L10n.t("在访达中显示"), target: self, action: #selector(revealMessageURLInFinder))
         reveal.bezelStyle = .rounded
         reveal.controlSize = .regular
 
@@ -602,7 +603,7 @@ final class PreviewViewController: NSViewController {
             // 显式设回默认字属性 —— 从 done 的 kern 属性串切回来时别带残留
             endMarker.font = NSFont.systemFont(ofSize: 11)
             endMarker.textColor = .secondaryLabelColor
-            endMarker.stringValue = "正在加载…"
+            endMarker.stringValue = L10n.t("正在加载…")
             endMarker.isHidden = false
         case .done:
             // 信纸式收尾：细线 + 加宽字距的 END，淡到不读第二眼
@@ -909,21 +910,21 @@ final class PreviewTextView: NSTextView {
     /// 拆出来给单测：菜单内容与事件无关
     func selectionMenu(selectedText: String?) -> NSMenu {
         let menu = NSMenu()
-        menu.addItem(withTitle: "拷贝", action: #selector(NSText.copy(_:)), keyEquivalent: "")
-        menu.addItem(withTitle: "全选", action: #selector(NSText.selectAll(_:)), keyEquivalent: "")
+        menu.addItem(withTitle: L10n.t("拷贝"), action: #selector(NSText.copy(_:)), keyEquivalent: "")
+        menu.addItem(withTitle: L10n.t("全选"), action: #selector(NSText.selectAll(_:)), keyEquivalent: "")
 
         guard let query = Self.searchQuery(from: selectedText) else { return menu }
         menu.addItem(.separator())
 
         let findItem = NSMenuItem(
-            title: "在文档中查找「\(Self.shortTitle(query))」",
+            title: L10n.f("在文档中查找「%@」", Self.shortTitle(query)),
             action: #selector(findInDocumentAction(_:)), keyEquivalent: "")
         findItem.target = self
         findItem.representedObject = query
         menu.addItem(findItem)
 
         let globalItem = NSMenuItem(
-            title: "在所有项目中搜索「\(Self.shortTitle(query))」",
+            title: L10n.f("在所有项目中搜索「%@」", Self.shortTitle(query)),
             action: #selector(globalSearchAction(_:)), keyEquivalent: "")
         globalItem.target = self
         globalItem.representedObject = query

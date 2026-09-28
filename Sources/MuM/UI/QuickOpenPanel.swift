@@ -80,7 +80,7 @@ final class QuickOpenPanel: NSPanel {
         if !results.isEmpty {
             tableView.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
         }
-        emptyLabel.stringValue = index.entries.isEmpty ? "索引构建中…" : "没有匹配的文件"
+        emptyLabel.stringValue = index.entries.isEmpty ? L10n.t("索引构建中…") : L10n.t("没有匹配的文件")
         emptyLabel.isHidden = !results.isEmpty
     }
 
@@ -97,7 +97,7 @@ final class QuickOpenPanel: NSPanel {
     private func buildContent() {
         guard let contentView else { return }
 
-        field.placeholderString = "输入文件名…"
+        field.placeholderString = L10n.t("输入文件名…")
         field.font = NSFont.systemFont(ofSize: 16)
         field.isBezeled = true
         field.bezelStyle = .roundedBezel

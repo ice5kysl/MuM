@@ -12,8 +12,8 @@ enum UpdateDownloader {
 
         var errorDescription: String? {
             switch self {
-            case .http(let code): return "下载失败（HTTP \(code)）"
-            case .moved: return "下载完成但保存文件失败"
+            case .http(let code): return L10n.f("下载失败（HTTP %d）", code)
+            case .moved: return L10n.t("下载完成但保存文件失败")
             }
         }
     }

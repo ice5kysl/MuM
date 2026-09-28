@@ -38,6 +38,8 @@ enum UITestRunner {
               flagIndex + 1 < arguments.count else {
             return usage()
         }
+        // 断言是中文 UI 文案：语言钉成中文，别被跑测试那台机器的系统语言带跑（0.8.0）
+        L10n.override = .zhHans
         let scenarioArg = arguments[flagIndex + 1]
         let names: [String]
         if scenarioArg == "all" {
@@ -79,6 +81,8 @@ enum UITestRunner {
         app.appearance = NSAppearance(named: .aqua)
 
         let controller = MainWindowController()
+        // 控制器构建时 applySettings 会用机器的语言设置覆盖回来 —— 钉在构建之后
+        L10n.override = .zhHans
         guard let window = controller.window else {
             FileHandle.standardError.write("无法建立窗口\n".data(using: .utf8)!)
             return 1
@@ -102,6 +106,8 @@ enum UITestRunner {
 
         var checkers: [Checker] = []
         for name in names {
+            // 每个场景前重钉：settings 场景的「恢复默认」会把语言重置成跟随系统
+            L10n.override = .zhHans
             let title = allScenarios.first(where: { $0.name == name })?.title ?? name
             print("■ \(name)（\(title)）")
             let check = Checker(name: name)

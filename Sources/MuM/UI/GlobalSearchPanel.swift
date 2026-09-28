@@ -212,16 +212,16 @@ final class GlobalSearchPanel: NSPanel {
 
     private func updateStatus() {
         if query.isEmpty {
-            statusLabel.stringValue = "在 \(scopes.count) 个项目中搜索文件名和内容"
+            statusLabel.stringValue = L10n.f("在 %d 个项目中搜索文件名和内容", scopes.count)
         } else if searching {
-            statusLabel.stringValue = "搜索中… 已扫 \(filesScanned) 个文件（Esc 关闭）"
+            statusLabel.stringValue = L10n.f("搜索中… 已扫 %d 个文件（Esc 关闭）", filesScanned)
         } else {
-            var parts = ["\(hits.count) 条结果 · 共扫 \(filesScanned) 个文件"]
+            var parts = [L10n.f("%d 条结果 · 共扫 %d 个文件", hits.count, filesScanned)]
             if skippedLarge > 0 {
-                parts.append("已跳过 \(skippedLarge) 个超过 10MB 的文件")
+                parts.append(L10n.f("已跳过 %d 个超过 10MB 的文件", skippedLarge))
             }
             if truncated {
-                parts.append("结果过多已截断，请把查询写得更具体")
+                parts.append(L10n.t("结果过多已截断，请把查询写得更具体"))
             }
             statusLabel.stringValue = parts.joined(separator: " · ")
         }
@@ -230,9 +230,9 @@ final class GlobalSearchPanel: NSPanel {
 
     private var emptyLabelText: String {
         if !query.isEmpty, scopes.indices.filter({ included[$0] }).isEmpty {
-            return "所有项目都被排除了"
+            return L10n.t("所有项目都被排除了")
         }
-        return searching ? "搜索中…" : "没有匹配"
+        return searching ? L10n.t("搜索中…") : L10n.t("没有匹配")
     }
 
     // MARK: - 范围开关
@@ -247,7 +247,7 @@ final class GlobalSearchPanel: NSPanel {
             chip.controlSize = .small
             chip.contentTintColor = MuMDesign.secondaryText
             if index < 9 {
-                chip.toolTip = "⌥\(index + 1) 切换这个项目"
+                chip.toolTip = L10n.f("⌥%d 切换这个项目", index + 1)
             }
             scopeStack.addArrangedSubview(chip)
         }
@@ -294,7 +294,7 @@ final class GlobalSearchPanel: NSPanel {
     private func buildContent() {
         guard let contentView else { return }
 
-        field.placeholderString = "在所有项目中搜索…"
+        field.placeholderString = L10n.t("在所有项目中搜索…")
         field.font = NSFont.systemFont(ofSize: 16)
         field.focusRingType = .none
         field.sendsSearchStringImmediately = true
@@ -492,7 +492,7 @@ private final class GlobalSearchRowView: NSTableCellView {
             detailLabel.stringValue = "\(projectName) › \(hit.relativePath)"
 
         case .content:
-            titleLabel.stringValue = "\(projectName) › \(hit.relativePath) · 第 \(hit.lineNumber) 行"
+            titleLabel.stringValue = L10n.f("%@ › %@ · 第 %d 行", projectName, hit.relativePath, hit.lineNumber)
             // 原始行整行铺进来是一堵字墙：折叠空白、以命中为中心开窗
             let context = GlobalSearchEngine.displayContext(
                 line: hit.lineText, match: hit.matchRangeInLine)

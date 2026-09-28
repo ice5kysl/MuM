@@ -64,8 +64,8 @@ final class WorkspaceStore: @unchecked Sendable {
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true
         panel.canCreateDirectories = true
-        panel.prompt = "打开"
-        panel.message = "选择一个文件夹作为 MuM 项目"
+        panel.prompt = L10n.t("打开")
+        panel.message = L10n.t("选择一个文件夹作为 MuM 项目")
 
         guard panel.runModal() == .OK else { return }
         for url in panel.urls {

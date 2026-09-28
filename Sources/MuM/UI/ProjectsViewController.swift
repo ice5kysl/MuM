@@ -12,7 +12,7 @@ final class ProjectsViewController: NSViewController {
     var onAdd: (() -> Void)?
     var onReveal: ((Int) -> Void)?
 
-    private let headerLabel = NSTextField(labelWithString: "项目")
+    private let headerLabel = NSTextField(labelWithString: L10n.t("项目"))
     private let countLabel = NSTextField(labelWithString: "")
     private let addButton = NSButton()
     private let separator = NSBox()
@@ -56,13 +56,13 @@ final class ProjectsViewController: NSViewController {
         countLabel.textColor = MuMDesign.tertiaryText
         countLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        addButton.image = NSImage(systemSymbolName: "plus", accessibilityDescription: "打开项目")
+        addButton.image = NSImage(systemSymbolName: "plus", accessibilityDescription: L10n.t("打开项目"))
         addButton.isBordered = false
         addButton.bezelStyle = .inline
         addButton.contentTintColor = MuMDesign.secondaryText
         addButton.target = self
         addButton.action = #selector(addTapped)
-        addButton.toolTip = "打开项目文件夹（⌘O）"
+        addButton.toolTip = L10n.t("打开项目文件夹（⌘O）")
         addButton.translatesAutoresizingMaskIntoConstraints = false
 
         separator.boxType = .separator
@@ -139,18 +139,18 @@ final class ProjectsViewController: NSViewController {
         icon.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 26, weight: .light)
         icon.contentTintColor = MuMDesign.tertiaryText
 
-        let title = NSTextField(labelWithString: "还没有打开的项目")
+        let title = NSTextField(labelWithString: L10n.t("还没有打开的项目"))
         title.font = MuMDesign.rowTitle
         title.textColor = MuMDesign.secondaryText
         title.alignment = .center
 
-        let subtitle = NSTextField(wrappingLabelWithString: "打开一个文件夹，MuM 会记住它的位置和上次读到哪里。")
+        let subtitle = NSTextField(wrappingLabelWithString: L10n.t("打开一个文件夹，MuM 会记住它的位置和上次读到哪里。"))
         subtitle.font = MuMDesign.rowSubtitle
         subtitle.textColor = MuMDesign.tertiaryText
         subtitle.alignment = .center
         subtitle.preferredMaxLayoutWidth = 170
 
-        let openButton = NSButton(title: "打开文件夹…", target: self, action: #selector(addTapped))
+        let openButton = NSButton(title: L10n.t("打开文件夹…"), target: self, action: #selector(addTapped))
         openButton.bezelStyle = .rounded
         openButton.bezelColor = .controlAccentColor
         openButton.keyEquivalent = "\r"
@@ -355,11 +355,11 @@ final class ProjectRowView: NSView {
 
     override func rightMouseDown(with event: NSEvent) {
         let menu = NSMenu()
-        let reveal = NSMenuItem(title: "在访达中显示", action: #selector(revealTapped), keyEquivalent: "")
+        let reveal = NSMenuItem(title: L10n.t("在访达中显示"), action: #selector(revealTapped), keyEquivalent: "")
         reveal.target = self
         menu.addItem(reveal)
         menu.addItem(.separator())
-        let close = NSMenuItem(title: "关闭「\(nameLabel.stringValue)」", action: #selector(closeTapped), keyEquivalent: "")
+        let close = NSMenuItem(title: L10n.f("关闭「%@」", nameLabel.stringValue), action: #selector(closeTapped), keyEquivalent: "")
         close.target = self
         menu.addItem(close)
         NSMenu.popUpContextMenu(menu, with: event, for: self)

@@ -16,11 +16,11 @@ final class LayoutClusterView: NSView {
 
     private let projectsButton = LayoutToggleButton(
         symbol: "rectangle.leadingthird.inset.filled",
-        tooltip: "显示 / 隐藏项目列表（⌘0）"
+        tooltip: L10n.t("显示 / 隐藏项目列表（⌘0）")
     )
     private let treeButton = LayoutToggleButton(
         symbol: "rectangle.leadinghalf.inset.filled",
-        tooltip: "显示 / 隐藏目录树（⌥⌘0）"
+        tooltip: L10n.t("显示 / 隐藏目录树（⌥⌘0）")
     )
 
     override init(frame frameRect: NSRect) {

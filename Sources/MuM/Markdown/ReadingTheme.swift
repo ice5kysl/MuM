@@ -14,10 +14,10 @@ enum ReadingTheme: Int, CaseIterable {
 
     var title: String {
         switch self {
-        case .system: return "跟随外观"
-        case .paper: return "纸"
-        case .quiet: return "静"
-        case .contrast: return "高对比"
+        case .system: return L10n.t("跟随外观")
+        case .paper: return L10n.t("纸")
+        case .quiet: return L10n.t("静")
+        case .contrast: return L10n.t("高对比")
         }
     }
 

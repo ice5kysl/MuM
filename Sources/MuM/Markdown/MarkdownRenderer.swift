@@ -92,8 +92,32 @@ final class MarkdownRenderer {
         renderBlocks(Array(document.children), into: output, context: BlockContext())
         // 末尾多余的空行去掉，避免滚动区底部一大片空白
         trimTrailingNewlines(output)
+        applyScriptAwareMetrics(output)
         RenderProfiler.report(totalMS: Date().timeIntervalSince(renderStart) * 1000)
         return output
+    }
+
+    /// 按书写系统微调段落度量（0.8.0「English」）：纯拉丁段落换用拉丁行距/字距，
+    /// 含 CJK 的段落一个属性都不动 —— 中文渲染与之前逐像素一致是验收红线。
+    /// 跳过：代码块（.mumCodeBlock）、表格（textBlocks）、显式传过行距的段落
+    /// （style.lineSpacing 已被改成非全局值的那些）。
+    fileprivate func applyScriptAwareMetrics(_ output: NSMutableAttributedString) {
+        let full = output.string as NSString
+        guard full.length > 0 else { return }
+        let theme = self.theme
+        full.enumerateSubstrings(in: NSRange(location: 0, length: full.length), options: .byParagraphs) { paragraph, range, _, _ in
+            guard let paragraph, !paragraph.mumContainsCJK else { return }
+            guard let style = output.attribute(.paragraphStyle, at: range.location, effectiveRange: nil) as? NSParagraphStyle,
+                  style.textBlocks.isEmpty,
+                  style.lineSpacing == theme.lineSpacing else { return }
+            guard output.attribute(.mumCodeBlock, at: range.location, effectiveRange: nil) == nil else { return }
+            let latin = style.mutableCopy() as! NSMutableParagraphStyle
+            latin.lineSpacing = theme.latinLineSpacing
+            output.addAttribute(.paragraphStyle, value: latin, range: range)
+            if theme.letterSpacing > 0 {
+                output.addAttribute(.kern, value: theme.latinLetterSpacing, range: range)
+            }
+        }
     }
 
     /// 纯文本渲染（无扩展名的文本文件走这里）
@@ -792,7 +816,7 @@ final class MarkdownRenderer {
         guard let destination = image.source,
               let url = resolvedURL(destination),
               url.isFileURL else {
-            appendImagePlaceholder(alt.isEmpty ? "图片" : alt, into: out)
+            appendImagePlaceholder(alt.isEmpty ? L10n.t("图片") : alt, into: out)
             return
         }
 
@@ -805,7 +829,7 @@ final class MarkdownRenderer {
             if let loaded { Self.imageCache[key] = loaded }
         }
         guard let source = loaded else {
-            appendImagePlaceholder("找不到图片：\(alt.isEmpty ? url.lastPathComponent : alt)", into: out)
+            appendImagePlaceholder(L10n.f("找不到图片：%@", alt.isEmpty ? url.lastPathComponent : alt), into: out)
             return
         }
 
@@ -921,6 +945,8 @@ final class ProgressiveRenderSession {
         let anchorStart = renderer.blockAnchors.count
         let chunk = NSMutableAttributedString()
         renderer.renderBlocks(Array(blocks[nextIndex..<end]), into: chunk, context: MarkdownRenderer.BlockContext())
+        // 拉丁段落度量在 render() 里也做 —— 片渲染必须同口径，拼接才与全量逐字一致
+        renderer.applyScriptAwareMetrics(chunk)
         nextIndex = end
 
         // 只有最后一片才修剪尾部空行 —— 那是全文末尾；中间片尾的 "\n" 不能动

@@ -18,7 +18,7 @@ final class OutlinePanelController: NSViewController {
     private var currentIndex: Int?
 
     private let stack = NSStackView()
-    private let emptyLabel = NSTextField(labelWithString: "这篇文档没有标题")
+    private let emptyLabel = NSTextField(labelWithString: L10n.t("这篇文档没有标题"))
     private let scrollView = NSScrollView()
     /// documentView 用翻转容器：不翻转的 documentView 在内容不足一屏时会被
     /// AppKit 沉底（行跑到面板底部），翻转后从顶部排
@@ -82,7 +82,7 @@ final class OutlinePanelController: NSViewController {
         headerChevron.contentTintColor = MuMDesign.tertiaryText
         headerChevron.translatesAutoresizingMaskIntoConstraints = false
 
-        let headerLabel = NSTextField(labelWithString: "大纲")
+        let headerLabel = NSTextField(labelWithString: L10n.t("大纲"))
         headerLabel.font = NSFont.systemFont(ofSize: 11, weight: .medium)
         headerLabel.textColor = MuMDesign.tertiaryText
         headerLabel.refusesFirstResponder = true

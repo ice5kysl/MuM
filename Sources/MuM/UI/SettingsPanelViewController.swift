@@ -43,9 +43,9 @@ final class SettingsPanelViewController: NSViewController {
         let right = SettingsControls.column(width: width)
 
         // —— 左栏：外观 + 编辑器（"界面长什么样"）——
-        left.addArrangedSubview(SettingsControls.section("外观", width: width))
+        left.addArrangedSubview(SettingsControls.section(L10n.t("外观"), width: width))
         segments["appearance"] = SettingsSegmentedRow(
-            title: "界面",
+            title: L10n.t("界面"),
             labels: MuMSettings.Appearance.allCases.map(\.title),
             selected: MuMSettings.Appearance.allCases.firstIndex(of: settings.appearance) ?? 0,
             width: width
@@ -59,7 +59,7 @@ final class SettingsPanelViewController: NSViewController {
         // 语言（0.8.0「English」唯一新增设置项）：跟随系统 / 中文 / English。
         // 放「外观」分区 —— 不新开分区（VISION：设置项 1.0 定稿）
         segments["language"] = SettingsSegmentedRow(
-            title: "语言",
+            title: L10n.t("语言"),
             labels: L10n.Language.allCases.map(\.title),
             selected: L10n.Language.allCases.firstIndex(of: settings.language) ?? 0,
             width: width
@@ -72,47 +72,47 @@ final class SettingsPanelViewController: NSViewController {
         left.addArrangedSubview(segments["language"]!.view)
         left.addArrangedSubview(themePickerRow())
 
-        left.addArrangedSubview(SettingsControls.section("编辑器", width: width))
+        left.addArrangedSubview(SettingsControls.section(L10n.t("编辑器"), width: width))
         left.addArrangedSubview(slider(
-            "editorFontSize", title: "字号",
+            "editorFontSize", title: L10n.t("字号"),
             value: settings.editorFontSize, range: MuMSettings.editorFontSizeRange, format: "%.0f pt"
         ) { [weak self] value in
             self?.settings.editorFontSize = value
             self?.emit()
         })
         left.addArrangedSubview(toggle(
-            "showsLineNumbers", title: "显示行号",
-            isOn: settings.showsLineNumbers, hint: "只作用于源码编辑区（Write 模式）"
+            "showsLineNumbers", title: L10n.t("显示行号"),
+            isOn: settings.showsLineNumbers, hint: L10n.t("只作用于源码编辑区（Write 模式）")
         ) { [weak self] isOn in
             self?.settings.showsLineNumbers = isOn
             self?.emit()
         })
         left.addArrangedSubview(toggle(
-            "highlightsCurrentLine", title: "高亮当前行",
-            isOn: settings.highlightsCurrentLine, hint: "只作用于源码编辑区（Write 模式）"
+            "highlightsCurrentLine", title: L10n.t("高亮当前行"),
+            isOn: settings.highlightsCurrentLine, hint: L10n.t("只作用于源码编辑区（Write 模式）")
         ) { [weak self] isOn in
             self?.settings.highlightsCurrentLine = isOn
             self?.emit()
         })
         left.addArrangedSubview(toggle(
-            "typewriterMode", title: "打字机模式",
-            isOn: settings.typewriterMode, hint: "让光标所在行始终停在编辑区中间"
+            "typewriterMode", title: L10n.t("打字机模式"),
+            isOn: settings.typewriterMode, hint: L10n.t("让光标所在行始终停在编辑区中间")
         ) { [weak self] isOn in
             self?.settings.typewriterMode = isOn
             self?.emit()
         })
 
         // —— 右栏：阅读排版 ——
-        right.addArrangedSubview(SettingsControls.section("排版", width: width))
+        right.addArrangedSubview(SettingsControls.section(L10n.t("排版"), width: width))
         right.addArrangedSubview(slider(
-            "previewFontSize", title: "字号",
+            "previewFontSize", title: L10n.t("字号"),
             value: settings.previewFontSize, range: MuMSettings.previewFontSizeRange, format: "%.0f pt"
         ) { [weak self] value in
             self?.settings.previewFontSize = value
             self?.emit()
         })
         segments["previewFont"] = SettingsSegmentedRow(
-            title: "字体",
+            title: L10n.t("字体"),
             labels: PreviewFont.allCases.map(\.title),
             selected: PreviewFont.allCases.firstIndex(of: settings.previewFont) ?? 0,
             width: width
@@ -124,28 +124,28 @@ final class SettingsPanelViewController: NSViewController {
         }
         right.addArrangedSubview(segments["previewFont"]!.view)
         right.addArrangedSubview(slider(
-            "lineSpacing", title: "行距",
+            "lineSpacing", title: L10n.t("行距"),
             value: settings.lineSpacing, range: MuMSettings.lineSpacingRange, format: "%.0f pt"
         ) { [weak self] value in
             self?.settings.lineSpacing = value
             self?.emit()
         })
         right.addArrangedSubview(slider(
-            "blockSpacing", title: "段间距",
+            "blockSpacing", title: L10n.t("段间距"),
             value: settings.blockSpacing, range: MuMSettings.blockSpacingRange, format: "%.2g×"
         ) { [weak self] value in
             self?.settings.blockSpacing = value
             self?.emit()
         })
         right.addArrangedSubview(slider(
-            "letterSpacing", title: "字间距",
+            "letterSpacing", title: L10n.t("字间距"),
             value: settings.letterSpacing, range: MuMSettings.letterSpacingRange, format: "%.1f pt"
         ) { [weak self] value in
             self?.settings.letterSpacing = value
             self?.emit()
         })
         segments["readingWidth"] = SettingsSegmentedRow(
-            title: "阅读宽度",
+            title: L10n.t("阅读宽度"),
             labels: MarkdownTheme.ReadingWidth.allCases.map(\.title),
             selected: MarkdownTheme.ReadingWidth.allCases.firstIndex(of: settings.readingWidth) ?? 1,
             width: width
@@ -171,7 +171,7 @@ final class SettingsPanelViewController: NSViewController {
         ])
 
         // 「恢复默认」横跨两栏放最底下 —— 它是面板级的动作，不属于任何一组
-        let reset = NSButton(title: "恢复默认", target: self, action: #selector(resetTapped))
+        let reset = NSButton(title: L10n.t("恢复默认"), target: self, action: #selector(resetTapped))
         reset.bezelStyle = .rounded
         reset.controlSize = .small
         reset.translatesAutoresizingMaskIntoConstraints = false
@@ -191,7 +191,7 @@ final class SettingsPanelViewController: NSViewController {
 
     /// 阅读主题的一排预览卡片
     private func themePickerRow() -> NSView {
-        let titleLabel = NSTextField(labelWithString: "阅读主题")
+        let titleLabel = NSTextField(labelWithString: L10n.t("阅读主题"))
         titleLabel.font = .systemFont(ofSize: 12)
 
         let picker = ReadingThemePicker(selected: settings.readingTheme)

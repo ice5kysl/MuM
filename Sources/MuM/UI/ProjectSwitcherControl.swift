@@ -39,7 +39,7 @@ final class ProjectSwitcherControl: NSView {
         nameLabel.lineBreakMode = .byTruncatingMiddle
         nameLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-        chevron.image = NSImage(systemSymbolName: "chevron.down", accessibilityDescription: "切换项目")
+        chevron.image = NSImage(systemSymbolName: "chevron.down", accessibilityDescription: L10n.t("切换项目"))
         chevron.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 8, weight: .bold)
         chevron.contentTintColor = MuMDesign.tertiaryText
         chevron.setContentCompressionResistancePriority(.required, for: .horizontal)
@@ -58,7 +58,7 @@ final class ProjectSwitcherControl: NSView {
             heightAnchor.constraint(equalToConstant: 22),
         ])
 
-        toolTip = "切换项目"
+        toolTip = L10n.t("切换项目")
     }
 
     /// 整块作为一个点击目标 —— 否则点到文字上会被 label 吃掉，菜单弹不出来
@@ -67,7 +67,7 @@ final class ProjectSwitcherControl: NSView {
     }
 
     func update(projectName: String?) {
-        nameLabel.stringValue = projectName ?? "没有打开的项目"
+        nameLabel.stringValue = projectName ?? L10n.t("没有打开的项目")
         iconView.isHidden = projectName == nil
         chevron.isHidden = projectName == nil
     }
@@ -132,7 +132,7 @@ final class ProjectSwitcherControl: NSView {
             menu.addItem(.separator())
         }
 
-        let open = NSMenuItem(title: "打开项目…", action: #selector(openFolder), keyEquivalent: "o")
+        let open = NSMenuItem(title: L10n.t("打开项目…"), action: #selector(openFolder), keyEquivalent: "o")
         open.keyEquivalentModifierMask = [.command]
         open.target = self
         menu.addItem(open)

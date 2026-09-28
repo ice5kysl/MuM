@@ -31,9 +31,9 @@ enum DocumentRenderer {
 
         var errorDescription: String? {
             switch self {
-            case .unsupportedFormat(let ext): return "不支持的导出格式：.\(ext)（只支持 png / pdf）"
-            case .encodeFailed: return "渲染结果编码失败"
-            case .notTextual: return "只有文本类文档可以导出渲染结果"
+            case .unsupportedFormat(let ext): return L10n.f("不支持的导出格式：.%@（只支持 png / pdf）", ext)
+            case .encodeFailed: return L10n.t("渲染结果编码失败")
+            case .notTextual: return L10n.t("只有文本类文档可以导出渲染结果")
             }
         }
     }

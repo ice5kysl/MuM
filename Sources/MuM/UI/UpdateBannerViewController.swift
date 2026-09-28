@@ -28,25 +28,25 @@ final class UpdateBannerViewController: NSTitlebarAccessoryViewController {
         // 同 About：动态色走 PaneBackgroundView，不存 cgColor 快照（F1）
         let container = PaneBackgroundView(color: MuMDesign.paneBackground)
 
-        let label = NSTextField(labelWithString: "发现新版本 v\(update.version)")
+        let label = NSTextField(labelWithString: L10n.f("发现新版本 v%@", update.version))
         label.font = NSFont.systemFont(ofSize: 12)
         label.textColor = MuMDesign.secondaryText
 
         // 有直链就一键下载（半自动升级）；没有直链退回跳 Release 页
         let downloadButton = NSButton(
-            title: update.downloadURL != nil ? "下载更新" : "查看更新",
+            title: update.downloadURL != nil ? L10n.t("下载更新") : L10n.t("查看更新"),
             target: self, action: #selector(downloadOrOpenRelease))
         downloadButton.bezelStyle = .inline
         downloadButton.controlSize = .small
         downloadButton.font = NSFont.systemFont(ofSize: 12)
         self.downloadButton = downloadButton
 
-        let notesButton = NSButton(title: "更新说明", target: self, action: #selector(openReleaseNotes))
+        let notesButton = NSButton(title: L10n.t("更新说明"), target: self, action: #selector(openReleaseNotes))
         notesButton.bezelStyle = .inline
         notesButton.controlSize = .small
         notesButton.font = NSFont.systemFont(ofSize: 12)
 
-        let ignoreButton = NSButton(title: "忽略此版本", target: self, action: #selector(ignore))
+        let ignoreButton = NSButton(title: L10n.t("忽略此版本"), target: self, action: #selector(ignore))
         ignoreButton.bezelStyle = .inline
         ignoreButton.controlSize = .small
         ignoreButton.font = NSFont.systemFont(ofSize: 12)
@@ -54,7 +54,7 @@ final class UpdateBannerViewController: NSTitlebarAccessoryViewController {
         let close = NSButton(title: "", target: self, action: #selector(dismissBanner))
         close.bezelStyle = .inline
         close.controlSize = .small
-        close.image = NSImage(systemSymbolName: "xmark", accessibilityDescription: "关闭")
+        close.image = NSImage(systemSymbolName: "xmark", accessibilityDescription: L10n.t("关闭"))
         close.imagePosition = .imageOnly
 
         let stack = NSStackView(views: [label, downloadButton, notesButton, ignoreButton, close])
@@ -105,23 +105,23 @@ final class UpdateBannerViewController: NSTitlebarAccessoryViewController {
         guard !isDownloading else { return }
         isDownloading = true
         downloadButton?.isEnabled = false
-        downloadButton?.title = "下载中…"
+        downloadButton?.title = L10n.t("下载中…")
 
         UpdateDownloader.download(downloadURL, version: update.version) { [weak self] fraction in
-            self?.downloadButton?.title = String(format: "下载中 %d%%", Int((fraction * 100).rounded()))
+            self?.downloadButton?.title = L10n.f("下载中 %d%%", Int((fraction * 100).rounded()))
         } completion: { [weak self] result in
             guard let self else { return }
             self.isDownloading = false
             switch result {
             case .success(let dmg):
-                self.downloadButton?.title = "已下载"
+                self.downloadButton?.title = L10n.t("已下载")
                 // 提示语断言的是「安装盘已挂载」—— 必须等挂载真的完成再说
                 UpdateDownloader.mountAndReveal(dmg) { [weak self] in
                     self?.presentInstallHint()
                 }
             case .failure(let error):
                 self.downloadButton?.isEnabled = true
-                self.downloadButton?.title = "下载更新"
+                self.downloadButton?.title = L10n.t("下载更新")
                 self.presentFailure(error)
             }
         }
@@ -130,11 +130,11 @@ final class UpdateBannerViewController: NSTitlebarAccessoryViewController {
     /// 安装盘已挂载：说明最后一步，并给一个「退出 MuM」方便替换
     private func presentInstallHint() {
         let alert = NSAlert()
-        alert.messageText = "安装盘已打开"
-        alert.informativeText = "把 MuM 拖进「应用程序」文件夹替换旧版即可。退出 MuM 再替换更稳妥。"
+        alert.messageText = L10n.t("安装盘已打开")
+        alert.informativeText = L10n.t("把 MuM 拖进「应用程序」文件夹替换旧版即可。退出 MuM 再替换更稳妥。")
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "退出 MuM")
-        alert.addButton(withTitle: "稍后")
+        alert.addButton(withTitle: L10n.t("退出 MuM"))
+        alert.addButton(withTitle: L10n.t("稍后"))
         present(alert) { response in
             if response == .alertFirstButtonReturn {
                 NSApp.terminate(nil)
@@ -144,10 +144,10 @@ final class UpdateBannerViewController: NSTitlebarAccessoryViewController {
 
     private func presentFailure(_ error: Error) {
         let alert = NSAlert()
-        alert.messageText = "下载失败"
-        alert.informativeText = "\(error.localizedDescription)。也可以点「更新说明」去 Release 页手动下载。"
+        alert.messageText = L10n.t("下载失败")
+        alert.informativeText = L10n.f("%@。也可以点「更新说明」去 Release 页手动下载。", error.localizedDescription)
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "好")
+        alert.addButton(withTitle: L10n.t("好"))
         present(alert) { _ in }
     }
 

@@ -31,7 +31,7 @@ final class PreviewFindBar: NSView {
         wantsLayer = true
         layer?.backgroundColor = MuMDesign.paneBackground.cgColor
 
-        searchField.placeholderString = "在文档中查找"
+        searchField.placeholderString = L10n.t("在文档中查找")
         searchField.font = .systemFont(ofSize: 12)
         searchField.target = self
         searchField.action = #selector(queryChanged)
@@ -44,9 +44,9 @@ final class PreviewFindBar: NSView {
         countLabel.alignment = .right
         countLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        configure(previousButton, symbol: "chevron.up", tooltip: "上一处（⇧⏎）", action: #selector(goPrevious))
-        configure(nextButton, symbol: "chevron.down", tooltip: "下一处（⏎）", action: #selector(goNext))
-        configure(closeButton, symbol: "xmark", tooltip: "关闭（Esc）", action: #selector(close))
+        configure(previousButton, symbol: "chevron.up", tooltip: L10n.t("上一处（⇧⏎）"), action: #selector(goPrevious))
+        configure(nextButton, symbol: "chevron.down", tooltip: L10n.t("下一处（⏎）"), action: #selector(goNext))
+        configure(closeButton, symbol: "xmark", tooltip: L10n.t("关闭（Esc）"), action: #selector(close))
 
         let stack = NSStackView(views: [searchField, countLabel, previousButton, nextButton, closeButton])
         stack.orientation = .horizontal
@@ -98,7 +98,7 @@ final class PreviewFindBar: NSView {
     ///   - current: 当前第几处（1 起算；0 表示没有匹配）
     ///   - total: 共几处
     func update(current: Int, total: Int) {
-        countLabel.stringValue = total == 0 ? "无匹配" : "\(current) / \(total)"
+        countLabel.stringValue = total == 0 ? L10n.t("无匹配") : "\(current) / \(total)"
         previousButton.isEnabled = total > 0
         nextButton.isEnabled = total > 0
     }

@@ -283,10 +283,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.presentUpdateBanner(update)
             case .upToDate:
                 let alert = NSAlert()
-                alert.messageText = "已是最新版本"
-                alert.informativeText = "v\(UpdateChecker.currentVersion) 是当前发布的最新版。"
+                alert.messageText = L10n.t("已是最新版本")
+                alert.informativeText = L10n.f("v%@ 是当前发布的最新版。", UpdateChecker.currentVersion)
                 alert.alertStyle = .informational
-                alert.addButton(withTitle: "好")
+                alert.addButton(withTitle: L10n.t("好"))
                 if let window = self.mainWindowController?.window {
                     alert.beginSheetModal(for: window)
                 } else {
@@ -294,10 +294,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             case .failed:
                 let alert = NSAlert()
-                alert.messageText = "暂时连不上更新源"
-                alert.informativeText = "检查更新需要访问 GitHub，请稍后再试。"
+                alert.messageText = L10n.t("暂时连不上更新源")
+                alert.informativeText = L10n.t("检查更新需要访问 GitHub，请稍后再试。")
                 alert.alertStyle = .informational
-                alert.addButton(withTitle: "好")
+                alert.addButton(withTitle: L10n.t("好"))
                 if let window = self.mainWindowController?.window {
                     alert.beginSheetModal(for: window)
                 } else {

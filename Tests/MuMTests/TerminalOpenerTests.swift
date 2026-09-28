@@ -5,6 +5,17 @@ import XCTest
 /// 注入 exists 谓词，断言不依赖测试机真装了哪个终端。
 final class TerminalOpenerTests: XCTestCase {
 
+    override func setUp() {
+        super.setUp()
+        // 「终端」这个显示名走 L10n：测试进程是英文 locale，钉成中文再断言（0.8.0）
+        L10n.override = .zhHans
+    }
+
+    override func tearDown() {
+        L10n.override = .system
+        super.tearDown()
+    }
+
     func testGhosttyWinsWhenAllInstalled() {
         let terminal = TerminalOpener.detected { _ in true }
         XCTAssertEqual(terminal.bundleID, "com.mitchellh.ghostty")

@@ -67,17 +67,17 @@ final class StatusBarView: NSView {
         displayButton.contentTintColor = MuMDesign.secondaryText
         displayButton.target = self
         displayButton.action = #selector(showDisplaySettings)
-        displayButton.toolTip = "显示设置：界面、阅读主题、排版"
+        displayButton.toolTip = L10n.t("显示设置：界面、阅读主题、排版")
         displayButton.translatesAutoresizingMaskIntoConstraints = false
 
-        settingsButton.image = NSImage(systemSymbolName: "gearshape", accessibilityDescription: "系统设置")
+        settingsButton.image = NSImage(systemSymbolName: "gearshape", accessibilityDescription: L10n.t("系统设置"))
         settingsButton.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 12, weight: .regular)
         settingsButton.isBordered = false
         settingsButton.bezelStyle = .inline
         settingsButton.contentTintColor = MuMDesign.secondaryText
         settingsButton.target = self
         settingsButton.action = #selector(showSettings)
-        settingsButton.toolTip = "系统设置：启动、文件、缩进"
+        settingsButton.toolTip = L10n.t("系统设置：启动、文件、缩进")
         settingsButton.translatesAutoresizingMaskIntoConstraints = false
 
         divider.wantsLayer = true
