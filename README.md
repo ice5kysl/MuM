@@ -12,9 +12,9 @@ MIT
 > Signed and notarized — double-click to open, no Gatekeeper dance.
 > macOS 14+ · 1.7 MB DMG
 
-![MuM main window: projects and file tree on the left, a typeset Markdown document on the right](docs/images/app.png)
+![MuM main window: projects and file tree on the left, a typeset Markdown document on the right](docs/images/app-en.png)
 
-![MuM's own rendering: CJK headings, right-aligned numeric table, quote bars, syntax-highlighted code](docs/images/hero-light.png)
+![MuM's own rendering: Latin typesetting, right-aligned numeric table, quote bars, syntax-highlighted code](docs/images/hero-light-en.png)
 
 *The image above was rendered by MuM itself with `mum render --png` — it's output, not a screenshot.*
 
