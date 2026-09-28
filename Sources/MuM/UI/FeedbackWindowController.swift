@@ -55,13 +55,13 @@ final class FeedbackWindowController: NSWindowController {
         // 同 About：动态色走 PaneBackgroundView，不存 cgColor 快照（F1）
         let content = PaneBackgroundView(color: MuMDesign.paneBackground)
 
-        let title = NSTextField(labelWithString: "反馈问题或建议")
+        let title = NSTextField(labelWithString: L10n.t("反馈问题或建议"))
         title.font = MuMDesign.contentTitle
         title.translatesAutoresizingMaskIntoConstraints = false
 
         // 带上什么、不带什么，一行说清 —— 这行字就是隐私承诺本身，
         // 改 payload 字段时必须同步改这行（二者在 review 里要一起出现）
-        let disclosure = NSTextField(wrappingLabelWithString: "会附上 MuM 版本 / macOS 版本 / 芯片，不带其他任何标识")
+        let disclosure = NSTextField(wrappingLabelWithString: L10n.t("会附上 MuM 版本 / macOS 版本 / 芯片，不带其他任何标识"))
         disclosure.font = MuMDesign.status
         disclosure.textColor = MuMDesign.tertiaryText
         disclosure.translatesAutoresizingMaskIntoConstraints = false
@@ -85,7 +85,7 @@ final class FeedbackWindowController: NSWindowController {
 
         // 联系方式：单行，可空
         let contactField = NSTextField()
-        contactField.placeholderString = "联系方式（可选，想收到回复就留一个）"
+        contactField.placeholderString = L10n.t("邮箱（可选，想收到回复就留一个）")
         contactField.font = NSFont.systemFont(ofSize: 12)
         contactField.translatesAutoresizingMaskIntoConstraints = false
         self.contactField = contactField
@@ -97,12 +97,12 @@ final class FeedbackWindowController: NSWindowController {
         self.statusLabel = statusLabel
 
         // GitHub 兜底入口常驻 —— 它不是错误恢复，是并列的另一条路
-        let githubButton = NSButton(title: "改用 GitHub 反馈", target: self, action: #selector(openGitHub))
+        let githubButton = NSButton(title: L10n.t("改用 GitHub 反馈"), target: self, action: #selector(openGitHub))
         githubButton.bezelStyle = .rounded
         githubButton.controlSize = .small
         githubButton.translatesAutoresizingMaskIntoConstraints = false
 
-        let sendButton = NSButton(title: "发送", target: self, action: #selector(sendTapped))
+        let sendButton = NSButton(title: L10n.t("发送"), target: self, action: #selector(sendTapped))
         sendButton.bezelStyle = .rounded
         sendButton.keyEquivalent = "\r" // Return 在文本框里被吃掉了，这个等价键只管 contact 框聚焦时
         sendButton.isEnabled = false
@@ -158,7 +158,7 @@ final class FeedbackWindowController: NSWindowController {
         guard !text.isEmpty else { return }
         sendButton.isEnabled = false
         statusLabel.textColor = MuMDesign.secondaryText
-        statusLabel.stringValue = "发送中…"
+        statusLabel.stringValue = L10n.t("发送中…")
 
         let payload = FeedbackSender.Payload(text: text, contact: contactField.stringValue)
         FeedbackSender.send(payload) { [weak self] outcome in
@@ -171,17 +171,21 @@ final class FeedbackWindowController: NSWindowController {
         switch outcome {
         case .sent:
             statusLabel.textColor = MuMDesign.secondaryText
-            statusLabel.stringValue = "已收到，谢谢。"
+            statusLabel.stringValue = L10n.t("已收到，谢谢。")
             textView.string = ""
             contactField.stringValue = ""
             sendButton.isEnabled = false
+            // 发完自动收（ice 2026-09-28）：「谢谢」停一拍给用户看见，面板自己关
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
+                self?.window?.close()
+            }
 
         case .rateLimited(let retryAfter):
             statusLabel.textColor = MuMDesign.secondaryText
             if let retryAfter {
-                statusLabel.stringValue = String(format: "发送太频繁，请 %d 秒后再试。", retryAfter)
+                statusLabel.stringValue = L10n.f("发送太频繁，请 %d 秒后再试。", retryAfter)
             } else {
-                statusLabel.stringValue = "发送太频繁，请稍后再试。"
+                statusLabel.stringValue = L10n.t("发送太频繁，请稍后再试。")
             }
 
         case .channelUnavailable:
@@ -191,11 +195,11 @@ final class FeedbackWindowController: NSWindowController {
 
         case .networkError:
             statusLabel.textColor = .systemRed
-            statusLabel.stringValue = "网络不通，没能发出去。请检查网络后重试，或改用 GitHub 反馈。"
+            statusLabel.stringValue = L10n.t("网络不通，没能发出去。请检查网络后重试，或改用 GitHub 反馈。")
 
         case .serverError(let statusCode):
             statusLabel.textColor = .systemRed
-            statusLabel.stringValue = String(format: "反馈服务暂时不可用（%d）。请稍后再试，或改用 GitHub 反馈。", statusCode)
+            statusLabel.stringValue = L10n.f("反馈服务暂时不可用（%d）。请稍后再试，或改用 GitHub 反馈。", statusCode)
         }
     }
 
