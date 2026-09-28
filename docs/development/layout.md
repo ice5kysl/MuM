@@ -3,7 +3,7 @@
 ```
 MuM/
 ├── README.md              入口（你在这里）
-├── README_EN.md           同一份说明的英文版
+├── README_ZH.md           同一份说明的中文版
 ├── CHANGELOG.md           每个版本改了什么、为什么原来不对
 ├── LICENSE  VERSION       MIT；版本号唯一来源
 ├── Package.swift          构建定义（SwiftPM，没有 .xcodeproj）
@@ -49,6 +49,6 @@ MuM/
 
 **三条可检验的约束：**
 
-1. **根目录的 `*.md` 不超过 3 个**（`README.md` + `README_EN.md` + `CHANGELOG.md`）
+1. **根目录的 `*.md` 不超过 3 个**（`README.md`（英文主版）+ `README_ZH.md` + `CHANGELOG.md`）
 2. **两个 README 各不超过 200 行**
 3. **不留可重建的文件**（大样本用 `scripts/make-bench-fixture.py` 生成）

@@ -18,7 +18,7 @@ if [ "$V" = "$PLIST" ] && [ "v$V" = "$TAG" ]; then say "版本三处一致" "✅
 N=$(ls -1 *.md 2>/dev/null | wc -l | tr -d ' ')
 if [ "$N" -le 3 ]; then say "根目录 *.md ≤3" "✅ $N"; else say "根目录 *.md ≤3" "❌ $N 个"; fail=1; fi
 
-for R in README.md README_EN.md; do
+for R in README.md README_ZH.md; do
   [ -f "$R" ] || continue
   L=$(wc -l < "$R" | tr -d ' ')
   if [ "$L" -le 200 ]; then say "$R ≤200 行" "✅ $L"; else say "$R ≤200 行" "❌ $L 行"; fail=1; fi
@@ -27,7 +27,7 @@ done
 B=$(python3 - <<'PY'
 import pathlib, re
 bad=[]
-for f in [pathlib.Path("README.md"), pathlib.Path("README_EN.md")]+list(pathlib.Path("docs").rglob("*.md")):
+for f in [pathlib.Path("README.md"), pathlib.Path("README_ZH.md")]+list(pathlib.Path("docs").rglob("*.md")):
     for m in re.finditer(r"\]\(([^)#]+\.(md|png|svg))\)", f.read_text()):
         t=m.group(1)
         if t.startswith(("http","/")): continue

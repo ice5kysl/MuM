@@ -26,5 +26,5 @@
 | 工程（构建、仓库结构） | `docs/development/` |
 | 性能 | `docs/perf/` |
 
-**根目录的 `*.md` 不超过 3 个**（`README.md` + `README_EN.md` + `CHANGELOG.md`）。
+**根目录的 `*.md` 不超过 3 个**（`README.md`（英文主版）+ `README_ZH.md`（中文版）+ `CHANGELOG.md`）。
 **两个 README 各不超过 200 行。** 这几条由 `scripts/doc-check.sh` 强制。
