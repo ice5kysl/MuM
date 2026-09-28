@@ -31,6 +31,11 @@ final class PreviewFindBar: NSView {
         wantsLayer = true
         layer?.backgroundColor = MuMDesign.paneBackground.cgColor
 
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(reloadStrings),
+            name: L10n.didChangeNotification, object: nil
+        )
+
         searchField.placeholderString = L10n.t("在文档中查找")
         searchField.font = .systemFont(ofSize: 12)
         searchField.target = self
@@ -62,6 +67,14 @@ final class PreviewFindBar: NSView {
             searchField.widthAnchor.constraint(greaterThanOrEqualToConstant: 200),
             countLabel.widthAnchor.constraint(equalToConstant: 62),
         ])
+    }
+
+    /// 语言切换：占位与 tooltip 重挂（0.8.0）
+    @objc private func reloadStrings() {
+        searchField.placeholderString = L10n.t("在文档中查找")
+        previousButton.toolTip = L10n.t("上一处（⇧⏎）")
+        nextButton.toolTip = L10n.t("下一处（⏎）")
+        closeButton.toolTip = L10n.t("关闭（Esc）")
     }
 
     private func configure(_ button: NSButton, symbol: String, tooltip: String, action: Selector) {

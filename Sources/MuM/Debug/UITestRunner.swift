@@ -31,6 +31,7 @@ enum UITestRunner {
         ("csv", "CSV/TSV 表格渲染"),
         ("unsupported", "不支持格式的导向页"),
         ("singlefile", "单文件模式（落单文件不开项目）"),
+        ("english", "英文界面零中文残留"),
     ]
 
     static func run(arguments: [String]) -> Int32 {
@@ -125,6 +126,7 @@ enum UITestRunner {
             case "csv": scenarioCSV(controller, check)
             case "unsupported": scenarioUnsupported(controller, check)
             case "singlefile": scenarioSingleFile(controller, check)
+            case "english": scenarioEnglish(controller, check)
             default: break
             }
             checkers.append(check)
@@ -294,6 +296,91 @@ enum UITestRunner {
         check.waitFor("关闭后两个 popover 都不显示", expected: "都关闭",
                       condition: { !c.debugDisplaySettingsShown && !c.debugSystemSettingsShown },
                       actual: { "display=\(c.debugDisplaySettingsShown) system=\(c.debugSystemSettingsShown)" })
+    }
+
+    // MARK: - 场景：英文界面零中文残留（0.8.0 验收 #1）
+    //
+    // EN 模式下遍历主窗口、两个设置面板、关于/快捷键/反馈窗口、大纲栏，
+    // 递归收集可见文案断言零汉字；结尾断言 L10n.missingKeys 为空 ——
+    // 查不到英文的 key 都会被记下来，那就是残留。动态内容（文件名/项目名/
+    // 大纲条目）会合法带中文，所以现场用全英文（目录名/文件名/标题全英文）。
+
+    private static var retainedWindows: [AnyObject] = []
+
+    private static func scenarioEnglish(_ c: MainWindowController, _ check: Checker) {
+        L10n.override = .english
+        defer { L10n.override = .zhHans }
+
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("mum-uitest-english-\(ProcessInfo.processInfo.processIdentifier)")
+        try? FileManager.default.removeItem(at: dir)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let doc = dir.appendingPathComponent("notes.md")
+        try? "# Notes\n\n## Getting Started\n\nSome English content here.\n"
+            .write(to: doc, atomically: true, encoding: .utf8)
+        guard check.expect(WorkspaceStore.shared.open(url: dir) != nil, "打开英文现场目录",
+                           expected: "成功", actual: "open 返回 nil") else { return }
+        c.open(url: doc)
+        _ = wait(3) { c.debugPreviewText.contains("Getting Started") }
+        c.debugOutline() // 大纲栏展开，走一遍栏内文案
+
+        var leaks: [String] = []
+        func walk(_ view: NSView, _ where_: String) {
+            for sub in view.subviews {
+                // 隐藏视图里的字是旧现场留下的：再显示时会按当时语言重建/重挂，
+                // 不算残留（findbar/导向页都是这个模式）
+                if sub.isHidden { continue }
+                if let field = sub as? NSTextField {
+                    if field.stringValue.mumContainsCJK {
+                        leaks.append("\(where_)/文本「\(field.stringValue)」")
+                    }
+                    if let placeholder = field.placeholderString, placeholder.mumContainsCJK {
+                        leaks.append("\(where_)/占位「\(placeholder)」")
+                    }
+                }
+                if let button = sub as? NSButton {
+                    if button.title.mumContainsCJK {
+                        leaks.append("\(where_)/按钮「\(button.title)」")
+                    }
+                    if let tip = button.toolTip, tip.mumContainsCJK {
+                        leaks.append("\(where_)/tooltip「\(tip)」")
+                    }
+                }
+                walk(sub, where_)
+            }
+        }
+
+        if let content = c.window?.contentView { walk(content, "主窗口") }
+
+        c.debugShowDisplaySettings()
+        _ = wait(2) { c.debugDisplaySettingsShown }
+        if let panel = c.debugDisplaySettingsPanel { walk(panel.view, "显示设置") }
+        c.debugShowSystemSettings()
+        _ = wait(2) { c.debugSystemSettingsShown }
+        if let panel = c.debugSystemSettingsPanel { walk(panel.view, "系统设置") }
+        c.debugClosePopovers()
+
+        for (make, name) in [("about", "关于窗口"), ("shortcuts", "快捷键窗口"), ("feedback", "反馈面板")] as [(String, String)] {
+            let controller: NSWindowController = switch make {
+            case "about": AboutWindowController()
+            case "shortcuts": ShortcutsHelpWindowController()
+            default: FeedbackWindowController()
+            }
+            retainedWindows.append(controller) // 测试进程没有完整生命周期，提前释放会 double-free
+            controller.showWindow(nil)
+            if let view = controller.window?.contentView { walk(view, name) }
+            controller.window?.close()
+        }
+
+        check.expect(leaks.isEmpty, "EN 模式零中文残留（主窗口/设置/关于/快捷键/反馈/大纲栏）",
+                     expected: "0 处",
+                     actual: leaks.isEmpty ? "0 处" : leaks.prefix(5).joined(separator: "；"))
+        check.expect(L10n.missingKeys.isEmpty, "英文表零缺失（missingKeys）",
+                     expected: "0",
+                     actual: "\(L10n.missingKeys.count)：\(L10n.missingKeys.prefix(3).joined(separator: ","))")
+
+        c.debugCloseTOC()
     }
 
     // MARK: - 场景三：模式切换

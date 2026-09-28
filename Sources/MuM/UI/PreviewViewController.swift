@@ -264,6 +264,10 @@ final class PreviewViewController: NSViewController {
     // MARK: - 生命周期
 
     override func loadView() {
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(reloadStrings),
+            name: L10n.didChangeNotification, object: nil
+        )
         view = NSView()
         view.wantsLayer = true
 
@@ -275,7 +279,7 @@ final class PreviewViewController: NSViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        showMessage(symbol: "doc.text.magnifyingglass", title: "MuM", subtitle: L10n.t("从左侧点击一个文件开始"))
+        showMessage(symbol: "doc.text.magnifyingglass", title: "MuM", subtitle: "从左侧点击一个文件开始")
     }
 
     // MARK: - 搭建
@@ -500,13 +504,24 @@ final class PreviewViewController: NSViewController {
         pdfView.document = PDFDocument(url: url)
     }
 
+    /// 存 key 不存译文：语言切换时按 key 重挂（0.8.0）
+    private var messageContent: (symbol: String, titleKey: String, subtitleKey: String)?
+
     func showMessage(symbol: String, title: String, subtitle: String = "") {
+        messageContent = (symbol, title, subtitle)
         showOnly(messageContainer)
         messageIcon.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
-        messageTitle.stringValue = title
-        messageSubtitle.stringValue = subtitle
+        messageTitle.stringValue = L10n.t(title)
+        messageSubtitle.stringValue = L10n.t(subtitle)
         messageSubtitle.isHidden = subtitle.isEmpty
         messageActions.isHidden = true
+    }
+
+    /// 语言切换：占位页文案重挂（0.8.0）
+    @objc private func reloadStrings() {
+        guard let content = messageContent, !messageContainer.isHidden else { return }
+        messageTitle.stringValue = L10n.t(content.titleKey)
+        messageSubtitle.stringValue = L10n.t(content.subtitleKey)
     }
 
     /// 「不支持的格式」占位页：说清楚为什么不支持（不是缺陷，是定位），
