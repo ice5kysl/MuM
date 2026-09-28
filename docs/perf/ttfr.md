@@ -48,7 +48,7 @@ scripts/measure-ttfr.sh 1 v0.7.9                    # 默认 debug，只作历�
 ### 待办
 
 - [ ] **安静机上跑 n ≥ 5 定版**（cc 出数，因为"数字归 tester、判定归 PO"）—— 定完把 README（英文主版）/ README_ZH /
-      `site/` / `site/en/` / `vision.md` / `demo.md` 一次性对齐到同一个数
+      `site/`（英）/ `site/zh/`（中）/ `vision.md` / `demo.md` 一次性对齐到同一个数
 - [ ] 在此之前，对外只写 **「约 0.3 秒」**（两次独立测量都落在 305–331ms，这个说法站得住；
       而旧的 260ms 无从复现）
 
