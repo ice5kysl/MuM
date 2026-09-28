@@ -183,6 +183,7 @@
     <div class="cta">
       <a class="btn" href="https://github.com/ice5kysl/MuM/releases/download/v0.8.0/MuM-0.8.0.dmg">Download for macOS</a>
       <a class="btn ghost" href="https://github.com/ice5kysl/MuM">Source · MIT</a>
+      <a class="btn ghost" id="starBtn" href="https://github.com/ice5kysl/MuM/stargazers">★ Star</a>
       <span class="meta">v0.8.0 · macOS 14+ · 1.7 MB</span>
     </div>
     <p class="note">Signed and notarized. Double-click to open — no Gatekeeper dance.</p>
@@ -288,6 +289,20 @@
   });
   mq.addEventListener('change', function () { if (stored() === 'auto') apply(); });
   apply();
+})();
+
+// Star button: fill in the live count from GitHub; silently stays "★ Star" on failure.
+(function () {
+  var btn = document.getElementById('starBtn');
+  if (!btn) return;
+  fetch('https://api.github.com/repos/ice5kysl/MuM')
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (d && typeof d.stargazers_count === 'number' && d.stargazers_count > 0) {
+        btn.textContent = '★ ' + d.stargazers_count;
+      }
+    })
+    .catch(function () {});
 })();
 </script>
 

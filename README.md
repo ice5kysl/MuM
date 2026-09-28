@@ -1,5 +1,7 @@
 # MuM
 
+[![GitHub stars](https://img.shields.io/github/stars/ice5kysl/MuM?style=flat)](https://github.com/ice5kysl/MuM/stargazers)
+
 **A reading-first Markdown engine.**
 **Fast, native — for humans and agents.**
 
