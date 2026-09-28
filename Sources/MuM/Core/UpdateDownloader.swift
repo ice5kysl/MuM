@@ -79,6 +79,8 @@ enum UpdateDownloader {
 
         func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
                         didFinishDownloadingTo location: URL) {
+            // session 强持 delegate，用完即销——不调 finishTasksAndInvalidate 每次下载泄漏一枚 session+delegate
+            defer { session.finishTasksAndInvalidate() }
             if let response = downloadTask.response as? HTTPURLResponse,
                response.statusCode != 200 {
                 let completion = self.completion
@@ -96,6 +98,7 @@ enum UpdateDownloader {
         func urlSession(_ session: URLSession, task: URLSessionTask,
                         didCompleteWithError error: (any Error)?) {
             guard let error else { return }
+            session.finishTasksAndInvalidate()
             let completion = self.completion
             DispatchQueue.main.async { completion(.failure(error)) }
         }

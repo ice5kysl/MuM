@@ -52,15 +52,17 @@ enum L10n {
 
     static let didChangeNotification = Notification.Name("MuM.languageDidChange")
 
-    /// 查文案。key = 中文原文；英文表缺失 → 回退中文。缺失记账只在 Debug 生效（残留检查用），发布包零负担
+    /// 查文案。key = 中文原文；英文表缺失 → 回退中文。
+    /// 缺失记账由 accountingEnabled 门控：Debug 构建常开（残留检查读它）；
+    /// Release 仅测试 runner（--uitest）显式打开——正式包运行时零负担（dsh 0.8.0 地基要求）。
     static func t(_ key: String) -> String {
         guard effective == .english else { return key }
         if let translated = englishTable[key], !translated.isEmpty {
             return translated
         }
-        #if DEBUG
-        missingKeys.insert(key)
-        #endif
+        if accountingEnabled {
+            missingKeys.insert(key)
+        }
         return key
     }
 
@@ -77,6 +79,16 @@ enum L10n {
 
     /// 查不到英文的 key 都记在这里——「EN 模式零中文残留」的自动检查读它
     private(set) static var missingKeys: Set<String> = []
+
+    /// 缺失记账开关。Debug 构建常开；Release 默认关（正式包零负担），
+    /// 测试 runner（--uitest）启动时显式打开。
+    static var accountingEnabled: Bool = {
+        #if DEBUG
+        return true
+        #else
+        return false
+        #endif
+    }()
 
     /// 诊断/自检用：当前生效语言 + 表规模 + 缺失数
     static var debugSummary: String {
@@ -102,6 +114,9 @@ enum L10n {
             guard let dict = NSDictionary(contentsOf: url) as? [String: String], !dict.isEmpty else { continue }
             return dict
         }
+        // 走到这 = 离屏二进制（无 bundle、不在源码树里）。EN 模式会静默全中文——留一行痕，
+        // 否则拷走单跑时「为什么英文没了」无从查起。发布包不受影响（表在 Resources/L10n/）。
+        NSLog("MuM: L10n english table not found (off-bundle binary?) — EN mode falls back to zh")
         return [:]
     }
 }

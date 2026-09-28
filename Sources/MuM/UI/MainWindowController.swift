@@ -36,6 +36,9 @@ final class MainWindowController: NSWindowController {
     /// 状态栏上次更新的输入指纹。字数统计是 O(文档长度)，而 refreshChrome 在打开
     /// 路径上会被连调三次（init / 恢复 / 渲染回调）—— 输入没变就整个跳过。
     private var lastStatusFingerprint: Int?
+    /// 窗口帧记录的 block 观察者 token。单窗口单块影响虽小，但多窗口化时这就是真泄漏——
+    /// 留 token 在 deinit 注销，纪律先行。
+    private var frameObservers: [NSObjectProtocol] = []
     private var workspaceWatcher: FileWatcher?
     /// openFileFromOutside 带动的项目切换，本次激活不许恢复该项目上次的文件 ——
     /// 用户点的是指定的这个文件，先恢复旧的等于白付一次完整打开（读+渲染+关旧），
@@ -189,13 +192,20 @@ final class MainWindowController: NSWindowController {
 
     private func startRecordingWindowFrame(_ window: NSWindow) {
         for name in [NSWindow.didResizeNotification, NSWindow.didMoveNotification] {
-            NotificationCenter.default.addObserver(forName: name, object: window, queue: .main) { note in
+            let token = NotificationCenter.default.addObserver(forName: name, object: window, queue: .main) { note in
                 guard let window = note.object as? NSWindow else { return }
                 let rect = window.frame
                 // 只记录可用尺寸，避免把退化状态写进偏好设置
                 guard rect.width >= 480, rect.height >= 360 else { return }
                 UserDefaults.standard.set(NSStringFromRect(rect), forKey: Self.windowFrameKey)
             }
+            frameObservers.append(token)
+        }
+    }
+
+    deinit {
+        for observer in frameObservers {
+            NotificationCenter.default.removeObserver(observer)
         }
     }
 

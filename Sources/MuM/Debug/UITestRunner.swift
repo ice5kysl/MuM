@@ -41,6 +41,8 @@ enum UITestRunner {
         }
         // 断言是中文 UI 文案：语言钉成中文，别被跑测试那台机器的系统语言带跑（0.8.0）
         L10n.override = .zhHans
+        // Release 构建下缺失记账默认关闭（正式包零负担），english 场景的 missingKeys 断言要用，显式打开
+        L10n.accountingEnabled = true
         let scenarioArg = arguments[flagIndex + 1]
         let names: [String]
         if scenarioArg == "all" {
@@ -346,10 +348,27 @@ enum UITestRunner {
                     if let tip = button.toolTip, tip.mumContainsCJK {
                         leaks.append("\(where_)/tooltip「\(tip)」")
                     }
+                    // 图片按钮没有 title，VoiceOver 全靠 image 的 AX 描述——l10n 漏网温床
+                    if let ax = button.image?.accessibilityDescription, ax.mumContainsCJK {
+                        leaks.append("\(where_)/按钮AX描述「\(ax)」")
+                    }
                 }
                 walk(sub, where_)
             }
         }
+
+        // 菜单栏：测试进程没有 AppDelegate 生命周期，直接构建一份菜单走查。
+        // 静态 AppDelegate() 安全——它的副作用全部挂在 didFinishLaunching，init 为空。
+        let menuSet = MainMenuBuilder.build(target: AppDelegate())
+        func walkMenu(_ menu: NSMenu, _ where_: String) {
+            for item in menu.items {
+                if item.title.mumContainsCJK {
+                    leaks.append("\(where_)/菜单项「\(item.title)」")
+                }
+                if let submenu = item.submenu { walkMenu(submenu, where_) }
+            }
+        }
+        walkMenu(menuSet.mainMenu, "菜单栏")
 
         if let content = c.window?.contentView { walk(content, "主窗口") }
 
@@ -373,7 +392,7 @@ enum UITestRunner {
             controller.window?.close()
         }
 
-        check.expect(leaks.isEmpty, "EN 模式零中文残留（主窗口/设置/关于/快捷键/反馈/大纲栏）",
+        check.expect(leaks.isEmpty, "EN 模式零中文残留（主窗口/菜单栏/设置/关于/快捷键/反馈/大纲栏/AX描述）",
                      expected: "0 处",
                      actual: leaks.isEmpty ? "0 处" : leaks.prefix(5).joined(separator: "；"))
         check.expect(L10n.missingKeys.isEmpty, "英文表零缺失（missingKeys）",
