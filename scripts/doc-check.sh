@@ -16,7 +16,7 @@ TAG=$(git tag -l 'v*' | tail -1)
 if [ "$V" = "$PLIST" ] && [ "v$V" = "$TAG" ]; then say "版本三处一致" "✅ $V / $PLIST / $TAG"; else say "版本三处一致" "❌ $V / $PLIST / $TAG"; fail=1; fi
 
 N=$(ls -1 *.md 2>/dev/null | wc -l | tr -d ' ')
-if [ "$N" -le 3 ]; then say "根目录 *.md ≤3" "✅ $N"; else say "根目录 *.md ≤3" "❌ $N 个"; fail=1; fi
+if [ "$N" -le 4 ]; then say "根目录 *.md ≤4" "✅ $N"; else say "根目录 *.md ≤4" "❌ $N 个"; fail=1; fi
 
 for R in README.md README_ZH.md; do
   [ -f "$R" ] || continue

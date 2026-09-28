@@ -1,725 +1,927 @@
-# 更新日志
+# Changelog
 
-本项目的所有重要变更都会记录在此。
+[中文](CHANGELOG_ZH.md) · [Download for macOS](https://github.com/ice5kysl/MuM/releases/download/v0.8.0/MuM-0.8.0.dmg) · [Homepage](https://mum.jiker.ai)
 
-格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
-版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
+All notable changes to this project are recorded here.
 
-版本号的唯一来源是仓库根目录的 [`VERSION`](VERSION) —— 构建脚本 `scripts/build-app.sh`
-会在打包时把它写进 `Info.plist` 的 `CFBundleShortVersionString`，
-并折算成单调递增的 `CFBundleVersion`。**只维护一处。**
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and versioning follows [Semantic Versioning](https://semver.org/).
 
-两处约定不同，别混：
+The single source of truth for the version number is [`VERSION`](VERSION) at the repo
+root — the build script `scripts/build-app.sh` writes it into `Info.plist` as
+`CFBundleShortVersionString` at packaging time, and converts it into a monotonically
+increasing `CFBundleVersion`. **Maintained in exactly one place.**
 
-| | 格式 | 原因 |
+Two conventions differ — don't mix them up:
+
+| | Format | Why |
 | :--- | :--- | :--- |
-| `VERSION` 文件 / `CFBundleShortVersionString` | `0.3.0` | Apple 不接受前缀 |
-| git tag / Release | `v0.3.0` | 惯例，加 `v` |
+| `VERSION` file / `CFBundleShortVersionString` | `0.3.0` | Apple rejects a prefix |
+| git tag / Release | `v0.3.0` | Convention, with `v` |
 
 ## [0.8.0] - 2026-09-28
 
-**让不说中文的人也能用。**
+**Usable by people who don't read Chinese.**
 
-### 新增
+### Added
 
-- **英文界面** —— 界面文案全量抽取（**249 条 / 250 表项**），菜单、设置、关于、快捷键、
-  反馈面板、大纲栏全部双语。机制刻意做得小：**中文原文即 key**，`en.strings` 只存
-  「中文 → English」映射，查不到就回退中文并记入 `missingKeys`（残留检查的数据源）。
-  不上 i18n 框架 —— 一张表 + 两级回退就是全部
-- **语言设置** —— 跟随系统 / 中文 / English，默认跟随系统，**切换即时生效**
-  （菜单与窗口内静态文案随通知重挂，不用重启）
-- **应用内反馈通道** —— 帮助菜单「反馈问题或建议…」首选**应用内直发**：面板顶部明说
-  「会附上 MuM 版本 / macOS 版本 / 芯片，不带其他任何标识」，失败或断网时给 GitHub 兜底。
-  走 msg9 的外挂中继（`in.msg9.io/f/mum`），**客户端零 key** —— 泄露面为零
-- **README 英文主版** —— `README.md` 换成英文，中文挪到 `README_ZH.md`，两边互链
+- **English UI** — all UI copy extracted (**249 entries / 250 table items**); menus,
+  settings, About, the shortcuts panel, the feedback panel, and the outline sidebar are
+  all bilingual. The mechanism is deliberately small: **the Chinese original is the key**,
+  `en.strings` only stores the "Chinese → English" mapping, and a missing lookup falls
+  back to Chinese and is recorded in `missingKeys` (the data source for residual-Chinese
+  checks). No i18n framework — one table plus a two-level fallback is the whole thing
+- **Language setting** — Follow System / 中文 / English; defaults to Follow System, and
+  **switching takes effect immediately** (menus and static in-window copy are re-attached
+  on notification, no restart needed)
+- **In-app feedback channel** — Help menu "Send Feedback…" now prefers **sending directly
+  from the app**: the panel states up front that "MuM version / macOS version / chip are
+  attached, nothing else identifying", with GitHub as the fallback on failure or offline.
+  It goes through msg9's relay (`in.msg9.io/f/mum`) with **zero keys on the client** —
+  zero leak surface
+- **English-primary README** — `README.md` switched to English; Chinese moved to
+  `README_ZH.md`, with cross-links on both sides
 
-### 变更
+### Changed
 
-- **拉丁文排版单独调了一版** —— 英文的行距（≈1.46 倍）、字距、标尺宽（550pt ≈ 80 字符）
-  都按拉丁书写系统重新度量；**CJK 段落一个属性都不动**（含一个中文字符的段落走原参数）
-- **性能口径统一** —— 「冷启动到窗口上屏」以前在六个文件里有四种写法（260 / 229–248 /
-  280 / 250）。现在口径与数字**只记在 [`docs/perf/ttfr.md`](docs/perf/ttfr.md) 一处**，
-  对外一律「约 0.3 秒」；`measure-ttfr.sh` 加了 `CONFIG=release`（报数必须量用户拿到的包）
+- **Latin typography tuned as its own pass** — English line spacing (≈1.46×), letter
+  spacing, and measure width (550pt ≈ 80 characters) re-measured for the Latin writing
+  system; **CJK paragraphs keep every existing attribute** (any paragraph containing a
+  CJK character uses the original parameters)
+- **One performance figure** — "cold start to window on screen" used to have four
+  different numbers (260 / 229–248 / 280 / 250) across six files. The definition and
+  number now live **only in [`docs/perf/ttfr.md`](docs/perf/ttfr.md)**; externally it's
+  always "about 0.3 s". `measure-ttfr.sh` gained `CONFIG=release` (numbers must be
+  measured on the build users actually get)
 
-### 修复
+### Fixed
 
-- **「半中半英」** —— 视图在语言生效之前构建时文案就定死了，而切换语言只重建菜单栏，
-  于是侧栏 / 状态栏 / 面板停在旧语言。现在窗口内静态文案随语言通知重挂
-- **EN 模式的残留中文** —— 新增 uitest 场景 `english`：EN 模式下递归遍历主窗口、两个设置
-  面板、关于、快捷键、反馈、大纲栏，断言**零汉字**且 `missingKeys` 零缺失。
-  首日就抓到两处（查找栏、阅读区占位页在构建期写死）
+- **"Half Chinese, half English"** — views built before the language took effect had
+  their copy frozen at build time, while switching languages only rebuilt the menu bar,
+  so the sidebar / status bar / panels stayed in the old language. Static in-window copy
+  now re-attaches on the language notification
+- **Residual Chinese in EN mode** — new uitest scenario `english`: in EN mode it
+  recursively walks the main window, both settings panels, About, the shortcuts panel,
+  feedback, and the outline sidebar, asserting **zero CJK characters** and zero
+  `missingKeys` misses. It caught two on day one (find bar, reader placeholder page —
+  both hardcoded at build time)
 
-### 测试
+### Tests
 
-- 单测 **147**（+30）· 渲染自检 24 · **UI 场景 14**（+1：`english`）
-- **中文零回归做成逐字节基线**：v0.7.9 与 0.8.0 的中文快照 `cmp` 全等（亮/暗两组）
-- 反馈隐私：结构白名单断言（payload 顶层键恰好 `{text, contact, meta}`，`meta` 恰好
-  `{version, os, arch}`）+ 线上金丝雀审计
+- Unit tests **147** (+30) · render self-checks 24 · **UI scenarios 14** (+1: `english`)
+- **Zero Chinese regression as a byte-exact baseline**: the v0.7.9 and 0.8.0 Chinese
+  snapshots are `cmp`-identical (light and dark sets)
+- Feedback privacy: structural whitelist assertions (payload top-level keys are exactly
+  `{text, contact, meta}`, `meta` is exactly `{version, os, arch}`) plus a live canary
+  audit
 
 ## [0.7.9] - 2026-09-27
 
-**大纲栏按真实使用磨了一遍。**
+**The outline sidebar, polished against real use.**
 
-### 变更
+### Changed
 
-- **大纲栏（0.7.8 新加的）按真机反馈磨顺** —— 一次发版后的收尾，改的全是"用起来别扭"：
-  - **菜单项从「编辑」挪到「显示」**（和项目列表 / 目录树放一起），并补上勾选状态 ——
-    放在「编辑」里谁也找不到
-  - **栏宽可拖**（160–420pt，记住在 `MuM.tocWidth`）
-  - **摘掉重复的标题**：唯一的 H1 是文档标题、不是目录条目（标题带里已经有文件名），
-    「大纲」标题字也一并去掉
-  - **顶边跟 splitView 走**（动态标题带高度），修掉与「导出」按钮重叠
-  - **收起入口改了三次才定**：竖线左侧悬浮「›」→ 栏底细栏 → **栏头细栏**。
-    前两次的问题分别是"位置别扭、白占栏顶一行"和"离手太远"；最终做成栏头：
-    淡灰底 + 下沿细线、整条可点，收成窄条后由「‹」拉回
-  - **行内折叠三角从文字前挪到行尾** —— 不抢缩进对齐，长标题截断时文字给它让位
+- **Outline sidebar (new in 0.7.8) smoothed out from real-device feedback** — a
+  post-release round of fixes, all "awkward in use" items:
+  - **Menu item moved from Edit to View** (alongside the project list / directory tree),
+    with a checkmark state added — nobody could find it under Edit
+  - **Draggable width** (160–420pt, remembered in `MuM.tocWidth`)
+  - **Removed the duplicated heading**: the only H1 is the document title, not an outline
+    entry (the filename is already in the title band); the "Outline" heading text removed
+    too
+  - **Top edge follows the splitView** (dynamic title-band height), fixing the overlap
+    with the Export button
+  - **The collapse entry went through three designs**: a floating "›" left of the divider
+    → a thin strip at the bottom of the bar → **a thin strip at the bar header**. The
+    first two failed on "awkward position, wastes a row at the top" and "too far from the
+    hand"; the final one is a header strip: light gray background with a hairline at the
+    bottom edge, clickable across its full width, and once collapsed to a sliver, "‹"
+    pulls it back
+  - **Inline disclosure triangles moved from before the text to the end of the row** —
+    they no longer fight the indentation alignment, and truncated long titles yield space
+    to them
 
-### 修复
+### Fixed
 
-- **`--uitest` 的 popovers 场景长跑会红绿漂移** —— transient popover 在窗口失焦时会自己关掉，
-  「再点 Aa 收起」于是走进重开分支：**同一份代码六跑能出长红 / 长绿两种稳态**。
-  这不是产品 bug（cc 用判别实验证明是环境漂移：同锚点上午绿下午红），
-  但**测试不可信比测试为红更糟** —— 它会训练出"红了先重跑"的习惯。
-  修法：第二次点击前钉住激活态 + drain runloop，让 `isShown` 读到定态。连跑 3 次 + 全场景全绿
+- **The `--uitest` popovers scenario drifted red/green over long runs** — a transient
+  popover closes itself when the window loses focus, so "click Aa again to collapse"
+  walked into the reopen branch: **the same code could settle into stable red or stable
+  green across six runs**. Not a product bug (cc proved it's environmental drift with a
+  discrimination experiment: same anchor, green in the morning, red in the afternoon),
+  but **an untrustworthy test is worse than a red one** — it trains the "red? just
+  re-run" habit. Fix: pin the active state and drain the runloop before the second click,
+  so `isShown` reads a settled value. Three consecutive runs + all scenarios green
 
 ## [0.7.8] - 2026-09-25
 
-**预览和源码说的是同一处。**
+**Preview and source point at the same place.**
 
-### 变更
+### Changed
 
-- **滚动联动改成按内容对齐** —— 原来是比例对比例（滚动位 ÷ 总可滚高），前提是
-  两栏高度分布成比例；而表格/代码块渲染后远高于源文本，错位随文档结构累积
-  （异构样本实测：编辑器滚到 25% 处，预览已跑到 +31% 的位置）。现在渲染时
-  顺手记下「源码行 → 渲染位置」的锚点（逐块 + 段落内逐行），编辑器滚动时把
-  视口顶那一行映射到预览的同一内容。采样判定：i=5/10/15 三处错位全部 ≈0
-  （判定线 ≤2% 全长），均匀文档同样 ≈0 不退化；错位采样测试从「只打印」
-  升级为回归锚点。渐进渲染期间映射未覆盖的区域退回比例，不卡主线程
+- **Scroll sync is now content-aligned** — it used to be proportional (scroll position ÷
+  total scrollable height), which assumes the two panes' height distributions are
+  proportional; tables and code blocks render far taller than their source text, so the
+  drift accumulates with document structure (on a heterogeneous sample: editor at 25%,
+  preview already at +31%). Now the renderer records "source line → rendered position"
+  anchors along the way (per block + per line within paragraphs), and editor scrolling
+  maps the line at the top of the viewport to the same content in the preview. Sampling
+  verdict: misalignment ≈0 at i=5/10/15 (threshold ≤2% of total length); uniform
+  documents stay ≈0 with no regression. The drift-sampling test was promoted from
+  "print-only" to a regression anchor. During progressive rendering, regions not yet
+  covered by the mapping fall back to proportional without blocking the main thread
 
-### 新增
+### Added
 
-- **大纲栏（右侧常驻 ToC，可折叠）** —— 「显示 → 大纲栏」或 ⌘⇧O 开合，
-  跨窗口记住状态。多级标题带折叠三角、点击跳转，「读到哪里」跟随滚动
-  高亮当前节；栏上带小把手，收成一条细轨再点即开，×掉就从菜单/快捷键
-  重开。原 ⌘⇧O 的弹出大纲移除，栏就是唯一的大纲（ice 2026-09-25）。
-  Write 模式自动收起，回 Read/Preview 恢复
-- **文末标识** —— 长文档滚到底，分不清「读完了」还是「还没加载完」。
-  现在渐进填充期间底部显示「正在加载…」，全文就位后换成淡淡的信纸式
-  「── E N D ──」。是覆盖在底部内边距带的视图，不进文本：不参与复制、
-  导出、查找（ice 2026-09-25）
-- **渐进填充会在你等它时加速** —— 滚动接近已渲染末尾时，填充片的时间预算
-  从 40ms 提到 150ms：你盯着底部等，输入就让路，追赶优先
-- **右键菜单「拷贝路径」** —— 文件/文件夹的完整路径一键进剪贴板，
-  排在「在终端中打开」旁边（ice 2026-09-25）
+- **Outline sidebar (persistent right-side ToC, collapsible)** — toggle via "View →
+  Outline Sidebar" or ⌘⇧O, state remembered across windows. Multi-level headings with
+  disclosure triangles, click to jump, and "where you are" follows scrolling to highlight
+  the current section. A small handle on the bar collapses it to a thin rail you click to
+  reopen; close it with × and reopen from the menu or shortcut. The old ⌘⇧O popover
+  outline is removed — the bar is the only outline (ice 2026-09-25). Write mode
+  auto-collapses it; it comes back in Read/Preview
+- **End-of-document marker** — in a long document scrolled to the bottom, you couldn't
+  tell "finished reading" from "still loading". Now the bottom shows "Loading…" during
+  progressive fill, replaced by a faint letterpress "── E N D ──" once the full document
+  is in place. It's a view overlaid on the bottom padding band, not text: it doesn't
+  participate in copy, export, or find (ice 2026-09-25)
+- **Progressive fill speeds up when you're waiting on it** — when scrolling approaches
+  the rendered end, the fill slice's time budget rises from 40ms to 150ms: you're staring
+  at the bottom waiting, so input yields and catching up takes priority
+- **Context menu "Copy Path"** — full path of a file or folder into the clipboard in one
+  click, next to "Open in Terminal" (ice 2026-09-25)
 
-### 变更
+### Changed
 
-- **软换行按 GitHub 口径渲染成真实换行** —— 行尾没有两空格的普通换行
-  （软换行）原来渲染成空格，引用块逐行写的要点、中文一行一句的文档
-  全连成一坨。GFM 文档的作者预期就是分行显示，现在与 GitHub 一致
-  （ice 2026-09-25 在引用块上撞见）
+- **Soft line breaks render as real line breaks, matching GitHub** — a plain newline
+  without trailing double spaces (a soft break) used to render as a space, so
+  quote-block bullets written line by line and CJK documents with one sentence per line
+  all ran together into a blob. GFM authors expect line-per-line display; now consistent
+  with GitHub (ice ran into this on a quote block, 2026-09-25)
 
-### 修复
+### Fixed
 
-- **YAML frontmatter 阅读时隐藏** —— `---` 包着的元数据头（skill 定义、
-  静态站点文章常见的写法）原来被当正文渲染：开头 `---` 变成分隔线、
-  字段名全漏出来。现在阅读/预览/导出都剥掉（与 Typora/Obsidian 一致），
-  写模式永远显示原文。注意配套细节：滚动联动的锚点行号已加回剥离偏移，
-  不会因此错位
-- **切换文件后预览落在底部空白** —— 打开没读过的新文件时滚动位置保持沿用
-  上一篇的绝对位移：长文档滚到底附近再开短文档，视口落在内容之外，要往上
-  滚很久才见字。现在新文件没有保存位置就回顶（ice 2026-09-25 实测撞见）
-- **更新流程的提示顺序** —— 0.7.7 把 `NSWorkspace.open` 异步化时漏了一处语义：
-  「安装盘已打开，把 MuM 拖进应用程序」的提示在挂载完成前就弹出来，点了
-  「退出 MuM」去找安装盘可能扑空。现在提示等挂载真的完成才出现
-  （0.7.7 引入的回归，随本版一起修掉）
-- **关于 / 快捷键 / 更新条三处窗口底色跟随深浅色切换** —— 底色当初存的是
-  一次性 CGColor 快照，窗口缓存复用后切外观会旧底色配新文字（0.7.6 复核 F1）。
-  统一改走 `PaneBackgroundView`（`updateLayer` 每次按当前外观重解析），
-  像素验证：浅色快照底色 #F7F8FA、深色 #17181C，不再相同
+- **YAML frontmatter hidden while reading** — the metadata header wrapped in `---`
+  (common in skill definitions and static-site posts) used to render as body content: the
+  opening `---` became a horizontal rule and all field names leaked. Now reading /
+  preview / export all strip it (same as Typora/Obsidian); Write mode always shows the
+  raw text. Detail that comes with it: scroll-sync anchor line numbers have the strip
+  offset added back, so alignment doesn't shift
+- **Preview landing in bottom whitespace after switching files** — opening a new file
+  that had never been read kept the previous document's absolute scroll offset: scroll a
+  long document near its end, open a short one, and the viewport lands beyond the
+  content, requiring a long scroll up to see text. Files without a saved position now
+  start at the top (ice hit this in real use, 2026-09-25)
+- **Prompt ordering in the update flow** — when 0.7.7 made `NSWorkspace.open` async it
+  missed one semantic: the "disk image opened, drag MuM into Applications" prompt popped
+  up before mounting finished, so clicking "Quit MuM" to look for the image could come up
+  empty. The prompt now waits until the mount actually completes (a regression introduced
+  in 0.7.7, fixed in this release)
+- **Three window backgrounds — About / shortcuts / update banner — follow light/dark
+  switching** — the backgrounds were stored as one-shot CGColor snapshots; after the
+  window was reused from cache, switching appearance gave old background with new text
+  (0.7.6 review F1). Unified onto `PaneBackgroundView` (`updateLayer` re-resolves against
+  the current appearance every time). Pixel-verified: light snapshot background #F7F8FA,
+  dark #17181C — no longer identical
 
 ## [0.7.7] - 2026-09-24
 
-**不再转圈。**
+**No more spinning.**
 
-### 修复
+### Fixed
 
-- **偶发永久转圈（卡死）** —— 界面里「用 X 打开」「在访达中显示」这类动作，是在
-  **主线程同步**等 LaunchServices 的 XPC 事务（`xpc_connection_send_message_with_reply_sync`）。
-  事务一回不来，主线程就无限等，界面永久转圈 —— ice 真机遇到多次。抓到的现场是：
-  两次 `sample` 间隔 5 分钟、100% 采样同一栈，而 `lsd` 是空闲的，**是事务梗死，不是慢**。
+- **Occasional permanent beachball (hang)** — in-app actions like "Open with X" and
+  "Reveal in Finder" were waiting **synchronously on the main thread** for a
+  LaunchServices XPC transaction (`xpc_connection_send_message_with_reply_sync`). If the
+  transaction never comes back, the main thread waits forever and the UI beachballs
+  permanently — ice hit this on a real machine multiple times. The captured scene: two
+  `sample`s five minutes apart, 100% of samples on the same stack, while `lsd` was idle —
+  **the transaction was wedged, not slow**.
 
-  同类共 **13 处**（8 处 `open` + 5 处 `activateFileViewerSelecting`），不止导向页那一处。
-  全部收口到新的 `Core/ExternalOpener.swift`：打开走异步重载
-  `open(_:configuration:completionHandler:)`，访达显示没有异步重载、挪到后台队列。
+  **13 call sites** of the same kind (8 `open` + 5 `activateFileViewerSelecting`), not
+  just the onboarding page. All consolidated into the new `Core/ExternalOpener.swift`:
+  opening uses the async overload `open(_:configuration:completionHandler:)`; Finder
+  reveal has no async overload and moved to a background queue.
 
-  **为什么原来不对**：同步 API 写起来最省事，代价是把系统的脾气直接接到自己的主线程上 ——
-  一次挂住的 XPC 就是一次永久假死。这类"看起来只是一行调用"的 API 最值得警惕。
+  **Why the old way was wrong**: the synchronous API is the cheapest to write, and the
+  price is wiring the system's temperament straight into your main thread — one stuck XPC
+  is one permanent freeze. These "looks like just one call" APIs deserve the most
+  suspicion.
 
-  同时补了发版闸门：`scripts/doc-check.sh` 现在会检查 `Sources/` 里有没有绕过收口的
-  同步调用（负向验证过：埋一处 → 红灯），挡住第 14 处。
+  A release gate was added too: `scripts/doc-check.sh` now checks whether `Sources/`
+  contains synchronous calls bypassing the consolidation (negatively verified: plant one
+  → red light), blocking a 14th site.
 
 ## [0.7.6] - 2026-09-23
 
-**换了张脸。**
+**A new face.**
 
-### 变更
+### Changed
 
-- **新图标** —— ice 手绘版：手绘 M + 绿色快笔（带箭头尾巴），明暗两个版本。
-  应用图标改用深色版（源图无 alpha，构建时从四角连通域抠出透明角再生成
-  iconset，`make-icon.swift` 代码绘制版退役）；落地页导航的 SVG 图标换成
-  真图、跟随页面主题；apple-touch-icon 同步
-- **图标源图压缩** —— 2048px 主图 256 色量化：2.9MB → 55KB；安装包（DMG）
-  随之 1.7MB → 1.6MB
+- **New icon** — ice's hand-drawn version: a hand-drawn M plus a green quick stroke (with
+  an arrow tail), in light and dark variants. The app icon uses the dark version (the
+  source image has no alpha; at build time transparent corners are cut out via
+  corner-connected regions before generating the iconset — the code-drawn
+  `make-icon.swift` version retired); the landing page nav SVG icon replaced with the
+  real image, following the page theme; apple-touch-icon synced
+- **Icon source image compressed** — the 2048px master quantized to 256 colors: 2.9MB →
+  55KB; the installer (DMG) accordingly 1.7MB → 1.6MB
 
-### 修复
+### Fixed
 
-- **关于窗口** —— 删掉与定位语重复的「阅读是目的，不是编辑的副产品」一行
+- **About window** — removed the line "Reading is the point, not a byproduct of editing",
+  which duplicated the positioning statement
 
 ## [0.7.5] - 2026-09-22
 
-**落单文件轻轻打开，深目录一键进终端。**
+**Lone files open gently; deep directories jump into the terminal in one click.**
 
-### 新增
+### Added
 
-- **在终端中打开** —— 文件树的 ··· 菜单和右键菜单里都有，跟着「在访达中显示」
-  排在一起。不认牌子：按 Ghostty → iTerm → 系统终端的顺序探测你装了的那个，
-  菜单名跟着机器走；系统终端永远在，不会落空。右键选中的是文件就开它所在的那层
+- **Open in Terminal** — available in both the file tree's ··· menu and the context menu,
+  next to "Reveal in Finder". Brand-agnostic: it detects what you have installed in the
+  order Ghostty → iTerm → system Terminal, and the menu name follows the machine; the
+  system Terminal is always there, never a dead end. If the right-clicked item is a file,
+  it opens the folder containing it
 
-### 变更
+### Changed
 
-- **落单文件不再把所在文件夹开成项目** —— 从外面（访达双击 / 拖入 / `open`）
-  打开一个不属于任何项目的文件时，进入单文件模式：两栏收起、内容区直接读，
-  文件树不会塞进一整个不相干的文件夹。打开或切回项目时两栏自动还原。
-  文件属于已开项目时行为不变：切过去。
-  单文件模式下 ⌘N 新建落在当前文件旁边（项目栏收起着呢，建进看不见的
-  项目里等于丢了）；没有打开的文件时才弹保存面板
+- **A lone file no longer opens its folder as a project** — opening a file that belongs
+  to no project from outside (Finder double-click / drag-in / `open`) enters single-file
+  mode: both sidebars collapse, the content area reads directly, and the file tree isn't
+  stuffed with an entire irrelevant folder. Opening or switching back to a project
+  restores both sidebars. If the file belongs to an already-open project, behavior is
+  unchanged: switch to it. In single-file mode ⌘N creates the new file next to the
+  current one (the project sidebar is collapsed — creating into an invisible project
+  would lose it); the save panel only appears when no file is open
 
-### 修复
+### Fixed
 
-- **Finder「打开方式」里 MuM 真的出现了** —— 0.7.4 声称注册了 srt/log/csv 等
-  扩展名，实测并没有生效：LaunchServices 在同一文档类型组里见到
-  LSItemContentTypes 就忽略 CFBundleTypeExtensions，扩展名根本没进 bindings。
-  拆成扩展名-only 的「字幕与纯文本」组后才真正注册（dump 实证）
+- **MuM actually shows up in Finder's "Open With"** — 0.7.4 claimed to register
+  extensions like srt/log/csv, but in practice it didn't work: LaunchServices ignores
+  CFBundleTypeExtensions when it sees LSItemContentTypes in the same document type group,
+  so the extensions never entered the bindings. Splitting into an extension-only
+  "subtitles & plain text" group made registration real (verified via dump)
 
 ## [0.7.4] - 2026-09-22
 
-**更新不用自己找，字幕直接读。**
+**Updates come to you; subtitles read directly.**
 
-### 新增
+### Added
 
-- **更新提示条可以一键下载** —— 发现新版本时不用再跳 Release 页找安装包：
-  「下载更新」直接在 app 内下载 DMG（带进度百分比），完成后自动挂载安装盘，
-  最后一步把 MuM 拖进「应用程序」替换即可。没有直链时退回跳页面；
-  下载仍然是匿名请求，不带任何用户标识
-- **字幕文件按文本打开** —— srt / ass / ssa / vtt（带时间轴的纯文本，
-  GBK 编码走 TextDecoding 的往返校验兜底）；Finder「打开方式」里也注册了
-  这些扩展名（顺带补上 log / csv / tsv / vcf / ics），右键直接可选 MuM
+- **Update banner with one-click download** — when a new version is found, no more
+  hunting for the installer on the Release page: "Download Update" downloads the DMG
+  inside the app (with progress percentage), auto-mounts the disk image when done, and
+  the last step is dragging MuM into "Applications" to replace it. Falls back to jumping
+  to the page when there's no direct link; the download remains an anonymous request with
+  no user identifiers
+- **Subtitle files open as text** — srt / ass / ssa / vtt (plain text with timelines;
+  GBK encodings are backed by TextDecoding's round-trip validation); these extensions are
+  also registered in Finder's "Open With" (along with log / csv / tsv / vcf / ics), so
+  MuM is directly selectable from the context menu
+
 ## [0.7.3] - 2026-09-21
 
-**Markdown 里的 HTML 讲规矩，PDF 导出认分页。**
+**HTML inside Markdown behaves; PDF export honors page breaks.**
 
-### 新增
+### Added
 
-- **.html 归入「不支持的格式」导向页** —— .html 文件（打印导出、网页存档）
-  的读者要的是渲染后的页面，MuM 没有 Web 引擎也不追浏览器；点开直接给
-  「用 Safari 打开 / 在访达中显示」，不再显示源码。vue / svelte 是组件
-  源码，仍按代码打开带高亮
-- **行内 HTML 白名单渲染** —— `<small>` `<mark>` `<sup>` `<sub>` `<u>`
-  `<b>/<i>/<s>` `<kbd>` `<br>` 这类常用行内标签按语义排版（缩小、高亮、
-  上下标、下划线……），标签本身不再以等宽原文显示；`<span>` 这类无语义
-  标签只吞掉不改样式；块级的 HTML 注释和分页空 div 这类纯排版指令整块隐藏。
-  白名单外或带真实内容的 HTML 片段仍按原始文本输出，贴片段做笔记不受影响
+- **.html goes to the "unsupported format" guidance page** — readers of .html files
+  (print exports, web archives) want the rendered page; MuM has no web engine and doesn't
+  chase browsers. Opening one now offers "Open in Safari / Reveal in Finder" directly
+  instead of showing source. vue / svelte are component source and still open as code
+  with highlighting
+- **Inline HTML rendered from a whitelist** — common inline tags like `<small>` `<mark>`
+  `<sup>` `<sub>` `<u>` `<b>/<i>/<s>` `<kbd>` `<br>` are typeset by semantics (smaller,
+  highlight, super/subscript, underline…), and the tags themselves no longer show as
+  monospaced source; semantic-free tags like `<span>` are swallowed without style
+  changes; block-level HTML comments and page-break empty divs — pure layout directives —
+  are hidden as whole blocks. HTML fragments outside the whitelist or carrying real
+  content still render as raw text, so pasting fragments into notes is unaffected
 
-### 修复
+### Fixed
 
-- **导出 PDF 按分页指令真正分页** —— 打印导向的文档常用
-  `<div style="break-after: page; page-break-after: always;"></div>` 标分页点，
-  阅读时这类指令隐藏不显示，现在导出 PDF（⌘⇧E 和 CLI `render --pdf` 都一样）
-  会在这些位置强制换页，作者标的几页就是几页。PNG 长图没有页的概念，不受影响
-- **PDF / 图片 / 不支持的格式打开后可能一片空白** —— 这些文件没有源码可写，
-  但 Write/Preview 两段仍然能点（快捷键 ⌥⌘1/3 也切得过去），切过去就是
-  一个空的、不可编辑的编辑区。现在非文本文件只留 Read 可点，其余置灰；
-  无文档时三段全灰
+- **Exported PDFs actually break at page-break directives** — print-oriented documents
+  often mark break points with
+  `<div style="break-after: page; page-break-after: always;"></div>`; these directives
+  are hidden while reading, and now PDF export (⌘⇧E and CLI `render --pdf` alike) forces
+  a page break at those positions — the author's page count is the page count. PNG long
+  images have no concept of pages and are unaffected
+- **PDF / images / unsupported formats could open to a blank page** — these files have no
+  source to write, but the Write/Preview segments were still clickable (shortcuts ⌥⌘1/3
+  could switch too), landing on an empty, non-editable editing area. Now non-text files
+  keep only Read enabled, the rest grayed out; with no document, all three segments are
+  gray
 
 ## [0.7.2] - 2026-09-20
 
-**文件格式：能读的读好，读不了的给去处。**
+**File formats: read well what we can, give directions for what we can't.**
 
-### 新增
+### Added
 
-- **不支持的格式给去处** —— 点开 Word / Excel / PPT / 压缩包 / 音视频这类
-  不打算支持的格式，占位页明说「MuM 是 Markdown 阅读器」，并给出两个去向：
-  「用（系统默认应用）打开」（回车即走）和「在访达中显示」
-- **RTF 按富文本渲染**（只读）—— 之前当纯文本打开，满屏控制字；
-  NSAttributedString 原生支持，一行依赖不加
-- **CSV / TSV 按表格渲染** —— RFC 4180 解析（引号、转义、字段内换行、CRLF 都处理），
-  转成 Markdown 表格走同一套手工调过的排版；编辑时仍是原文。单列 / 超 5000 行退回纯文本
-- **ipynb 按 JSON 源码打开**（带高亮），vcf / ics 识别为纯文本
+- **Unsupported formats get directions** — opening Word / Excel / PPT / archives /
+  audio-video formats we don't plan to support shows a placeholder page stating "MuM is a
+  Markdown reader" with two destinations: "Open with (the system default app)" (Enter to
+  go) and "Reveal in Finder"
+- **RTF rendered as rich text** (read-only) — previously opened as plain text, a screen
+  full of control words; NSAttributedString supports it natively, zero dependencies added
+- **CSV / TSV rendered as tables** — RFC 4180 parsing (quotes, escapes, in-field
+  newlines, CRLF all handled), converted to Markdown tables running through the same
+  hand-tuned typesetting; editing still works on the raw text. Single-column or over
+  5000 rows falls back to plain text
+- **ipynb opens as JSON source** (with highlighting); vcf / ics recognized as plain text
 
 ## [0.7.1] - 2026-09-19
 
-### 修复
+### Fixed
 
-- **滚动卡顿** —— **这就是 v0.5.1 欠的那笔账**。
-  `drawCodeBlockBackgrounds` 每次绘制都做一次 `Array(全文.utf16)` —— **复制整篇文档**。
-  `sample` 实测它占主线程 **~40%**。改成按索引直读：
+- **Scrolling jank** — **this is the debt owed since v0.5.1**.
+  `drawCodeBlockBackgrounds` did an `Array(entireText.utf16)` on every draw — **copying
+  the whole document**. `sample` measured it at **~40%** of the main thread. Changed to
+  direct index-based reads:
 
-  | 场景 | 修前 P95 | 修后 P95 | 等效帧率 |
+  | Scenario | P95 before | P95 after | Effective fps |
   | :--- | ---: | ---: | :--- |
-  | 1 MB 首滚 | 28.5 ms | **7.2 ms** | 56 → **119 fps** |
-  | 5 MB 首滚 | 117 ms | **7.7 ms** | **17 → 100+ fps** |
+  | 1 MB first scroll | 28.5 ms | **7.2 ms** | 56 → **119 fps** |
+  | 5 MB first scroll | 117 ms | **7.7 ms** | **17 → 100+ fps** |
 
-  **5 MB 下 17fps —— 那是不能用的状态**，而它从 0.3 一直躺到现在。
-  这件事的意义不只是修好了：**它是"阅读优先"这个定位第一次被自己的指标逼出来的修复**。
+  **17 fps at 5 MB — that's an unusable state**, and it had been sitting there since
+  0.3. This matters beyond the fix itself: **it's the first fix the "reading-first"
+  positioning was forced into by its own metrics**.
 
-### 新增
+### Added
 
-- **版本更新检测** —— 启动后静默查 GitHub Releases（匿名 GET），
-  新版只出一个**不抢焦点**的提示条（可"查看"或"忽略此版本"）；帮助菜单加「检查更新…」
-- **客户端反馈入口** —— 帮助菜单「反馈问题或建议…」+ 关于窗口链接行，
-  直达 issue 模板并**预填 MuM 版本 / macOS / 芯片**
+- **Version update check** — silently queries GitHub Releases after launch (anonymous
+  GET); a new version only produces a **non-focus-stealing** banner (with "View" and
+  "Ignore This Version"); Help menu gains "Check for Updates…"
+- **In-app feedback entry** — Help menu "Send Feedback…" plus a link row in the About
+  window, going straight to the issue template with **MuM version / macOS / chip
+  pre-filled**
 
-### 新增
+### Added
 
-- **版本更新检测** —— 启动后静默检查一次 GitHub Releases（匿名 GET，不带任何标识）；
-  有新版本只在窗口顶部出一条不抢焦点的提示条：「查看更新」跳 Release 页，
-  「忽略此版本」记住不再烦。帮助菜单加「检查更新…」手动触发，已是最新会明说
-- **反馈自动带版本** —— 帮助 → 反馈问题或建议… 直达反馈模板，
-  并把 MuM 版本 / macOS 版本 / 芯片预填进表单，不用手填
+- **Version update check** — one silent check of GitHub Releases after launch (anonymous
+  GET, no identifiers of any kind); a new version only shows a non-focus-stealing banner
+  at the top of the window: "View Update" jumps to the Release page, "Ignore This
+  Version" remembers and stops nagging. Help menu gains "Check for Updates…" for manual
+  triggering, and it says so plainly when you're already on the latest
+- **Feedback auto-carries versions** — Help → Send Feedback… goes straight to the
+  feedback template with MuM version / macOS version / chip pre-filled into the form, no
+  typing
 
-### 修复
+### Fixed
 
-- **大文档滚动卡顿**（v0.5.1 欠账，测量驱动）—— 代码块底色绘制路径上有一个
-  `Array(全文.utf16)`：每个代码块、每次绘制都把整篇文档复制一遍，
-  5MB 文档滚动时主线程 ~40% 烧在这个复制上（`sample` 实测）。改为按索引直读后：
-  1MB 首滚 P95 28.5→7.2ms（真上屏 56→119fps），
-  5MB 首滚 P95 117→7.7ms（真上屏 17→100+fps），双双落回 v0.5.1 判定线内
-  （P95 ≤16.7ms / 最差 ≤33ms，release 构建，各 n=3）
+- **Large-document scrolling jank** (v0.5.1 debt, measurement-driven) — the code-block
+  background drawing path had an `Array(entireText.utf16)`: every code block, every draw,
+  copied the entire document; scrolling a 5MB document burned ~40% of the main thread on
+  this copy (`sample`-measured). After switching to direct index-based reads: 1MB first
+  scroll P95 28.5→7.2ms (real on-screen 56→119fps), 5MB first scroll P95 117→7.7ms (real
+  on-screen 17→100+fps) — both back within the v0.5.1 verdict line (P95 ≤16.7ms / worst
+  ≤33ms, release build, n=3 each)
 
 ## [0.7.0] - 2026-09-19
 
-**随手记 —— 文件管理进了文件树，顶栏成了它该有的样子。**
+**Jot it down — file management entered the file tree, and the toolbar became what it
+should be.**
 
-这一版的每一条都来自 ice 的真实使用反馈：要快速记录、要能改名、
-要能删除、顶栏要透气。都是"用过才知道"的东西。
+Every item in this release comes from ice's real-use feedback: quick capture, renaming,
+deletion, a breathing toolbar. All "you only know once you've used it" things.
 
-### 新增
+### Added
 
-- **⌘N 快速新建文件** —— 项目开着就建在选中目录里（递增命名，绝不覆盖），
-  打开即进 Write 模式、光标就位，只管写；没开项目就走保存面板
-- **文件树右键菜单** —— 新建文件 / 新建文件夹 / 重命名… / 在访达中显示 /
-  移到废纸篓；鼠标挪进任意一行，行尾也会出现一个 ··· 入口
-- **行内重命名**（文件和文件夹）—— Finder 式原位编辑，回车确认、Esc 取消；
-  打开中的文件路径跟随改名，⌘S 不会在旧路径写出幽灵副本
-- **移到废纸篓** —— 可恢复的删除，不用跳访达
-- **··· 导出菜单**（内容区右上）—— PNG / PDF 一键出，不用记快捷键
+- **⌘N quick new file** — with a project open it's created in the selected directory
+  (incremental naming, never overwrites), opens straight into Write mode with the cursor
+  in place — just write; without a project it goes through the save panel
+- **File tree context menu** — New File / New Folder / Rename… / Reveal in Finder / Move
+  to Trash; hovering any row also reveals a ··· entry at the row's end
+- **Inline rename** (files and folders) — Finder-style in-place editing, Enter to
+  confirm, Esc to cancel; the path of an open file follows the rename, so ⌘S won't write
+  a ghost copy at the old path
+- **Move to Trash** — recoverable deletion without jumping to Finder
+- **··· export menu** (top-right of the content area) — PNG / PDF in one click, no
+  shortcuts to memorize
 
-### 改进
+### Improved
 
-- **顶栏三段式** —— Write/Read/Preview 移到水平居中（模式是文档的主视角开关），
-  文档标题加大到 16pt，顶栏加高
-- **图标新构图** —— M 与绿色下划线整体居中（像素级验证）
-- **关于窗口跟上新定位** —— 「快、原生的 Markdown 引擎 —— 给人用，也给 agent 用」，
-  名字释义 MuM = Multi-project Markdown
-- **落地页** —— 真实产品截图（明暗随系统）、实测数字、文案三轮打磨
+- **Three-segment toolbar** — Write/Read/Preview moved to horizontal center (the mode is
+  the document's primary viewpoint switch), document title enlarged to 16pt, toolbar
+  made taller
+- **New icon composition** — the M and green underline centered as a whole
+  (pixel-verified)
+- **About window catches up with the new positioning** — "A fast, native Markdown engine
+  — for humans and agents", with the name explained: MuM = Multi-project Markdown
+- **Landing page** — real product screenshots (light/dark follows the system), measured
+  numbers, copy polished over three rounds
 
-### 修复
+### Fixed
 
-- 文件树在符号链接路径下（/tmp 等）选不中文件 —— `resolvingSymlinksInPath`
-  在这代 macOS 上不解 `/var`，路径比对两侧改走 `realpath(3)`
-- ··· 按钮点击无反应 —— `NSButton` 挂 menu 不会自动弹出，得接 action 手动 `popUp`
+- Files under symlinked paths (/tmp etc.) couldn't be selected in the file tree —
+  `resolvingSymlinksInPath` doesn't resolve `/var` on this generation of macOS; both
+  sides of the path comparison now go through `realpath(3)`
+- The ··· button didn't respond to clicks — an `NSButton` with a menu attached doesn't
+  pop up automatically; you have to wire an action and call `popUp` manually
 
 ## [0.6.0] - 2026-09-19
 
-**能交给别人 —— 第一次，第二个人可以自己装上它。**
+**Handable to someone else — for the first time, a second person can install it
+themselves.**
 
-在此之前我们做了五个版本，从来没有第二个人用过它。这一版补的是成熟度里
-那「半级」：能交付。
+Before this we made five versions and no second person ever used it. What this release
+adds is that "half level" of maturity: deliverability.
 
-### 新增
+### Added
 
-- **导出（⌘⇧E）** —— 把当前这篇存成图 / PDF，用当前的阅读主题、宽度、字号，
-  **所见即所得**。不提供格式选择器、页边距、页眉页脚 —— 它是「把眼前看到的
-  原样带走」，不是排版工具
-- **headless CLI（给 agent 用）** —— `mum render / outline / search / check`，
-  全 `--json` + 有意义的退出码 + **无窗口**（`activationPolicy(.prohibited)`）。
-  与导出**共用同一个正文渲染入口**
-- **落地页 mum.jiker.ai** —— 中英双语，单文件静态页，无追踪脚本
+- **Export (⌘⇧E)** — save the current document as an image / PDF using the current
+  reading theme, width, and font size — **what you see is what you get**. No format
+  pickers, margins, or headers/footers — it's "take away exactly what you're looking at",
+  not a typesetting tool
+- **Headless CLI (for agents)** — `mum render / outline / search / check`, all with
+  `--json` + meaningful exit codes + **no window** (`activationPolicy(.prohibited)`).
+  Shares **the same body-rendering entry point** as export
+- **Landing page mum.jiker.ai** — bilingual Chinese/English, single static file, no
+  tracking scripts
 
-### 工程
+### Engineering
 
-- **签名 + 公证进常规构建** —— 公司 Developer ID 证书 + `notarytool`，全链路实测通过。
-  签名身份从环境读（`MUM_SIGN_IDENTITY` / `MUM_NOTARY_PROFILE`），**不入库**
-- **仓库公开** —— 敏感信息全历史扫描（gitleaks 117 commits 无泄漏 + 定向扫描零命中），
-  并把签名身份从**全部历史**中清洗后强推
-- **CI 自动化** —— GitHub Actions 对 public 仓库免费（含 macOS runner），
-  当初改手动触发的成本顾虑消失
-- `--uitest` —— 应用内自驱动 UI 测试，**零权限**、确定性等待、可进 CI。
-  7 场景 58 步全绿，**负向验证精确到步**（故意改坏一处，测试必须失败）
-- 三条硬规矩写进 `docs/collaboration.md`：**禁止 `git add -A`**（三个 agent 共用
-  一个工作目录）、**用完的东西必须收拾干净**、**文件所有权按目录划**
+- **Signing + notarization in the regular build** — company Developer ID certificate +
+  `notarytool`, the full pipeline verified end to end. Signing identities read from the
+  environment (`MUM_SIGN_IDENTITY` / `MUM_NOTARY_PROFILE`), **never committed**
+- **Repo went public** — full-history scan for sensitive data (gitleaks over 117 commits,
+  no leaks + targeted scan, zero hits), and the signing identity scrubbed from **all of
+  history** before force-pushing
+- **CI automation** — GitHub Actions is free for public repos (including macOS runners);
+  the cost concern that originally forced manual triggering is gone
+- `--uitest` — in-app self-driven UI testing, **zero permissions**, deterministic waits,
+  CI-ready. 7 scenarios / 58 steps all green, **negative verification precise to the
+  step** (deliberately break one thing, and the test must fail)
+- Three hard rules written into `docs/collaboration.md`: **no `git add -A`** (three
+  agents share one working directory), **clean up whatever you use**, **file ownership by
+  directory**
 
-### 未达标（如实记录）
+### Missed targets (recorded honestly)
 
-- **TTFR-冷开 @1MB：目标 ≤600 ms，实测中位 622 ms。** 目标不移动，继续追
-- **v0.5.1 的滚动帧率从未测量** —— 定义写了、工具交了（`--bench scroll`）、
-  cc 判了双口径，但**测量本身漏了**。记在这里，不装作做过
+- **TTFR cold-open @1MB: target ≤600 ms, measured median 622 ms.** The target doesn't
+  move; the chase continues
+- **v0.5.1's scroll frame rate was never measured** — the definition was written, the
+  tool shipped (`--bench scroll`), cc ruled on the dual criteria, but **the measurement
+  itself was missed**. Recorded here; we don't pretend it was done
 
 ## [0.5.0] - 2026-09-18
 
-「找得到」—— 把「多项目」这根支柱真正立起来。
+"Findable" — actually standing up the "multi-project" pillar.
 
-### 新增
+### Added
 
-- **全局搜索（⌘⇧F）** —— 跨所有已打开项目搜文件名 + 全文，**结果流式出现**。
-  实测：首个结果 **26.5–29.9 ms**（目标 ≤300），全量扫完 **1.4 s**（目标 ≤5 s）
-- **点结果直接读到那一行** —— 打开文件并定位到命中处，复用查找高亮。
-  搜索的终点不是"文件列表"，是"我已经在读那段话了"
-- **搜索范围可视 + 可缩** —— 能看出在搜哪几个项目，能一键排除
+- **Global search (⌘⇧F)** — search filenames + full text across all open projects, with
+  **results streaming in**. Measured: first result **26.5–29.9 ms** (target ≤300), full
+  scan complete in **1.4 s** (target ≤5 s)
+- **Click a result and read that line directly** — opens the file positioned at the hit,
+  reusing the find highlight. The end of a search isn't "a file list"; it's "I'm already
+  reading that passage"
+- **Search scope visible + shrinkable** — you can see which projects are being searched
+  and exclude one with a click
 
-### 修复
+### Fixed
 
-- **R-5 双 ⌘F**（用户可碰到）—— 系统查找条移除，统一走自定义查找条
-- 审计存量清理：死代码 13 处（逐个 grep 复核零引用后删）、魔法数收敛
+- **R-5 double ⌘F** (user-reachable) — the system find bar removed; everything goes
+  through the custom find bar
+- Audit cleanup of existing code: 13 dead-code sites (each grep-verified to have zero
+  references before deletion), magic numbers consolidated
 
-### 工程
+### Engineering
 
-- **签名发布脚本** —— 公司 Developer ID 证书 + `NOTARYPROFILE` 公证，**全链路实测通过**
-- **选中文字右键**：拷贝 + 两级查找
-- **预览链接内部打开** + **阅读历史前进 / 后退**
-- 图标对齐 Vme：背景压黑、绿线加粗
-- 搜索完成度的判定原则：**枚举型**（文件名）= 全部结果到达；**流式**（全文）= 首条到达
-  —— 注：文件名搜索的现状是**流式**（首条 62ms，最后一条要等枚举走完），
-  「走内存文件树拿全部」尚未实现，留待后续版本
+- **Signed release script** — company Developer ID certificate + `NOTARYPROFILE`
+  notarization, **full pipeline verified end to end**
+- **Selected-text context menu**: Copy + two levels of find
+- **Preview links open internally** + **reading history back / forward**
+- Icon aligned with Vme: darker background, thicker green line
+- Search completeness criteria: **enumerable** (filenames) = all results arrived;
+  **streaming** (full text) = first result arrived — note: filename search is currently
+  **streaming** (first result 62ms, the last waits for enumeration to finish); "get all
+  from the in-memory file tree" is not yet implemented, left for a later release
 
-### 新增
+### Added
 
-- **全局搜索（`⌘⇧F`，v0.5「找得到」）** —— 跨所有已打开项目搜文件名 + 全文，
-  流式出结果（不等扫完），点结果直接打开文件并定位到命中处（复用预览查找高亮）；
-  搜索范围可视可缩（面板里一键排除某个项目）。**不建索引、按需搜** ——
-  零常驻成本，不碰冷启动。超过 10MB 的文件显式报告"已跳过"，命中过多显式截断，
-  不静默漏
-- **关于窗口** —— 自建 300pt 小窗（图标 / 版本 / 一句话定位 / 链接行），
-  链接悬停下划线、Esc 关闭。不用系统标准 about panel：它的 credits 文本区
-  宽度不可控，文案换行听天由命，和 MuM 的设计语言是两套系统
-- **快捷键速查窗口**（帮助 → MuM 使用说明）—— 替换 NSAlert 纯文本墙：
-  键位右对齐一栏、说明一栏，五个分组有呼吸节奏；内容定高，Esc 关闭
-- **预览里的文档链接可直接点开** —— 相对链接（如 `[VISION.md](VISION.md)`）
-  在 MuM 内部打开对应文件，不再丢给系统。根因是 `textView.delegate` 漏接线：
-  `clickedOnLink` 写了却从没被调用
-- **阅读历史前进/后退（`⌘[` / `⌘]`）** —— 链接跳转、文件树点击、搜索结果
-  都在一条历史线上，回到上一篇时阅读位置也一起回来（复用阅读位置记忆）。
-  不做 tab：tab 是"对照多个文档"的界面，和文件树职责重叠
-- **选中文字的右键快捷操作** —— 拷贝 / 全选之外，选词可以直接
-  「在文档中查找」或「在所有项目中搜索」（选词预填进对应查找，全局搜索立即开搜）。
-  多行选择自动折叠成一行，菜单标题截断但查询词保持完整
+- **Global search (`⌘⇧F`, v0.5 "Findable")** — search filenames + full text across all
+  open projects, results streaming in (no waiting for the scan to finish); click a result
+  to open the file positioned at the hit (reusing the preview find highlight); search
+  scope visible and shrinkable (exclude a project from the panel in one click). **No
+  index, search on demand** — zero resident cost, cold start untouched. Files over 10MB
+  are explicitly reported as "skipped"; excessive hits are explicitly truncated — nothing
+  silently dropped
+- **About window** — a custom 300pt small window (icon / version / one-line positioning /
+  link row), links underline on hover, Esc closes. Not the system standard about panel:
+  its credits text area has uncontrollable width, copy wraps at the mercy of fate — two
+  different design systems from MuM's
+- **Keyboard shortcuts window** (Help → MuM Guide) — replaces the NSAlert wall of plain
+  text: right-aligned keys in one column, descriptions in another, five groups with
+  breathing rhythm; fixed-height content, Esc closes
+- **Document links in preview open directly** — relative links (like
+  `[VISION.md](VISION.md)`) open the corresponding file inside MuM instead of being
+  handed to the system. Root cause: `textView.delegate` was never wired — `clickedOnLink`
+  was written but never called
+- **Reading history back/forward (`⌘[` / `⌘]`)** — link jumps, file-tree clicks, and
+  search results all live on one history line; returning to the previous document brings
+  back the reading position too (reusing reading-position memory). No tabs: tabs are an
+  interface for "comparing multiple documents" and overlap with the file tree's job
+- **Context actions for selected text** — beyond Copy / Select All, a selected word can
+  go straight to "Find in Document" or "Search in All Projects" (the selection pre-fills
+  the corresponding find; global search starts immediately). Multi-line selections
+  collapse to one line; the menu title truncates but the query stays intact
 
-### 工程
+### Engineering
 
-- `scripts/make-bench-fixture.py` 新增 `corpus` 模式：生成多项目搜索基准语料，
-  5% 文件埋稀有词，可直接与 `grep -r` 对拍
-- 单元测试 49 → 60（`GlobalSearchEngineTests` 11 条：二进制穿透、GBK、
-  符号链接环、确定性取消、截断等）
+- `scripts/make-bench-fixture.py` gains a `corpus` mode: generates a multi-project search
+  benchmark corpus with 5% of files carrying a rare word, directly comparable against
+  `grep -r`
+- Unit tests 49 → 60 (11 in `GlobalSearchEngineTests`: binary penetration, GBK, symlink
+  loops, deterministic cancellation, truncation, etc.)
 
 ## [0.4.1] - 2026-09-18
 
-### 修复
+### Fixed
 
-- **窗口不能拖动改变大小**（dsh 引入）—— 为了让窗口不塌陷加了
-  `widthAnchor == 1440 @.defaultHigh`，注释里断言「用户拖动时这条会让位」。
-  **那个假设是错的**：750 优先级的等式仍被求解器优先满足，AppKit 每个显示周期
-  把窗口拉回 1440×900。改成最小约束，初始尺寸由 `showWindow` 显式设一次
-- **R-1 嵌套列表段落样式被覆盖** —— `renderListItem` 在整项范围铺段落样式，
-  把嵌套项 / 代码块 / 表格自己的样式盖掉。改为只补无样式范围
-- **E-2 open 到非激活项目时白付一次旧文件打开** —— 跳过该次会话恢复
+- **Window couldn't be resized by dragging** (introduced by dsh) — to keep the window
+  from collapsing, `widthAnchor == 1440 @.defaultHigh` was added, with a comment
+  asserting "this yields when the user drags". **That assumption was wrong**: a
+  750-priority equality is still preferentially satisfied by the solver, and AppKit
+  pulled the window back to 1440×900 every display cycle. Changed to a minimum
+  constraint; the initial size is set explicitly once by `showWindow`
+- **R-1 nested-list paragraph styles overridden** — `renderListItem` applied paragraph
+  style across the whole item range, clobbering the styles of nested items / code blocks
+  / tables. Changed to only fill ranges without a style
+- **E-2 opening into a non-active project paid for an extra old-file open** — that
+  session restore is now skipped
 
-### 工程
+### Engineering
 
-- `accept.sh` cleanup 补 `lsregister` 注销 —— E-1（幽灵实例）根因防复发
-- R-1 加了 5 条回归锚点（pre-fix 失败 / post-fix 全绿，双向验证）
-- 单元测试 44 → 49
+- `accept.sh` cleanup gains `lsregister` unregistration — prevents recurrence of E-1
+  (ghost instances) at the root cause
+- R-1 gained 5 regression anchors (failing pre-fix / all green post-fix, verified both
+  directions)
+- Unit tests 44 → 49
 
-### 验证方式
+### Verification
 
-cc 用 **CGWindowList** 实测窗口尺寸（新装 1440×900 / 尺寸恢复），
-**在没有鼠标的情况下验了可自动化的部分**；真实拖动仍留待人工确认。
+cc measured the window size with **CGWindowList** (fresh install 1440×900 / size
+restoration), **verifying the automatable parts without a mouse**; real dragging still
+awaits human confirmation.
 
-### 修复
+### Fixed
 
-- **嵌套列表的层级缩进被外层列表项盖掉（审计 R-1）** —— `renderListItem` 末尾对
-  **整项范围**铺段落样式，嵌套列表项自己的悬挂缩进、代码块、表格的段落样式全被
-  盖掉，嵌套列表看起来退化成一层。改为**只补还没有段落样式的范围**（与
-  `renderBlockQuote` 补引用深度的做法同构）：简单列表视觉不变 —— 标记在段首，
-  而 TextKit 段落布局取首字符的段落样式，标记自带的列表样式本来就生效；
-  多段落项没有样式的续段补上列表样式、保持缩进；嵌套块的样式从此不再被盖。
-- **打开「非激活项目」里的文件白付一次旧文件打开（E-2）** —— 双击/`open -a`
-  打开一个属于其他项目的文件时，项目切换通知会先把该项目**上次的文件**完整
-  打开一遍（读 + 渲染 + 关旧），再打开真正请求的这个；有未保存修改时还会多弹
-  一次确认框。0.4.0 的「外部请求跳过恢复」只盖住了启动路径，现在暖开路径也
-  盖上：切换前立 suppress 标记，通知处理器只对这一次跳过恢复。实测打开链
-  readText 从两次降为一次。
+- **Nested-list level indentation clobbered by the outer list item (audit R-1)** — at the
+  end of `renderListItem`, paragraph style was applied across **the whole item range**,
+  so nested list items' hanging indents and the paragraph styles of code blocks and
+  tables were all overridden; nested lists visually degenerated to one level. Changed to
+  **only fill ranges that don't yet have a paragraph style** (isomorphic to how
+  `renderBlockQuote` fills quote depth): simple lists look unchanged — the marker sits at
+  the paragraph start, and TextKit paragraph layout takes the first character's paragraph
+  style, so the marker's list style already applies; continuation paragraphs of
+  multi-paragraph items get the list style filled in and keep their indent; nested-block
+  styles are never clobbered again.
+- **Opening a file in a "non-active project" paid for an extra old-file open (E-2)** —
+  when double-clicking / `open -a` a file belonging to another project, the
+  project-switch notification first fully opened that project's **last file** (read +
+  render + close), then opened the actually requested one; with unsaved changes it also
+  popped an extra confirmation. 0.4.0's "external requests skip restore" only covered the
+  launch path; now the warm-open path is covered too: a suppress flag is set before
+  switching, and the notification handler skips restore for exactly that one time.
+  Measured: the open chain's readText dropped from two calls to one.
 
 ## [0.4.0] - 2026-09-18
 
-把「快」重新变成真的，并补齐打开的入口。**另有 cc 全量审计的四条高危全部闭环。**
+Made "fast" true again, and filled in the ways to open things. **Plus all four
+high-severity findings from cc's full audit closed.**
 
-### 新增
+### Added
 
-- **渐进渲染** —— 首屏先渲染先显示，其余分片追加。1MB 文档的
-  **TTFR-冷开从 6800ms 降到 609–634ms**（中位 622ms，n=3，隔离 worktree 可复跑）
-- **`mum .` CLI** —— 终端里在当前目录打开
-- **⌘P 快速打开** —— 项目内文件模糊搜索
-- **拖拽打开** —— 文件 / 文件夹拖到窗口或 Dock 图标
-- **窗口到前台** —— `open` 后窗口必定在最前
+- **Progressive rendering** — the first screen renders and shows first, the rest is
+  appended in slices. **TTFR cold-open for a 1MB document dropped from 6800ms to
+  609–634ms** (median 622ms, n=3, reproducible in an isolated worktree)
+- **`mum .` CLI** — open the current directory from the terminal
+- **⌘P Quick Open** — fuzzy file search within a project
+- **Drag to open** — drag files / folders onto the window or the Dock icon
+- **Window to the front** — after `open`, the window is guaranteed to be frontmost
 
-### 修复（全量审计的四条高危，全部由 cc 独立验收）
+### Fixed (the four high-severity findings of the full audit, all independently verified
+by cc)
 
-- **D-1 退出丢未保存编辑** —— ⌘Q 与红灯 / ⌘W 六条退出路径汇到同一个确认入口
-- **D-2 非文本守卫被二进制穿透** —— `svgz` / `plist` / `lock` 类此前可被写坏；
-  解码与保存收进同一条路
-- **C-1 `FileWatcher` 停止路径 use-after-free** —— `passUnretained` 改为 `CallbackBox`，
-  stop 全部动作收进串行 queue
-- **R-2 `drawDecorations` 架空非连续排版** —— **这就是「5MB 卡 9 秒」的真凶**。
-  修后 5MB 首屏排版 **301.6ms**（全量上界 11.5s 不变，约 38 倍差），
-  **症状消除而不是把数字挪走**
-- **打字热路径全量排版** —— `show()` 重排不再计算文档高度（1MB 每敲一个字
-  812ms → 0.1ms 级）；这段是 dsh 在 0.3 做阅读位置时改坏的
-- `.mumenv` 在全新克隆上因 `GITHUB_PROXY` 未定义而失败（开源场景必踩）
-- 空状态两个布局 bug：跑到左下角且文字被切；两层空状态叠着显示
+- **D-1 quitting loses unsaved edits** — ⌘Q and the red light / ⌘W: six exit paths now
+  converge on one confirmation entry
+- **D-2 non-text guard penetrated by binaries** — `svgz` / `plist` / `lock` types could
+  previously be corrupted; decoding and saving now go through the same path
+- **C-1 `FileWatcher` stop-path use-after-free** — `passUnretained` replaced with
+  `CallbackBox`; all stop actions moved into the serial queue
+- **R-2 `drawDecorations` nullified non-contiguous layout** — **this is the real culprit
+  behind "5MB janks for 9 seconds"**. Post-fix 5MB first-screen layout is **301.6ms**
+  (the full-layout upper bound of 11.5s is unchanged, a ~38× gap) — **the symptom is
+  eliminated, not the number moved**
+- **Full-document layout on the typing hot path** — `show()` relayout no longer computes
+  document height (1MB: 812ms per keystroke → ~0.1ms); dsh broke this in 0.3 while doing
+  reading position
+- `.mumenv` failing on a fresh clone because `GITHUB_PROXY` is undefined (unavoidable in
+  open-source scenarios)
+- Two empty-state layout bugs: running to the bottom-left corner with text clipped; two
+  layers of empty states stacked on display
 
-### 工程
+### Engineering
 
-- **`scripts/accept.sh`** —— 在干净 worktree 上跑验收（构建 / 自检 / 单测 / 打包），
-  用完自动清理
-- **`scripts/measure-ttfr.sh`** —— TTFR 判定数据的可复现测量，输出中位数 / 标准差 / 区间
-- **`scripts/make-bench-fixture.py`** —— 基准样本改为可重建，不再留大文件
-- **`docs/status.md`** —— 项目状态看板
-- 单元测试 **0 → 44 个**
-- `docs/` 收纳所有文档，根目录只留 `README` / `CHANGELOG` / `LICENSE` / `VERSION`
+- **`scripts/accept.sh`** — runs acceptance on a clean worktree (build / self-check /
+  unit tests / packaging), cleans itself up afterward
+- **`scripts/measure-ttfr.sh`** — reproducible measurement for TTFR verdict data,
+  outputting median / standard deviation / range
+- **`scripts/make-bench-fixture.py`** — benchmark samples are now rebuildable instead of
+  keeping large files around
+- **`docs/status.md`** — project status board
+- Unit tests **0 → 44**
+- `docs/` holds all documentation; the root keeps only `README` / `CHANGELOG` /
+  `LICENSE` / `VERSION`
 
-### 未达标（如实记录）
+### Missed targets (recorded honestly)
 
-- **TTFR-冷开目标 ≤ 600ms，实测中位 622ms。** 差值落在测量噪声内，**但目标不移动** ——
-  记在 `docs/status.md` 与 `docs/metrics.md`，v0.5 继续追
+- **TTFR cold-open target ≤ 600ms, measured median 622ms.** The gap is within measurement
+  noise, **but the target doesn't move** — recorded in `docs/status.md` and
+  `docs/metrics.md`; v0.5 keeps chasing it
 
-### 修复
+### Fixed
 
-- **大文档打开慢的真正主因** —— 打开 1 MB markdown 时窗口 5.2 秒才上屏，其中
-  ≈4.9 秒是**编辑器 `setText` 的全量连续排版**（Read 模式下编辑器不可见，却仍把
-  65 万字符整篇排完）。给编辑器也开 `allowsNonContiguousLayout`（预览区 0.3 已开），
-  打开的同步段（applyWorkspace）**4.97 s → 73 ms**，1 MB 打开达标（≤400 ms）。
-  **原来不对的原因**：0.3 曾把主因误判为「渲染」——预览渲染是异步的，根本不在打开的
-  同步路径里；当时只给预览开了非连续排版，编辑器没开。测量方法见下条。
-- **打字重排时的整篇排版** —— 与打开慢同一根因（强制全量排版）的另一调用点：
-  重排保位置原先走 `scrollFraction()` → `documentHeight` → `ensureLayout` 整篇，
-  1 MB 文档里每敲一个字（去抖 110 ms 后）都要全量排版一次（实测 ≈812 ms），
-  大文档下打字不可用。重排只需要"别跳"：改为记住绝对滚动位置（`bounds.origin`，
-  廉价）；比例只在跨次打开时用（文档可能变长变短）。同一根因的其余调用点也一并处理：
-  编辑器滚动联动与保存阅读位置走**带缓存的** `documentHeight`（内容不变不重复排版，
-  内容/宽度变化时失效）。
-- **大文档打开渐进渲染** —— >100K 字符的 markdown 打开时，前 80 个顶层块先上屏
-  （TTFR 的 R），余量切 ≤40 ms 的薄片分次补齐：填充期间滚动保持可用，
-  已显示部分不位移（追加只发生在文档尾部）。只改时机不改内容 ——
-  拼接结果与全量渲染逐字一致（`ProgressiveRenderTests` 对切点 × 预算扫了一遍）。
-  有保存阅读位置时也走渐进：首屏先到，全文补齐后再把位置还回去
-  （填充期间用户滚过则以用户为准）。1 MB TTFR 实测 **489-561 ms**（两轮），
-  全文补齐 ≈1.3 s。**回滚开关**：`defaults write sh.ice.mum MuM.disableProgressiveRender -bool true`，
-  一键退回同步渲染（bench 包域名是 `sh.ice.mum.bench`）。
-- **打开路径调度** —— 三件事互相咬合：窗口先上屏（内容恢复移出 init，
-  窗口上屏 330→250 ms 且不再随文件大小波动；双击/拖入的外部请求优先于
-  上次会话的遗留文件）；打开路径的渲染改同步执行（窗口先上屏后渲染工作项
-  会被首帧挤掉 127 ms，同步化净省回来）；`updateStatusBar` 加输入指纹去重 +
-  字数统计改单遍无分配扫描（打开路径 3×75 ms → 1×40 ms）。
-  1 MB TTFR 两轮 **458/462 ms**，小文档冷启动 266 ms 不退化。
-- **退出/关窗丢未保存编辑（审计 D-1）** —— 未保存确认只挂在打开/关闭/重载/切模式
-  四处，⌘Q 和点红灯关窗**没有任何守卫**，改动直接全丢。现在六条路（含
-  `applicationShouldTerminate` 与 `windowShouldClose`）汇到同一个确认框。
-- **非文本文件穿透守卫进编辑器（审计 D-2/D-3/D-8/D-9）** —— 原解码链是
-  「UTF-8 → 系统探测 → Latin-1」：Latin-1 对任何字节都"成功"，二进制（`svgz`/
-  `plist`/`lock`）会以乱码进编辑器，再一次 ⌘S 就毁掉原文件。新增统一解码入口
-  `TextDecoding`：NUL 字节直接拒；UTF-8 → GB18030 → Latin-1 逐级尝试，UTF-8 与
-  Latin-1 的结果都要过控制字符占比嗅探（>1% 按二进制拒），GB18030 要**往返校验**
-  （能编码回同一份字节才算猜对 —— 系统探测会把 GBK 误判成单字节编码产出乱码）。
-  打开与「磁盘被外部修改」两条路径都走它；读不了的文件进安全空状态且编辑器
-  不可编辑（对着空编辑器敲字再保存同样是毁文件）。读入编码随文件记住，
-  保存写回**同一种**，不再把 GBK 悄悄转成 UTF-8。
-- **保存冲突检测的两个洞（审计 D-4/D-5）** —— 原先用 `mtime > 读入时` 判断外部
-  修改：`git checkout` / `rsync -a` 会把 mtime 回写到过去，检测静默失效，改为
-  `!=`；磁盘 mtime 读不到（文件被删/不可读）原先是静默放行，同样当冲突处理。
-  另外 mtime 基线改为**先取再读**（原顺序相反，读取中途被改就兜不住，D-6）；
-  原子写会换 inode，POSIX 权限先记下、写完还回去（D-7）。
-- **FileWatcher 停止路径的 use-after-free 与竞态（审计 C-1/C-2）** —— FSEvents 的
-  context 里挂的是 `passUnretained(self)`：`deinit → stop()` 与串行队列上的在途
-  回调之间没有任何同步，回调解引用的是可能已释放的 self；`pending` 去抖项在
-  主线程（stop）和队列（scheduleFire）两边裸读写。改为：context 携带一个由
-  stream 生命周期强持的回调盒子（弱指回 self），stop 的全部动作收进同一个串行
-  队列 `sync` 执行 —— 在途回调天然排空后才释放资源，`pending` 只在队列上碰。
-- **5MB 文档一画就卡 9 秒的真凶（审计 R-2）** —— 预览区的 `drawDecorations`
-  用**整篇 `bounds`** 取 glyphRange：每次绘制都把全文强制排版一遍，
-  `allowsNonContiguousLayout` 被完全架空 —— 0.3 开的非连续排版从没真正生效过。
-  改为只覆盖 `dirtyRect`（转容器坐标，±24pt 出血包住装饰线）。`--bench` 新增
-  「首屏排版」段量绘制路径的真实成本：5MB 样本 **301ms vs 全量排版 11.3 秒**
-  （「排版」段是 `ensureLayout` 的全量上界测量，本就不变）。同路径顺带修掉
-  `withoutTrailingNewlines` 的 `Array(utf16)` 全文复制 —— 每个属性段一次
-  O（全文），大文档下是 O（段数 × 全文）。
+- **The real main cause of slow large-document opening** — opening a 1MB markdown took
+  5.2 seconds to put anything on screen, ≈4.9 of which was **the editor `setText`'s full
+  contiguous layout** (the editor is invisible in Read mode, yet it still laid out all
+  650K characters). Enabled `allowsNonContiguousLayout` for the editor too (the preview
+  area had it since 0.3); the synchronous segment of opening (applyWorkspace) went
+  **4.97 s → 73 ms**, and 1MB opening meets the bar (≤400 ms). **Why the old diagnosis
+  was wrong**: 0.3 had misidentified the main cause as "rendering" — preview rendering is
+  async and isn't on the synchronous open path at all; only the preview got
+  non-contiguous layout back then, the editor didn't. Measurement method in the next
+  item.
+- **Whole-document layout during typing relayout** — another call site of the same root
+  cause (forced full layout) as slow opening: position-preserving relayout used to go
+  `scrollFraction()` → `documentHeight` → `ensureLayout` over the whole document, so
+  every keystroke in a 1MB document (after the 110ms debounce) triggered a full layout
+  (measured ≈812 ms) — typing in large documents was unusable. Relayout only needs
+  "don't jump": changed to remember the absolute scroll position (`bounds.origin`,
+  cheap); the fraction is only used across opens (the document may have grown or shrunk).
+  Other call sites of the same root cause handled too: editor scroll sync and saved
+  reading position use the **cached** `documentHeight` (no re-layout when content is
+  unchanged; invalidated on content/width changes).
+- **Progressive rendering for large documents** — opening markdown over 100K characters,
+  the first 80 top-level blocks go on screen first (the R in TTFR), and the rest is
+  filled in ≤40ms slices: scrolling stays usable during the fill, and already-shown
+  content doesn't shift (appends only happen at the document tail). Timing changed,
+  content untouched — the stitched result is byte-identical to a full render
+  (`ProgressiveRenderTests` swept cut points × budgets). With a saved reading position
+  it's progressive too: the first screen arrives, and the position is restored after the
+  full document is in place (if the user scrolled during the fill, the user wins). 1MB
+  TTFR measured **489–561 ms** (two rounds), full fill ≈1.3 s. **Rollback switch**:
+  `defaults write sh.ice.mum MuM.disableProgressiveRender -bool true`, one command back
+  to synchronous rendering (the bench bundle domain is `sh.ice.mum.bench`).
+- **Open-path scheduling** — three things interlocked: the window goes on screen first
+  (content restore moved out of init; window on screen 330→250 ms and no longer varies
+  with file size; external requests from double-click / drag-in take priority over last
+  session's leftover files); open-path rendering changed to synchronous execution
+  (rendering work items after the window was on screen got squeezed out by the first
+  frame for 127 ms — synchronizing nets that back); `updateStatusBar` gained input
+  fingerprint dedup + word count changed to a single-pass allocation-free scan (open path
+  3×75 ms → 1×40 ms). 1MB TTFR two rounds **458/462 ms**, small-document cold start 266
+  ms, no regression.
+- **Quitting/closing the window loses unsaved edits (audit D-1)** — unsaved confirmation
+  was only hooked on open / close / reload / mode-switch; ⌘Q and clicking the red light
+  had **no guard at all**, and changes were simply lost. Now six paths (including
+  `applicationShouldTerminate` and `windowShouldClose`) converge on one confirmation box.
+- **Non-text files penetrating the guard into the editor (audit D-2/D-3/D-8/D-9)** — the
+  old decode chain was "UTF-8 → system detection → Latin-1": Latin-1 "succeeds" on any
+  bytes, so binaries (`svgz`/`plist`/`lock`) entered the editor as mojibake, and one more
+  ⌘S destroyed the original file. New unified decode entry `TextDecoding`: NUL bytes are
+  rejected outright; UTF-8 → GB18030 → Latin-1 tried in order, with UTF-8 and Latin-1
+  results sniffed for control-character ratio (>1% rejected as binary), and GB18030
+  requiring **round-trip validation** (only counts as a correct guess if it encodes back
+  to the same bytes — system detection misjudges GBK as a single-byte encoding and
+  produces mojibake). Both the open path and the "modified externally on disk" path go
+  through it; unreadable files enter a safe empty state with a non-editable editor
+  (typing into an empty editor and saving destroys the file all the same). The read
+  encoding is remembered per file, and saving writes back **the same one** — no more
+  silently converting GBK to UTF-8.
+- **Two holes in save-conflict detection (audit D-4/D-5)** — external modification used
+  to be judged by `mtime > time of read`: `git checkout` / `rsync -a` write mtimes back
+  into the past and the check silently failed, changed to `!=`; when the on-disk mtime
+  can't be read (file deleted/unreadable) it used to pass silently — now treated as a
+  conflict too. Also the mtime baseline changed to **read after taking it** (the old
+  order was reversed, so a modification mid-read escaped the net, D-6); atomic writes
+  change the inode, so POSIX permissions are noted first and restored after writing
+  (D-7).
+- **FileWatcher stop-path use-after-free and race (audit C-1/C-2)** — the FSEvents
+  context carried `passUnretained(self)`: there was no synchronization between
+  `deinit → stop()` and in-flight callbacks on the serial queue, so a callback could
+  dereference an already-freed self; the `pending` debounce items were read and written
+  bare from both the main thread (stop) and the queue (scheduleFire). Changed to: the
+  context carries a callback box strongly held by the stream's lifetime (weakly pointing
+  back to self), and all stop actions execute via `sync` on the same serial queue —
+  in-flight callbacks naturally drain before resources are released, and `pending` is
+  only touched on the queue.
+- **The real culprit behind 5MB documents janking for 9 seconds per draw (audit R-2)** —
+  the preview area's `drawDecorations` took the glyphRange from **the whole document's
+  `bounds`**: every draw forced a full layout of the entire text, and
+  `allowsNonContiguousLayout` was completely nullified — the non-contiguous layout
+  enabled in 0.3 never actually took effect. Changed to cover only `dirtyRect` (converted
+  to container coordinates, ±24pt bleed to cover decoration lines). `--bench` gained a
+  "first-screen layout" section measuring the real cost of the drawing path: the 5MB
+  sample is **301ms vs 11.3 seconds** for full layout (the "layout" section measures the
+  `ensureLayout` full upper bound, unchanged as expected). The same path also fixed
+  `withoutTrailingNewlines`'s `Array(utf16)` full-text copy — O(entire text) per
+  attribute run, O(runs × entire text) on large documents.
 
-### 新增
+### Added
 
-- **`mum` 命令行入口** —— `mum .` 把当前目录开成项目，`mum file.md` 打开单个文件。
-  本体随 bundle 发布（`Contents/Resources/mum`），软链到 PATH 即用；
-  走 LaunchServices，不产生第二个进程
-- **⌘P 快速打开** —— 项目内文件按名字模糊搜索（子序列匹配 + 连续/词边界加权），
-  ↑↓ 选择、⏎ 打开、Esc 关闭。索引后台构建按项目缓存，1 万文件过滤毫秒级
-  （`QuickOpenTests` 有耗时断言）。原 ⌘P 的「过滤文件」保留在菜单里，不再占快捷键
-- **拖拽打开** —— 拖文件/文件夹到窗口即打开（Dock 拖放此前已可用）
-- **open 后窗口到前台** —— 应用已在运行时，`open -a` / 双击 / 拖入不再把文件
-  开进一个埋在后面的窗口
+- **`mum` command-line entry** — `mum .` opens the current directory as a project, `mum
+  file.md` opens a single file. The binary ships inside the bundle
+  (`Contents/Resources/mum`), symlink it into PATH and go; goes through LaunchServices,
+  no second process spawned
+- **⌘P Quick Open** — fuzzy filename search within a project (subsequence matching +
+  contiguity/word-boundary weighting), ↑↓ to select, ⏎ to open, Esc to close. The index
+  builds in the background and caches per project; filtering 10K files is
+  millisecond-level (`QuickOpenTests` has a timing assertion). The old ⌘P "Filter Files"
+  stays in the menu but no longer owns the shortcut
+- **Drag to open** — drag files/folders onto the window to open them (Dock drop already
+  worked)
+- **Window to the front after open** — when the app is already running, `open -a` /
+  double-click / drag-in no longer opens the file into a window buried in the back
 
-### 新增（测量设施）
+### Added (measurement tooling)
 
-- **渲染分段计时** —— 新增 `RenderProfiler`（`MUM_RENDER_TIMING=1` 门控，平时零开销），
-  `--bench` 现在输出 render 子段：内部解析 / 语法高亮 / 表格 / 行内解析 / 其他。
-  打开路径的 `LaunchTimer` 同步细分（readText / setText / updateStatusBar /
-  performRender / show）。实测 1 MB render 611 ms 里表格与行内各占约四成，
-  语法高亮只占 4%（674 次调用 27 ms）——排除了「语法高亮是瓶颈」的猜测
+- **Segmented render timing** — new `RenderProfiler` (gated by `MUM_RENDER_TIMING=1`,
+  zero cost normally); `--bench` now outputs render sub-segments: internal parsing /
+  syntax highlighting / tables / inline parsing / other. The open path's `LaunchTimer`
+  subdivides in sync (readText / setText / updateStatusBar / performRender / show).
+  Measured: of the 1MB render's 611 ms, tables and inline each take about 40%, syntax
+  highlighting only 4% (674 calls, 27 ms) — ruling out the "syntax highlighting is the
+  bottleneck" guess
 
 ## [0.3.0] - 2026-09-18
 
-0.3 读得进去 —— 把「读」这件事做完整。
+0.3 is readable — completing the act of "reading".
 
-### 新增
+### Added
 
-- **性能基线**（0.3）—— 新增 `--bench <文件.md>`，分解析 / 渲染 / 排版三段计时。
-  实测 1 MB 合计 1.54 s、5 MB 合计 11.6 s
+- **Performance baseline** (0.3) — new `--bench <file.md>` with three timed segments:
+  parse / render / layout. Measured 1MB total 1.54 s, 5MB total 11.6 s
 
-### 已知问题
+### Known Issues
 
-- **大文档打开慢** —— 应用打开 1 MB markdown 需 1.1 秒（小文件 280 ms），
-  主因是**渲染**而非排版（量过：开非连续排版后打开耗时无变化）。
-  尚未定位到渲染里具体哪一段，下一步应先给 `render(_:)` 加分段计时
-- 排版本身在 5 MB 上要 9 秒。已开 `allowsNonContiguousLayout` 改善滚动，
-  但打开路径上的排版开销仍未消除。顺带量过：表格只占其 8%，瓶颈是文本量
-- **文档大纲**（0.3）—— ⌘⇧O 弹出标题列表，点一条跳过去。做成 popover 而不是
-  常驻侧栏：大纲是"长文档里偶尔用一次"的动作，常驻会永久占掉正文宽度
-- **预览区 ⌘F 查找**（0.3）—— 高亮全部命中，橙色标当前处；⏎ / ⇧⏎ 跳转，Esc 关闭。
-  查找条做成内容区自己的一条（不是独立浮层），不遮正文
-- **记忆阅读位置**（0.3「读得进去」第一项）—— 切文件与退出应用时记住读到哪，
-  下次打开落回原处。存的是 0…1 的比例而不是像素：换字号、换字间距之后位置仍然合理
+- **Slow large-document opening** — opening a 1MB markdown in the app takes 1.1 seconds
+  (small files 280 ms); the main cause is **rendering**, not layout (measured: enabling
+  non-contiguous layout didn't change open time). Not yet localized to a specific render
+  segment; the next step is adding segmented timing to `render(_:)`
+- Layout itself takes 9 seconds at 5MB. `allowsNonContiguousLayout` is enabled to improve
+  scrolling, but layout cost on the open path is still there. Also measured: tables only
+  account for 8% of it — the bottleneck is text volume
+- **Document outline** (0.3) — ⌘⇧O pops up a heading list; click one to jump there. Made
+  a popover instead of a persistent sidebar: an outline is a "once in a while in a long
+  document" action, and a persistent one would permanently eat body width
+- **⌘F find in the preview area** (0.3) — highlights all hits, marks the current one in
+  orange; ⏎ / ⇧⏎ to jump, Esc to close. The find bar is a strip of the content area
+  itself (not a separate floating layer) and doesn't cover the body
+- **Reading position memory** (first item of 0.3 "readable") — remembers where you were
+  when switching files or quitting, and returns there next time. Stores a 0…1 fraction
+  instead of pixels: the position stays sensible after changing font size or letter
+  spacing
 
 ## [0.2.0] - 2026-09-17
 
-设置有了真正的结构，排版按中文重做，并修掉两个会毁数据的问题。
+Settings gained real structure, typography was redone for Chinese, and two
+data-destroying problems were fixed.
 
-### 新增
+### Added
 
-- **两个设置入口** —— `Aa`（显示设置：界面、阅读主题、排版、编辑器显示）
-  与 `⚙`（系统设置：启动、文件、缩进、系统集成）。混在一起会让"调一次就忘"
-  的设置把"反复微调"的设置挤到看不见
-- **阅读主题** —— 跟随外观 / 纸 / 静 / 高对比。只改阅读面的纸色，
-  与应用外观正交（可以「亮色界面 + 暖色纸」）。四个主题各带一套语法配色
-- **字体族**（系统 / 衬线 / 等宽）、**字间距**、**打字机模式**
-- **编辑器行号** —— 只给段落首行编号，软换行的续行不编号
-- **「用默认应用打开」** —— 非 Markdown 文件在顶栏显示一个图标，
-  把渲染结果交给系统（HTML 交给浏览器）。自己实现 HTML 渲染要么引入 Web 引擎、
-  要么永远追不上浏览器，所以不做
-- **设为默认 Markdown 编辑器** —— 走 `NSWorkspace.setDefaultApplication`（macOS 12+）
-- **文档类型声明** —— Markdown / 纯文本 / 源代码 / 文件夹的「打开方式」候选
+- **Two settings entries** — `Aa` (display settings: appearance, reading theme,
+  typography, editor display) and `⚙` (system settings: launch, files, indentation,
+  system integration). Mixing them lets "set once and forget" settings push
+  "fine-tune repeatedly" settings out of sight
+- **Reading themes** — Follow Appearance / Paper / Quiet / High Contrast. Only changes
+  the paper color of the reading surface, orthogonal to the app appearance (you can have
+  "light UI + warm paper"). Each theme ships its own syntax color set
+- **Font family** (system / serif / mono), **letter spacing**, **typewriter mode**
+- **Editor line numbers** — only paragraph first lines are numbered; soft-wrapped
+  continuation lines are not
+- **"Open with Default App"** — non-Markdown files show an icon in the toolbar that hands
+  the rendered result to the system (HTML to the browser). Rendering HTML ourselves would
+  either require a web engine or forever chase browsers, so we don't
+- **Set as default Markdown editor** — via `NSWorkspace.setDefaultApplication`
+  (macOS 12+)
+- **Document type declarations** — an "Open With" candidate for Markdown / plain text /
+  source code / folders
 
-### 变更
+### Changed
 
-- **排版按中文重做** —— 行距 4pt → 7pt（1.47 → 1.73 倍行高），段间距 8 → 12pt，
-  标题、列表、代码块、分隔线、表格的垂直间距一并放宽。汉字撑满字框，
-  按拉丁字母的行距排中文会挤
-- **应用图标重做** —— M 改为几何绘制（斜接尖角 → 圆角顶点），
-  底部横线改为绿色；并修正了居中与溢出
-- 设置面板改为两栏，一屏放得下
+- **Typography redone for Chinese** — line spacing 4pt → 7pt (1.47 → 1.73× line height),
+  paragraph spacing 8 → 12pt, and vertical spacing for headings, lists, code blocks,
+  rules, and tables loosened along with them. CJK glyphs fill the em box; Chinese set on
+  Latin line spacing feels cramped
+- **App icon redone** — the M changed to geometric drawing (mitered sharp corners →
+  rounded vertices), the bottom stroke turned green; centering and overflow fixed
+- Settings panels changed to two columns so everything fits on one screen
 
-### 修复
+### Fixed
 
-- **非文本文件不再可编辑、可保存** —— 此前打开一个 `.ipa` 后敲字按 `⌘S`，
-  会把文本写进那个二进制文件
-- **保存前比对磁盘修改时间** —— 文件被外部改过时先询问，不再静默覆盖
-- **切到 Read / Preview 时补一次重排** —— `performRender()` 在 Write 模式下会提前
-  返回，导致切模式后看到的是**上一个文件**的残留内容
-- **语法高亮色改由阅读主题提供** —— 原来用语义色，跟随应用外观解析；
-  暗色应用 + 「纸」主题时注释色解析成浅灰，压在米白纸上看不清
-- **面板底色 / 状态栏底色改为 `updateLayer()`** —— 不再依赖
-  `viewDidChangeEffectiveAppearance` 回调（它不保证每个视图都收到）
-- **状态栏长路径不再撑成两行** —— 富文本会覆盖 `NSTextField` 自身的
-  `lineBreakMode`，必须写进富文本里
-- 打开文件时窗口可能被压在别的窗口后面
+- **Non-text files are no longer editable or savable** — previously, opening an `.ipa`,
+  typing, and hitting `⌘S` would write text into that binary file
+- **Compare disk mtime before saving** — if the file was modified externally, ask first
+  instead of silently overwriting
+- **An extra relayout when switching to Read / Preview** — `performRender()` returned
+  early in Write mode, so after switching modes you'd see **the previous file's**
+  leftover content
+- **Syntax highlight colors now come from the reading theme** — they used semantic colors
+  resolved against the app appearance; with a dark app + "Paper" theme, the comment color
+  resolved to light gray, illegible on cream paper
+- **Panel / status bar backgrounds changed to `updateLayer()`** — no longer relying on
+  the `viewDidChangeEffectiveAppearance` callback (which isn't guaranteed to reach every
+  view)
+- **Long status-bar paths no longer stretch into two lines** — attributed text overrides
+  `NSTextField`'s own `lineBreakMode`, so it must be written into the attributed text
+- The window could open buried behind other windows when opening a file
 
-### 工程
+### Engineering
 
-- **`VERSION` 成为版本号唯一来源**（SemVer），构建时写入 `Info.plist`，
-  并折算单调递增的 `CFBundleVersion`
-- **本文件（CHANGELOG）** 与 [VISION.md](docs/vision.md)、[ROADMAP.md](docs/roadmap.md)
-- **GitHub Actions** —— 构建 + 24 项自检 + 打包 + 离屏快照。当前为手动触发：
-  macOS runner 对私有仓库计费，自动触发会必然失败
-- **`.mumenv` 删掉 `HOME` 重定向** —— 它让 git / gh / UserDefaults 都找不到配置，
-  实际咬过三次（详见 README「关于 .mumenv」）
-- 新增 `scripts/` 下的图标量测能力
+- **`VERSION` became the single source of truth for the version number** (SemVer),
+  written into `Info.plist` at build time and converted into a monotonically increasing
+  `CFBundleVersion`
+- **This file (CHANGELOG)** along with [VISION.md](docs/vision.md) and
+  [ROADMAP.md](docs/roadmap.md)
+- **GitHub Actions** — build + 24 self-checks + packaging + off-screen snapshots.
+  Currently manual-trigger only: macOS runners are billed for private repos, so automatic
+  triggers would fail for sure
+- **`.mumenv` dropped the `HOME` redirection** — it left git / gh / UserDefaults unable
+  to find their configs and actually bit us three times (see README "About .mumenv")
+- New icon measurement tooling under `scripts/`
 
 ## [0.1.0] - 2026-09-17
 
-首个可用版本。定位：**Reading is the point, not a preview.**
+First usable version. Positioning: **Reading is the point, not a preview.**
 
-### 新增
+### Added
 
-- **三栏布局** —— 项目列表 / 目录树 / 内容区。第 1、2 栏可折叠，
-  折叠入口统一在底栏中轴的两个布局图标上（`⌘0` / `⌥⌘0`）
-- **多项目** —— 同时打开多个项目文件夹，`⌘1`…`⌘9` 秒切；
-  从访达拖入或 `open -a MuM <路径>` 亦可
-- **三种呈现方式** —— Write（源码）/ Read（渲染）/ Preview（并排），
-  `⌥⌘1/2/3`。切换文件时保持当前方式，不会每次跳回 Read
-- **原生 Markdown 渲染器** —— cmark-gfm 解析成 `NSAttributedString`，
-  全程无 Web 引擎。支持标题、段落、GFM 表格、任务列表、引用块（可嵌套）、
-  代码块与行内代码、分隔线、本地图片。引用块竖线、分隔线、标题下划线、
-  代码块底色均为手绘
-- **语法高亮** —— 数据驱动的单遍扫描器，覆盖 40+ 种语言
-- **阅读主题** —— 跟随外观 / 纸 / 静 / 高对比。只影响阅读面的纸色，
-  与应用外观正交（可以「亮色界面 + 暖色纸」）。每个主题自带一套语法配色
-- **显示设置（Aa）** —— 界面明暗、阅读主题、字号、字体、行距、段间距、
-  字间距、阅读宽度；编辑器字号、行号、当前行高亮、打字机模式
-- **系统设置（齿轮）** —— 启动时恢复文件、启动呈现方式、显示隐藏文件、
-  Tab 缩进宽度、默认 Markdown 编辑器
-- **源码编辑器** —— 关闭全部智能替换、Tab 插入空格、回车延续列表标记、
-  行号栏、当前行高亮
-- **文档类型声明** —— 声明为 Markdown / 纯文本 / 源代码 / 文件夹的
-  「打开方式」候选（`LSHandlerRank = Alternate`，不抢默认），
-  并提供一键设为默认 Markdown 编辑器
-- **「用默认应用打开」** —— 非 Markdown 文件在顶栏显示一个图标，
-  把渲染结果交给系统（HTML 交给浏览器、SVG 交给预览）。
-  自己实现 HTML 渲染要么引入 Web 引擎、要么永远追不上浏览器，所以不做
+- **Three-column layout** — project list / directory tree / content area. Columns 1 and 2
+  are collapsible via two layout icons on the bottom bar's central axis (`⌘0` / `⌥⌘0`)
+- **Multi-project** — open multiple project folders at once, switch instantly with
+  `⌘1`…`⌘9`; drag in from Finder or `open -a MuM <path>` works too
+- **Three presentation modes** — Write (source) / Read (rendered) / Preview (side by
+  side), `⌥⌘1/2/3`. Switching files keeps the current mode instead of jumping back to
+  Read every time
+- **Native Markdown renderer** — cmark-gfm parsed into `NSAttributedString`, no web
+  engine anywhere. Supports headings, paragraphs, GFM tables, task lists, (nestable)
+  block quotes, code blocks and inline code, rules, and local images. Quote bars, rules,
+  heading underlines, and code-block backgrounds are all hand-drawn
+- **Syntax highlighting** — a data-driven single-pass scanner covering 40+ languages
+- **Reading themes** — Follow Appearance / Paper / Quiet / High Contrast. Only affects
+  the reading surface's paper color, orthogonal to the app appearance (you can have
+  "light UI + warm paper"). Each theme ships its own syntax color set
+- **Display settings (Aa)** — light/dark UI, reading theme, font size, font, line
+  spacing, paragraph spacing, letter spacing, reading width; editor font size, line
+  numbers, current-line highlight, typewriter mode
+- **System settings (gear)** — restore files on launch, launch presentation mode, show
+  hidden files, Tab indent width, default Markdown editor
+- **Source editor** — all smart substitutions off, Tab inserts spaces, Enter continues
+  list markers, line-number gutter, current-line highlight
+- **Document type declarations** — declared as an "Open With" candidate for Markdown /
+  plain text / source code / folders (`LSHandlerRank = Alternate`, doesn't steal the
+  default), with one-click "set as default Markdown editor"
+- **"Open with Default App"** — non-Markdown files show an icon in the toolbar that hands
+  the rendered result to the system (HTML to the browser, SVG to Preview). Rendering HTML
+  ourselves would either require a web engine or forever chase browsers, so we don't
 
-### 工程
+### Engineering
 
-- **`--selftest`** —— 24 项渲染断言，无头运行，耗时 0.03 秒，可直接接 CI
-- **`--snapshot`** —— 离屏渲染整个窗口为 PNG，锁屏 / SSH / CI 里都能检查界面
-- **`MUM_LAUNCH_TIMING=1`** —— 打印启动各阶段耗时
-  （实测：进程启动 → 窗口上屏 280ms，其中渲染 0.03s）
-- 无 `.xcodeproj` —— 整个应用就是 `Package.swift` + 一个 `Info.plist`
+- **`--selftest`** — 24 rendering assertions, headless, 0.03 seconds, CI-ready
+- **`--snapshot`** — renders the entire window off-screen to a PNG; the UI can be
+  inspected from a locked screen / SSH / CI
+- **`MUM_LAUNCH_TIMING=1`** — prints per-stage launch timing (measured: process start →
+  window on screen 280ms, of which rendering 0.03s)
+- No `.xcodeproj` — the entire app is `Package.swift` + one `Info.plist`
 
-### 修复
+### Fixed
 
-- 修复切到 Read / Preview 时预览不重排的问题 —— `performRender()` 在 Write
-  模式下会提前返回，导致切模式后看到的是**上一个文件**的残留内容
-- 修复语法高亮使用语义色导致「纸」主题下注释看不清的问题 ——
-  语义色跟随应用外观解析，而纸色由阅读主题决定，两者必须同源
-- 修复面板底色 / 状态栏底色在外观切换时不刷新的问题 ——
-  改为 `updateLayer()` 每次显示重新解析，不再依赖
-  `viewDidChangeEffectiveAppearance` 回调（它不保证每个视图都收到）
-- 修复状态栏长路径标签被撑成两行、溢出栏高的问题 ——
-  富文本会覆盖 `NSTextField` 自身的 `lineBreakMode`，必须写进富文本里
+- Fixed preview not relayouting when switching to Read / Preview — `performRender()`
+  returned early in Write mode, so after switching modes you'd see **the previous
+  file's** leftover content
+- Fixed syntax highlighting using semantic colors, making comments illegible under the
+  "Paper" theme — semantic colors resolve against the app appearance while the paper
+  color is decided by the reading theme; the two must come from the same source
+- Fixed panel / status bar backgrounds not refreshing on appearance changes — changed to
+  `updateLayer()` re-resolving on every display, no longer relying on the
+  `viewDidChangeEffectiveAppearance` callback (which isn't guaranteed to reach every
+  view)
+- Fixed long status-bar path labels stretching into two lines and overflowing the bar
+  height — attributed text overrides `NSTextField`'s own `lineBreakMode`, so it must be
+  written into the attributed text
 
-### 安全性
+### Security
 
-- 非文本文件（图片 / PDF / 二进制）不再允许编辑与保存 ——
-  此前打开一个 `.ipa` 后敲字按 `⌘S`，会把文本写进那个二进制文件
-- 保存前比对磁盘修改时间，文件被外部改过时先询问，不再静默覆盖
+- Non-text files (images / PDFs / binaries) can no longer be edited or saved —
+  previously, opening an `.ipa`, typing, and hitting `⌘S` would write text into that
+  binary file
+- Disk mtime compared before saving; if the file was modified externally, ask first
+  instead of silently overwriting
 
-[未发布]: https://github.com/ice5kysl/MuM/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/ice5kysl/MuM/compare/v0.6.0...HEAD
 [0.6.0]: https://github.com/ice5kysl/MuM/releases/tag/v0.6.0
 [0.5.0]: https://github.com/ice5kysl/MuM/releases/tag/v0.5.0
 [0.4.1]: https://github.com/ice5kysl/MuM/releases/tag/v0.4.1

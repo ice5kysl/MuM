@@ -7,7 +7,7 @@
 [English](README.md) ·
 [**下载 macOS 版**](https://github.com/ice5kysl/MuM/releases/download/v0.8.0/MuM-0.8.0.dmg) ·
 [主页](https://mum.jiker.ai) ·
-[更新日志](CHANGELOG.md) ·
+[更新日志](CHANGELOG_ZH.md) ·
 MIT
 
 > 签名并公证，双击即开 —— 不需要右键绕过 Gatekeeper。
