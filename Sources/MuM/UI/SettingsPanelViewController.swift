@@ -56,6 +56,20 @@ final class SettingsPanelViewController: NSViewController {
             self?.emit()
         }
         left.addArrangedSubview(segments["appearance"]!.view)
+        // 语言（0.8.0「English」唯一新增设置项）：跟随系统 / 中文 / English。
+        // 放「外观」分区 —— 不新开分区（VISION：设置项 1.0 定稿）
+        segments["language"] = SettingsSegmentedRow(
+            title: "语言",
+            labels: L10n.Language.allCases.map(\.title),
+            selected: L10n.Language.allCases.firstIndex(of: settings.language) ?? 0,
+            width: width
+        ) { [weak self] index in
+            let cases = L10n.Language.allCases
+            guard cases.indices.contains(index) else { return }
+            self?.settings.language = cases[index]
+            self?.emit()
+        }
+        left.addArrangedSubview(segments["language"]!.view)
         left.addArrangedSubview(themePickerRow())
 
         left.addArrangedSubview(SettingsControls.section("编辑器", width: width))
@@ -236,6 +250,7 @@ final class SettingsPanelViewController: NSViewController {
         let defaults = MuMSettings()
         // 只重置本面板管的项，别把系统设置（启动 / 文件 / 缩进）也一起清了
         settings.appearance = defaults.appearance
+        settings.language = defaults.language
         settings.readingTheme = defaults.readingTheme
         settings.previewFontSize = defaults.previewFontSize
         settings.previewFont = defaults.previewFont
@@ -255,6 +270,7 @@ final class SettingsPanelViewController: NSViewController {
         sliders["editorFontSize"]?.setValue(settings.editorFontSize)
 
         segments["appearance"]?.select(MuMSettings.Appearance.allCases.firstIndex(of: settings.appearance) ?? 0)
+        segments["language"]?.select(L10n.Language.allCases.firstIndex(of: settings.language) ?? 0)
         segments["previewFont"]?.select(PreviewFont.allCases.firstIndex(of: settings.previewFont) ?? 0)
         segments["readingWidth"]?.select(MarkdownTheme.ReadingWidth.allCases.firstIndex(of: settings.readingWidth) ?? 1)
 

@@ -64,6 +64,8 @@ struct MuMSettings {
     var appearance: Appearance = .system
     /// 阅读面主题（纸色）。和应用外观正交。
     var readingTheme: ReadingTheme = .system
+    /// 界面语言：跟随系统 / 中文 / English（0.8.0「English」唯一新增设置项）
+    var language: L10n.Language = .system
 
     // MARK: - 排版（影响预览）
 
@@ -124,6 +126,8 @@ enum SettingsStore {
             if let value = number(stored["indentWidth"]) { settings.indentWidth = Int(value) }
             if let value = number(stored["appearance"]),
                let appearance = MuMSettings.Appearance(rawValue: Int(value)) { settings.appearance = appearance }
+            if let value = number(stored["language"]),
+               let language = L10n.Language(rawValue: Int(value)) { settings.language = language }
             if let value = number(stored["readingTheme"]),
                let theme = ReadingTheme(rawValue: Int(value)) { settings.readingTheme = theme }
             if let value = number(stored["previewFont"]),
@@ -193,6 +197,7 @@ enum SettingsStore {
             "showsHiddenFiles": settings.showsHiddenFiles,
             "indentWidth": settings.indentWidth,
             "appearance": settings.appearance.rawValue,
+            "language": settings.language.rawValue,
             "readingTheme": settings.readingTheme.rawValue,
             "previewFont": settings.previewFont.rawValue,
             "letterSpacing": Double(settings.letterSpacing),

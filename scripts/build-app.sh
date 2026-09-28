@@ -84,6 +84,11 @@ if [ -f "$ROOT/Resources/AppIcon.icns" ]; then
   cp "$ROOT/Resources/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
 fi
 
+# 界面语言表（0.8.0「English」）：运行期按 Bundle.main.resourceURL/L10n 查
+if [ -d "$ROOT/Resources/L10n" ]; then
+  cp -R "$ROOT/Resources/L10n" "$APP/Contents/Resources/L10n"
+fi
+
 # `mum` 命令行入口：本体随 bundle 发布，用户软链到 PATH 即可（见 README）。
 # 放在 Resources 而不是 MacOS：macOS 默认大小写不敏感，`MacOS/mum` 和主二进制
 # `MacOS/MuM` 是同一个文件 —— 拷过去会把二进制覆盖掉（踩过，勿移）。

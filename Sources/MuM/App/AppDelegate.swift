@@ -18,6 +18,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         LaunchTimer.mark("NSApplication 就绪，进入 didFinishLaunching")
         NSApp.appearance = nil // 跟随系统明暗模式
 
+        // 语言要在菜单构建之前就位（0.8.0「English」）；之后的切换走通知重建
+        L10n.override = SettingsStore.load().language
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(languageDidChange),
+            name: L10n.didChangeNotification, object: nil
+        )
+
         let menuSet = MainMenuBuilder.build(target: self)
         self.menuSet = menuSet
         NSApp.mainMenu = menuSet.mainMenu
@@ -100,6 +107,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func workspaceListChanged() {
         guard let menuSet else { return }
         MainMenuBuilder.rebuildProjectMenu(menuSet.projectMenu, target: self)
+    }
+
+    /// 语言切换（设置 → 跟随系统/中文/English）：整个菜单栏重建。
+    /// 菜单文案都在构建期查 L10n，重建就是重挂，不会有「半中半英」的旧条目残留
+    @objc private func languageDidChange() {
+        let rebuilt = MainMenuBuilder.build(target: self)
+        menuSet = rebuilt
+        NSApp.mainMenu = rebuilt.mainMenu
     }
 
     // MARK: - 关于

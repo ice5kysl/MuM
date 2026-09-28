@@ -1619,6 +1619,8 @@ final class MainWindowController: NSWindowController {
 
         // nil 就是"跟随系统"
         NSApp.appearance = newSettings.appearance.nsAppearance
+        // 界面语言（didSet 里发通知 → 菜单栏重建）；值没变时什么都不发生
+        L10n.override = newSettings.language
 
         theme.baseSize = newSettings.previewFontSize
         theme.lineSpacing = newSettings.lineSpacing

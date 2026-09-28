@@ -1,0 +1,62 @@
+/* MuM 英文界面表：key = 中文原文（开发基准），value = English。
+   只覆盖用户界面；Debug / UITest 文案不翻（不是用户界面）。*/
+
+/* MARK: 菜单栏 */
+"关于 MuM" = "About MuM";
+"隐藏 MuM" = "Hide MuM";
+"隐藏其他" = "Hide Others";
+"显示全部" = "Show All";
+"退出 MuM" = "Quit MuM";
+"文件" = "File";
+"新建文件" = "New File";
+"打开项目…" = "Open Project…";
+"关闭当前项目" = "Close Current Project";
+"保存" = "Save";
+"从磁盘重新载入" = "Reload from Disk";
+"关闭当前文件" = "Close Current File";
+"导出…" = "Export…";
+"刷新文件树" = "Refresh File Tree";
+"在访达中显示" = "Reveal in Finder";
+"返回上一篇" = "Back";
+"前进下一篇" = "Forward";
+"编辑" = "Edit";
+"撤销" = "Undo";
+"重做" = "Redo";
+"剪切" = "Cut";
+"拷贝" = "Copy";
+"粘贴" = "Paste";
+"全选" = "Select All";
+"查找…" = "Find…";
+"快速打开…" = "Quick Open…";
+"过滤文件…" = "Filter Files…";
+"在预览中查找…" = "Find in Preview…";
+"全局搜索…" = "Global Search…";
+"查找下一处" = "Find Next";
+"查找上一处" = "Find Previous";
+"项目" = "Project";
+"下一个项目" = "Next Project";
+"上一个项目" = "Previous Project";
+"当前项目左移" = "Move Project Left";
+"当前项目右移" = "Move Project Right";
+"显示" = "View";
+"项目列表" = "Project List";
+"目录树" = "File Tree";
+"大纲栏" = "Outline";
+"Write — 写源码" = "Write — Source";
+"Read — 阅读" = "Read — Reading";
+"Preview — 并排对照" = "Preview — Side by Side";
+"放大预览字号" = "Increase Preview Font Size";
+"缩小预览字号" = "Decrease Preview Font Size";
+"重置预览字号" = "Reset Preview Font Size";
+"进入全屏幕" = "Enter Full Screen";
+"窗口" = "Window";
+"最小化" = "Minimize";
+"缩放" = "Zoom";
+"前置全部窗口" = "Bring All to Front";
+"帮助" = "Help";
+"MuM 使用说明" = "MuM Help";
+"检查更新…" = "Check for Updates…";
+"反馈问题或建议…" = "Send Feedback…";
+
+/* MARK: 设置 */
+"跟随系统" = "System";
