@@ -73,3 +73,24 @@ final class L10nTests: XCTestCase {
         }
     }
 }
+
+extension L10nTests {
+    /// 菜单栏即时重建（0.8.0 验收 #4）：AppDelegate.languageDidChange 走一遍，
+    /// 整栏菜单标题从中文换英文、再换回来 —— 不许「半中半英」
+    func testMenuRebuildsOnLanguageChange() {
+        _ = NSApplication.shared // 测试进程默认没有 NSApp，MainMenuBuilder 要用
+        let delegate = AppDelegate()
+        L10n.override = .zhHans
+        delegate.languageDidChange()
+        XCTAssertEqual(NSApp.mainMenu?.item(at: 1)?.title, "文件")
+
+        L10n.override = .english
+        delegate.languageDidChange()
+        XCTAssertEqual(NSApp.mainMenu?.item(at: 1)?.title, "File")
+        XCTAssertEqual(NSApp.mainMenu?.item(at: 2)?.title, "Edit")
+
+        L10n.override = .zhHans
+        delegate.languageDidChange()
+        XCTAssertEqual(NSApp.mainMenu?.item(at: 1)?.title, "文件")
+    }
+}

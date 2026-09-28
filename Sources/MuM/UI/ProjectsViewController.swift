@@ -13,6 +13,9 @@ final class ProjectsViewController: NSViewController {
     var onReveal: ((Int) -> Void)?
 
     private let headerLabel = NSTextField(labelWithString: L10n.t("项目"))
+    private var emptyTitleLabel: NSTextField?
+    private var emptySubtitleLabel: NSTextField?
+    private var emptyOpenButton: NSButton?
     private let countLabel = NSTextField(labelWithString: "")
     private let addButton = NSButton()
     private let separator = NSBox()
@@ -24,6 +27,10 @@ final class ProjectsViewController: NSViewController {
     // MARK: - 生命周期
 
     override func loadView() {
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(reloadStrings),
+            name: L10n.didChangeNotification, object: nil
+        )
         view = NSView()
         buildHeader()
         buildList()
@@ -46,6 +53,16 @@ final class ProjectsViewController: NSViewController {
     }
 
     // MARK: - 搭建
+
+    /// 语言切换：构建期写死的文案重挂（0.8.0）
+    @objc private func reloadStrings() {
+        headerLabel.stringValue = L10n.t("项目")
+        addButton.image?.accessibilityDescription = L10n.t("打开项目")
+        addButton.toolTip = L10n.t("打开项目文件夹（⌘O）")
+        emptyTitleLabel?.stringValue = L10n.t("还没有打开的项目")
+        emptySubtitleLabel?.stringValue = L10n.t("打开一个文件夹，MuM 会记住它的位置和上次读到哪里。")
+        emptyOpenButton?.title = L10n.t("打开文件夹…")
+    }
 
     private func buildHeader() {
         headerLabel.font = MuMDesign.paneTitle
@@ -140,17 +157,20 @@ final class ProjectsViewController: NSViewController {
         icon.contentTintColor = MuMDesign.tertiaryText
 
         let title = NSTextField(labelWithString: L10n.t("还没有打开的项目"))
+        emptyTitleLabel = title
         title.font = MuMDesign.rowTitle
         title.textColor = MuMDesign.secondaryText
         title.alignment = .center
 
         let subtitle = NSTextField(wrappingLabelWithString: L10n.t("打开一个文件夹，MuM 会记住它的位置和上次读到哪里。"))
+        emptySubtitleLabel = subtitle
         subtitle.font = MuMDesign.rowSubtitle
         subtitle.textColor = MuMDesign.tertiaryText
         subtitle.alignment = .center
         subtitle.preferredMaxLayoutWidth = 170
 
         let openButton = NSButton(title: L10n.t("打开文件夹…"), target: self, action: #selector(addTapped))
+        emptyOpenButton = openButton
         openButton.bezelStyle = .rounded
         openButton.bezelColor = .controlAccentColor
         openButton.keyEquivalent = "\r"

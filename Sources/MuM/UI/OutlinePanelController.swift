@@ -19,12 +19,17 @@ final class OutlinePanelController: NSViewController {
 
     private let stack = NSStackView()
     private let emptyLabel = NSTextField(labelWithString: L10n.t("这篇文档没有标题"))
+    private var headerLabel: NSTextField?
     private let scrollView = NSScrollView()
     /// documentView 用翻转容器：不翻转的 documentView 在内容不足一屏时会被
     /// AppKit 沉底（行跑到面板底部），翻转后从顶部排
     private final class FlippedView: NSView { override var isFlipped: Bool { true } }
     private let stackContainer = FlippedView()
     override func loadView() {
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(reloadStrings),
+            name: L10n.didChangeNotification, object: nil
+        )
         // 底色走动态面板色（跟随外观），左缘 1pt 细线与正文区隔开（压淡，不抢正文）
         let background = PaneBackgroundView(color: MuMDesign.paneBackground)
         view = background
@@ -83,6 +88,7 @@ final class OutlinePanelController: NSViewController {
         headerChevron.translatesAutoresizingMaskIntoConstraints = false
 
         let headerLabel = NSTextField(labelWithString: L10n.t("大纲"))
+        self.headerLabel = headerLabel
         headerLabel.font = NSFont.systemFont(ofSize: 11, weight: .medium)
         headerLabel.textColor = MuMDesign.tertiaryText
         headerLabel.refusesFirstResponder = true
@@ -216,6 +222,12 @@ final class OutlinePanelController: NSViewController {
     @objc private func rowTapped(_ sender: NSButton) {
         guard items.indices.contains(sender.tag) else { return }
         onSelect?(items[sender.tag].location)
+    }
+
+    /// 语言切换：构建期写死的文案重挂（0.8.0）
+    @objc private func reloadStrings() {
+        emptyLabel.stringValue = L10n.t("这篇文档没有标题")
+        headerLabel?.stringValue = L10n.t("大纲")
     }
 
     // MARK: - 诊断（UITestRunner）

@@ -111,7 +111,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// 语言切换（设置 → 跟随系统/中文/English）：整个菜单栏重建。
     /// 菜单文案都在构建期查 L10n，重建就是重挂，不会有「半中半英」的旧条目残留
-    @objc private func languageDidChange() {
+    @objc func languageDidChange() {
         let rebuilt = MainMenuBuilder.build(target: self)
         menuSet = rebuilt
         NSApp.mainMenu = rebuilt.mainMenu

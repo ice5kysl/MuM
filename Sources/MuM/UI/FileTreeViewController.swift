@@ -25,6 +25,7 @@ final class FileTreeViewController: NSViewController {
     private let outlineView = FileTreeOutlineView()
     private let scrollView = NSScrollView()
     private let emptyState = NSView()
+    private var emptyStateLabel: NSTextField?
 
     /// 当前处于重命名编辑态的单元格（同时最多一个）
     private var editingCell: FileTreeCellView?
@@ -38,6 +39,10 @@ final class FileTreeViewController: NSViewController {
     // MARK: - 生命周期
 
     override func loadView() {
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(reloadStrings),
+            name: L10n.didChangeNotification, object: nil
+        )
         view = NSView()
         buildHeader()
         buildFilterField()
@@ -147,10 +152,18 @@ final class FileTreeViewController: NSViewController {
         ])
     }
 
+    /// 语言切换：构建期写死的文案重挂（0.8.0）
+    @objc private func reloadStrings() {
+        menuButton.image?.accessibilityDescription = L10n.t("项目操作")
+        filterField.placeholderString = L10n.t("过滤文件")
+        emptyStateLabel?.stringValue = L10n.t("选择左侧的一个项目")
+    }
+
     private func buildEmptyState() {
         emptyState.translatesAutoresizingMaskIntoConstraints = false
 
         let label = NSTextField(wrappingLabelWithString: L10n.t("选择左侧的一个项目"))
+        emptyStateLabel = label
         label.font = MuMDesign.rowSubtitle
         label.textColor = MuMDesign.tertiaryText
         label.alignment = .center

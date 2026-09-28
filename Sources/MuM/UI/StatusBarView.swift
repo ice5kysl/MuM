@@ -83,6 +83,11 @@ final class StatusBarView: NSView {
         divider.wantsLayer = true
         divider.translatesAutoresizingMaskIntoConstraints = false
 
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(reloadStrings),
+            name: L10n.didChangeNotification, object: nil
+        )
+
         layoutCluster.translatesAutoresizingMaskIntoConstraints = false
 
         topSeparator.boxType = .separator
@@ -157,6 +162,13 @@ final class StatusBarView: NSView {
     func debugTriggerSystemSettings() { showSettings() }
 
 
+
+    /// 语言切换：tooltip / a11y 文案重挂（0.8.0）
+    @objc private func reloadStrings() {
+        displayButton.toolTip = L10n.t("显示设置：界面、阅读主题、排版")
+        settingsButton.image?.accessibilityDescription = L10n.t("系统设置")
+        settingsButton.toolTip = L10n.t("系统设置：启动、文件、缩进")
+    }
 
     /// - Parameters:
     ///   - project: 当前项目名

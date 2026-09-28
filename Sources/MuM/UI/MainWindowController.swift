@@ -370,6 +370,18 @@ final class MainWindowController: NSWindowController {
             name: .mumActiveWorkspaceChanged,
             object: nil
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(languageDidChange),
+            name: L10n.didChangeNotification,
+            object: nil
+        )
+    }
+
+    /// 语言切换：「用 X 打开」的 tooltip 带应用名，要按当前文件重算（0.8.0）
+    @objc private func languageDidChange() {
+        guard let url = currentFileURL else { return }
+        updateExternalOpenButton(for: url, kind: FileKind(url: url, isDirectory: false))
     }
 
     // MARK: - 项目
@@ -1220,6 +1232,8 @@ final class MainWindowController: NSWindowController {
 
     /// 当前生效的偏好（settings 本身是 private）
     var debugSettings: MuMSettings { settings }
+    /// 「导出」按钮当前标题（语言即时切换的断言点）
+    var debugExportButtonTitle: String { contentPane.exportButton.title }
 
     /// 两个设置 popover：从真实的状态栏按钮触发，走和产品一致的 wiring
     func debugShowDisplaySettings() { rootViewController.statusBar.debugTriggerDisplaySettings() }

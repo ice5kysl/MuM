@@ -26,6 +26,16 @@ final class LayoutClusterView: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         build()
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(reloadStrings),
+            name: L10n.didChangeNotification, object: nil
+        )
+    }
+
+    /// 语言切换：两个布局开关的 tooltip 重挂（0.8.0）
+    @objc private func reloadStrings() {
+        projectsButton.toolTip = L10n.t("显示 / 隐藏项目列表（⌘0）")
+        treeButton.toolTip = L10n.t("显示 / 隐藏目录树（⌥⌘0）")
     }
 
     required init?(coder: NSCoder) {

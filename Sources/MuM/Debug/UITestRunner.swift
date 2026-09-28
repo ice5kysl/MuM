@@ -197,6 +197,21 @@ enum UITestRunner {
                      "主题卡片 → paper", expected: "paper",
                      actual: "\(c.debugSettings.readingTheme)")
 
+        // 语言切换（0.8.0 验收：即时生效，不许半中半英）——
+        // 切 English：菜单栏与「导出」按钮立即换；切回中文立即换回
+        checkSegment(panel.debugSegment("language"), key: "language", index: 2,
+                     expected: L10n.Language.english, in: c, check, setting: \.language)
+        // 菜单栏重建由 AppDelegate 负责，而 uitest 进程没有 AppDelegate（不建菜单栏）——
+        // 菜单链路改由 L10nTests 的单测覆盖，这里断言窗口内 UI（走通知链）
+        check.expect(c.debugExportButtonTitle == "Export",
+                     "「导出」按钮即时换英文", expected: "Export",
+                     actual: c.debugExportButtonTitle)
+        checkSegment(panel.debugSegment("language"), key: "language", index: 1,
+                     expected: L10n.Language.zhHans, in: c, check, setting: \.language)
+        check.expect(c.debugExportButtonTitle == "导出",
+                     "「导出」按钮即时换回中文", expected: "导出",
+                     actual: c.debugExportButtonTitle)
+
         checkToggle(panel.debugToggle("showsLineNumbers"), key: "showsLineNumbers", want: true,
                     in: c, check, setting: \.showsLineNumbers)
         check.expect(c.debugEditor.debugLineNumbersVisible,

@@ -85,6 +85,10 @@ final class ContentViewController: NSViewController {
 
     override func loadView() {
         view = NSView()
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(reloadStrings),
+            name: L10n.didChangeNotification, object: nil
+        )
         buildTitleStrip()
         buildContent()
         buildEmptyState()
@@ -481,14 +485,14 @@ final class ContentViewController: NSViewController {
             if hasProject {
                 showEmptyState(
                     symbol: "doc.text.magnifyingglass",
-                    title: L10n.t("选择一篇文档"),
-                    subtitle: L10n.t("在中间的目录树里点击文件即可打开")
+                    title: "选择一篇文档",
+                    subtitle: "在中间的目录树里点击文件即可打开"
                 )
             } else {
                 showEmptyState(
                     symbol: "rectangle.stack.badge.plus",
                     title: "MuM",
-                    subtitle: L10n.t("按 ⌘O 打开一个文件夹作为项目")
+                    subtitle: "按 ⌘O 打开一个文件夹作为项目"
                 )
             }
             return
@@ -521,10 +525,29 @@ final class ContentViewController: NSViewController {
         externalOpenButton.toolTip = tooltip
     }
 
+    /// 存的是文案 key 而不是译文：语言切换时 reloadStrings 拿它重挂（0.8.0）
+    private var emptyStateContent: (symbol: String, titleKey: String, subtitleKey: String)?
+
     private func showEmptyState(symbol: String, title: String, subtitle: String) {
-        emptyIcon.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
-        emptyTitle.stringValue = title
-        emptySubtitle.stringValue = subtitle
+        emptyStateContent = (symbol, title, subtitle)
+        applyEmptyState()
+    }
+
+    private func applyEmptyState() {
+        guard let content = emptyStateContent else { return }
+        emptyIcon.image = NSImage(systemSymbolName: content.symbol, accessibilityDescription: nil)
+        emptyTitle.stringValue = L10n.t(content.titleKey)
+        emptySubtitle.stringValue = L10n.t(content.subtitleKey)
+    }
+
+    /// 语言切换：构建期写死的文案全部重挂（菜单栏由 AppDelegate 重建，这里管窗口内）
+    @objc func reloadStrings() {
+        exportButton.title = L10n.t("导出")
+        modeControl.toolTip = L10n.t("Write 写源码 · Read 阅读 · Preview 并排对照（⌘⌥1 / ⌘⌥2 / ⌘⌥3）")
+        externalOpenButton.image?.accessibilityDescription = L10n.t("用默认应用打开")
+        railExpandButton.toolTip = L10n.t("展开大纲栏")
+        railCloseButton.toolTip = L10n.t("关闭大纲栏（⇧⌘O 再开）")
+        if !emptyState.isHidden { applyEmptyState() }
     }
 
     /// 只有并排模式才需要把编辑器滚动同步到预览
