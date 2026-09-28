@@ -91,6 +91,16 @@
   :root[data-theme="dark"] .shot .dark{display:block}
   :root[data-theme="dark"] .shot .light{display:none}
 
+  .video{margin:-24px 0 72px}
+  .video video{
+    display:block;width:100%;height:auto;border-radius:14px;
+    border:1px solid var(--line);background:#000;
+    box-shadow:0 24px 64px -24px rgba(28,28,30,.25);
+  }
+  :root[data-theme="dark"] .video video{box-shadow:0 24px 64px -24px rgba(0,0,0,.6)}
+  .video .cap{font-size:13px;color:var(--dim);margin-top:10px;text-align:center}
+  .video .cap a{color:inherit}
+
   /* ── 主题切换：导航里的小圆钮，icon 随状态换 ── */
   .theme-btn{
     display:inline-flex;align-items:center;justify-content:center;
@@ -188,6 +198,11 @@
   <div class="shot">
     <img class="light" src="/assets/app-light.png" alt="MuM 主窗口：左侧项目与文件树，右侧排版好的 Markdown 文档" width="2880" height="1800">
     <img class="dark" src="/assets/app-dark.png" alt="" width="2880" height="1800" aria-hidden="true">
+  </div>
+
+  <div class="video">
+    <video controls preload="none" poster="/assets/demo-poster.jpg" src="/assets/demo-en.mp4"></video>
+    <p class="cap">一分钟看完全程 —— 全栈没有任何 Web 引擎（英文旁白，内嵌字幕）。<a href="https://youtu.be/79d8UJ988eE">在 YouTube 上看 ↗</a></p>
   </div>
 </header>
 

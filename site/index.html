@@ -87,6 +87,16 @@
   :root[data-theme="dark"] .shot .dark{display:block}
   :root[data-theme="dark"] .shot .light{display:none}
 
+  .video{margin:-24px 0 72px}
+  .video video{
+    display:block;width:100%;height:auto;border-radius:14px;
+    border:1px solid var(--line);background:#000;
+    box-shadow:0 24px 64px -24px rgba(28,28,30,.25);
+  }
+  :root[data-theme="dark"] .video video{box-shadow:0 24px 64px -24px rgba(0,0,0,.6)}
+  .video .cap{font-size:13px;color:var(--dim);margin-top:10px;text-align:center}
+  .video .cap a{color:inherit}
+
   .theme-btn{
     display:inline-flex;align-items:center;justify-content:center;
     width:28px;height:28px;border:1px solid var(--line);border-radius:8px;
@@ -181,6 +191,11 @@
   <div class="shot">
     <img class="light" src="/assets/app-light-en.png" alt="MuM's main window: projects and file tree on the left, a typeset Markdown document on the right" width="2880" height="1800">
     <img class="dark" src="/assets/app-dark-en.png" alt="" width="2880" height="1800" aria-hidden="true">
+  </div>
+
+  <div class="video">
+    <video controls preload="none" poster="/assets/demo-poster.jpg" src="/assets/demo-en.mp4"></video>
+    <p class="cap">One minute, end to end — no web engine anywhere in the stack. <a href="https://youtu.be/79d8UJ988eE">Watch on YouTube ↗</a></p>
   </div>
 </header>
 
