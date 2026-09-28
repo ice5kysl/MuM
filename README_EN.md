@@ -22,7 +22,8 @@ MIT
 
 ## Why MuM
 
-- **Fast** — cold start to window in **~260 ms** (measured on the same machine), scrolling a
+- **Fast** — cold start to window in **~0.3 s** (release build, measured on the same machine;
+  methodology and numbers in [docs/perf/ttfr.md](docs/perf/ttfr.md)), scrolling a
   5 MB document at **100+ fps**. Speed isn't an optimization goal; it's the identity.
   It has to stay true.
 - **Native** — no Web engine anywhere. Markdown is parsed into `NSAttributedString` and

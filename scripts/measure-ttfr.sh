@@ -1,12 +1,20 @@
 #!/bin/bash
-# measure-ttfr.sh — TTFR 判定数据的可复现测量（口径见 docs/metrics.md）
+# measure-ttfr.sh — TTFR 判定数据的可复现测量（口径见 docs/perf/methodology.md）
 #
 #   TTFR-冷开：双击语义（app 未运行，open 带文件）→「渐进：首屏已写入」
 #   TTFR-热开：app 已运行后 open 文件 → readText 到 渐进首屏
 #
 # 用法：scripts/measure-ttfr.sh [大文件MB数，默认 1] [sha/tag，默认 HEAD]
+#       CONFIG=release scripts/measure-ttfr.sh 1 v0.7.9   # ← 报「窗口上屏」时用这个
 # 依赖：scripts/build-app.sh、scripts/make-bench-fixture.py
-# 规范（COLLABORATION）：判定性测量一律在隔离 worktree 跑 —— 与 accept.sh 同原则
+# 规范：判定性测量一律在隔离 worktree 跑 —— 与 accept.sh 同原则
+#
+# ⚠️ CONFIG 决定你量的是谁的时间（2026-09-28 补）：
+#   - 默认 debug：脚本历来如此，历史数字（229–280ms 那条线）都是它量的
+#   - release：**用户实际拿到的包**。「冷启动到窗口上屏」对外报数必须用这个 ——
+#     debug 包没有优化，2026-09-24 实测 debug 中位 ~300ms / release 中位 ~305ms，
+#     两者在「窗口上屏」上差别不大，但「首屏已写入」debug 690ms vs release 528ms 差很多。
+#     报数时**必须连 CONFIG 一起写明**，否则数字没有意义。
 #
 # 环境说明（为什么这么绕）：
 # - 直接跑 .build/*/MuM 没有 bundle id，读的是另一个 defaults 域，文件打不开
@@ -59,8 +67,8 @@ cleanup() {
 trap cleanup EXIT
 
 echo "==> 隔离 worktree @ ${COMMIT}（共享树不受影响）"
-echo "==> 构建（全新 .build，约 1-2 分钟）"
-"$ROOT/scripts/build-app.sh" debug >/dev/null
+echo "==> 构建（${CONFIG:-debug}，全新 .build，约 1-2 分钟）"
+"$ROOT/scripts/build-app.sh" "${CONFIG:-debug}" >/dev/null
 python3 "$ROOT/scripts/make-bench-fixture.py" "$MB" "$FIX" >/dev/null
 defaults export "$DOMAIN" "$LOG.bak"
 
