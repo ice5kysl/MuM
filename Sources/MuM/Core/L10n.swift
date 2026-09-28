@@ -52,13 +52,15 @@ enum L10n {
 
     static let didChangeNotification = Notification.Name("MuM.languageDidChange")
 
-    /// 查文案。key = 中文原文；英文表缺失 → 回退中文并记入 missing（残留检查用）
+    /// 查文案。key = 中文原文；英文表缺失 → 回退中文。缺失记账只在 Debug 生效（残留检查用），发布包零负担
     static func t(_ key: String) -> String {
         guard effective == .english else { return key }
         if let translated = englishTable[key], !translated.isEmpty {
             return translated
         }
+        #if DEBUG
         missingKeys.insert(key)
+        #endif
         return key
     }
 
