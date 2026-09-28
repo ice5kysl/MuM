@@ -53,3 +53,5 @@ MuM/
 1. **根目录的 `*.md` 不超过 4 个**（`README.md`（英文主版）+ `README_ZH.md`（中文版）+ `CHANGELOG.md`（英文主版）+ `CHANGELOG_ZH.md`（中文版））
 2. **两个 README 各不超过 200 行**
 3. **不留可重建的文件**（大样本用 `scripts/make-bench-fixture.py` 生成）
+
+**语言规则（ice 2026-09-28 拍板）：英文优先，默认英文。** 新文档、提交信息、release notes、站点与对外内容一律英文主版，中文版按需以 `_ZH` 伴生；存量中文文件不动（已归档为 `_ZH` 版）。
