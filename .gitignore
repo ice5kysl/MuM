@@ -22,3 +22,4 @@ xcuserdata/
 
 # 图标生成的中间产物
 AppIcon.iconset/
+.launch-stats.csv
