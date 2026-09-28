@@ -24,7 +24,7 @@
 | :--- | :--- | :--- |
 | **Reading-first** | 冲突时保阅读 | **证据在我们砍掉的东西里**：不做插件系统、不做 Web 版、不做协作平台、从 v0.5 拿掉对照视图。做的每一件也都在"读"上：记忆阅读位置 · 跨项目搜索 · 文档大纲 · 导出成排好版的图 |
 | **Fast** | 没有启动画面这回事 | 进程启动到窗口上屏 **约 0.3 秒**（release 包，n ≥ 5，口径见 [perf/ttfr.md](perf/ttfr.md)）；5 MB 文档首屏排版 **302ms** |
-| **Native** | **3.4 MB** app（DMG 1.6 MB），全程没有 Web 引擎 | cmark-gfm 解析成 `NSAttributedString`，排版与绘制全在 AppKit 里手写 |
+| **Native** | **3.6 MB** app（DMG 1.7 MB），全程没有 Web 引擎 | cmark-gfm 解析成 `NSAttributedString`，排版与绘制全在 AppKit 里手写 |
 | **for humans and agents** | 同一套引擎的第二个出口 | `mum render --png` 无窗口出图；**结构化解 markdown 是商品，排一张好版不是** —— 这是别人复制不了的那部分 |
 | **multi-project**（支撑，不在定位句里） | 项目是主语 | `⌘1`…`⌘9` 秒切，各自记得读到哪。项目回答"我在哪" |
 
