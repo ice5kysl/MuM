@@ -19,6 +19,45 @@ Two conventions differ — don't mix them up:
 | `VERSION` file / `CFBundleShortVersionString` | `0.3.0` | Apple rejects a prefix |
 | git tag / Release | `v0.3.0` | Convention, with `v` |
 
+## [0.8.1] - 2026-09-29
+
+**Launch-day follow-through: reorder your projects, a proper icon, and the audit haul.**
+
+### Added
+
+- **Drag-to-reorder projects** — hover a project card and a six-dot grip fades in at its
+  leading edge; drag from the grip (pointing-hand cursor, closed hand while dragging) and a
+  floating snapshot of the card follows the mouse while an accent line marks the drop gap.
+  Semantics worth knowing (thanks cc): **activation follows the project, ⌘1…9 follow the
+  slot** — drag a project to the top and it becomes ⌘1, and whatever was active stays active
+
+### Changed
+
+- **New app icon** — the geometric "M + read-check" mark (logo-v4), rebuilt to the macOS
+  icon spec (80.1% squircle, transparent corners, tuned green). Site favicon and nav logo
+  synced to the same mark
+- **missing-keys accounting no longer runs in release builds** — gated behind a runtime
+  flag (Debug on, release off, the UI test runner re-enables it). Zero bookkeeping cost in
+  the shipping app (dsh's requirement)
+
+### Fixed
+
+- **Update downloader leaked one URLSession per download** — the session now invalidates
+  itself in both completion paths (audit v2 A-1)
+- **Window-frame observers are now unregistered** on deinit — harmless today, a real leak
+  the day multi-window lands (audit v2 A-3)
+- **Off-bundle binaries log a line when the English table is missing** instead of silently
+  falling back to Chinese (audit v2 A-4)
+
+### Engineering
+
+- The `english` UI-test scenario now also walks the menu bar and image-button VoiceOver
+  descriptions — the two l10n blind spots from audit v2 (A-2), proven to catch with a
+  negative test
+- Drag-reorder shipped with a real AppKit lesson recorded: select-on-mouseDown destroyed
+  the dragged row mid-gesture (select → reload → recreate → drag events lost). The grip
+  split removes that whole class
+
 ## [0.8.0] - 2026-09-28
 
 **Usable by people who don't read Chinese.**
