@@ -42,7 +42,7 @@ source "$ROOT/.mumenv"
 echo "==> 生成应用图标"
 mkdir -p "$ROOT/.build/icon"
 # 图标源是 ice 手绘版 logo（深色版进 Dock）；make-icon.swift 是旧的代码绘制版，已退役
-if ! swift "$ROOT/scripts/make-icon-from-logo.swift" "$ROOT/logo/MuM_logo_d.png" "$ROOT/.build/icon" >/dev/null 2>&1; then
+if ! swift "$ROOT/scripts/make-icon-from-logo.swift" "$ROOT/brand/MuM_logo_d.png" "$ROOT/.build/icon" >/dev/null 2>&1; then
   echo "    (图标生成失败，继续用系统默认图标)"
 fi
 if [ -d "$ROOT/.build/icon/AppIcon.iconset" ]; then

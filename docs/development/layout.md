@@ -14,22 +14,24 @@ MuM/
 │   ├── vision.md              定位与判断标准 ← 先读这个
 │   ├── roadmap.md             版本序列（已完成的有 ✅ 标记）
 │   ├── known-limits.md        已知边界（不装懂）
+│   ├── demo.md / demo-en.md   演示物料文案（中英，数字与 perf/ 对齐）
 │   ├── design/                技术选型 · 界面与交互
 │   ├── development/           构建与发布 · 本文件
 │   ├── perf/                  实测数字 · 怎么量的
 │   └── images/                文档配图
 │
-├── Sources/MuM/           源码（57 个文件，约 1.5 万行）
+├── Sources/MuM/           源码（61 个文件，约 1.7 万行）
 │   ├── App/                   生命周期、菜单
 │   ├── Core/                  文件树、工作区、设置、计时、解码
 │   ├── Markdown/              解析与渲染（含阅读主题色板）
 │   ├── UI/                    窗口、三个面板、设置界面、关于窗口
 │   └── Debug/                 自检、离屏快照、headless CLI、性能基线、UITest
 │
-├── Tests/MuMTests/        单元测试（`swift test`，106 个）
+├── Tests/MuMTests/        单元测试（`swift test`，148 个）
 ├── scripts/               构建 · 图标 · 验收 · TTFR 测量 · 样本生成
 ├── site/                  落地页（mum.jiker.ai，GitHub Pages）
 ├── Examples/demo/         示例项目（用 MuM 打开它）
+├── brand/                 品牌标源文件（AppIcon.icns 由脚本从这里生成；archive/ 是落选候选）
 └── Resources/Info.plist   打包资源
 ```
 
