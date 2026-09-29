@@ -49,20 +49,23 @@ NSGraphicsContext.restoreGraphicsState()
 /// 每通道容差：角上的底色与圆角描边之间有明显亮度差，16 足够分开又不会漏进图形内部
 let tolerance = 16
 
-func pixelMatchesCorner(_ x: Int, _ y: Int, corner: (r: Int, g: Int, b: Int)) -> Bool {
+func pixelMatchesCorner(_ x: Int, _ y: Int, corner: (r: Int, g: Int, b: Int, a: Int)) -> Bool {
     guard let color = bitmap.colorAt(x: x, y: y) else { return false }
     var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
     color.getRed(&r, green: &g, blue: &b, alpha: &a)
+    // alpha 也必须比：logo-v4 的角是透明黑 (0,0,0,0)，黑 squircle 是 (0,0,0,255)，
+    // 只看 RGB 会把整个黑底当背景抠光（0.8.1 白图标事故）
     return abs(Int(r * 255) - corner.r) <= tolerance
         && abs(Int(g * 255) - corner.g) <= tolerance
         && abs(Int(b * 255) - corner.b) <= tolerance
+        && abs(Int(a * 255) - corner.a) <= tolerance
 }
 
-func cornerColor(_ x: Int, _ y: Int) -> (r: Int, g: Int, b: Int) {
+func cornerColor(_ x: Int, _ y: Int) -> (r: Int, g: Int, b: Int, a: Int) {
     let color = bitmap.colorAt(x: x, y: y) ?? .black
     var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
     color.getRed(&r, green: &g, blue: &b, alpha: &a)
-    return (Int(r * 255), Int(g * 255), Int(b * 255))
+    return (Int(r * 255), Int(g * 255), Int(b * 255), Int(a * 255))
 }
 
 // 从四角 BFS：把与任一角颜色相近、且与边缘连通的像素标成透明
