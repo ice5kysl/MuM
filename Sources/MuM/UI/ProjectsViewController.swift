@@ -250,16 +250,61 @@ final class ProjectsViewController: NSViewController {
 
     // MARK: - 拖动排序
 
+    // 跟随浮影：源行的快照放进无边框浮动窗，只跟鼠标 Y、X 钉在原位
+    private var dragGhost: NSPanel?
+    private var dragGhostGrabOffset: CGFloat = 0
+
     private func handleRowDrag(row: ProjectRowView, phase: ProjectRowView.DragPhase, event: NSEvent) {
         switch phase {
         case .began:
             dragSourceIndex = row.index
-            row.alphaValue = 0.4
+            row.alphaValue = 0.35
+            beginDragGhost(for: row, with: event)
         case .moved:
+            moveDragGhost(with: event)
             updateDropIndicator(with: event)
         case .ended:
+            endDragGhost()
             finishRowDrop(with: event, sourceRow: row)
         }
+    }
+
+    private func beginDragGhost(for row: ProjectRowView, with event: NSEvent) {
+        guard let window = row.window else { return }
+        guard let rep = row.bitmapImageRepForCachingDisplay(in: row.bounds) else { return }
+        row.cacheDisplay(in: row.bounds, to: rep)
+        let image = NSImage(size: row.bounds.size)
+        image.addRepresentation(rep)
+
+        let rowScreen = window.convertToScreen(row.convert(row.bounds, to: nil))
+        let panel = NSPanel(
+            contentRect: rowScreen,
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered, defer: false
+        )
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.level = .floating
+        panel.hasShadow = true
+        panel.ignoresMouseEvents = true
+        let imageView = NSImageView(image: image)
+        imageView.frame = NSRect(origin: .zero, size: row.bounds.size)
+        panel.contentView = imageView
+        panel.orderFront(nil)
+
+        dragGhost = panel
+        dragGhostGrabOffset = window.convertPoint(toScreen: event.locationInWindow).y - rowScreen.minY
+    }
+
+    private func moveDragGhost(with event: NSEvent) {
+        guard let ghost = dragGhost, let window = event.window else { return }
+        let mouseScreen = window.convertPoint(toScreen: event.locationInWindow)
+        ghost.setFrameOrigin(NSPoint(x: ghost.frame.minX, y: mouseScreen.y - dragGhostGrabOffset))
+    }
+
+    private func endDragGhost() {
+        dragGhost?.orderOut(nil)
+        dragGhost = nil
     }
 
     /// 落点序号：listContainer 是 flipped（y 向下），返回「插到第几行之前」，越底返回行数
@@ -312,6 +357,7 @@ final class ProjectRowView: NSView {
 
     let index: Int
     private let url: URL
+    private let gripView = GripView()
     private let iconView = NSImageView()
     private let nameLabel = NSTextField(labelWithString: "")
     private let pathLabel = NSTextField(labelWithString: "")
@@ -347,6 +393,8 @@ final class ProjectRowView: NSView {
         iconView.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
         iconView.translatesAutoresizingMaskIntoConstraints = false
 
+        gripView.translatesAutoresizingMaskIntoConstraints = false
+
         nameLabel.font = MuMDesign.rowTitle
         nameLabel.lineBreakMode = .byTruncatingMiddle
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -364,6 +412,7 @@ final class ProjectRowView: NSView {
 
         nameLabel.stringValue = name
 
+        addSubview(gripView)
         addSubview(iconView)
         addSubview(nameLabel)
         addSubview(pathLabel)
@@ -372,7 +421,12 @@ final class ProjectRowView: NSView {
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: MuMDesign.projectRowHeight),
 
-            iconView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 11),
+            gripView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 3),
+            gripView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            gripView.widthAnchor.constraint(equalToConstant: 12),
+            gripView.heightAnchor.constraint(equalToConstant: 16),
+
+            iconView.leadingAnchor.constraint(equalTo: gripView.trailingAnchor, constant: 4),
             iconView.topAnchor.constraint(equalTo: topAnchor, constant: 12),
             iconView.widthAnchor.constraint(equalToConstant: 16),
             iconView.heightAnchor.constraint(equalToConstant: 16),
@@ -441,39 +495,17 @@ final class ProjectRowView: NSView {
     /// 拖动排序的阶段。不走 NSPasteboard：这是列表内部的纯重排，
     /// 借 mouseDragged 事件链就够了，少一套拖拽注册和会话对象。
     enum DragPhase { case began, moved, ended }
-    var onDragStateChange: ((ProjectRowView, DragPhase, NSEvent) -> Void)?
-
-    private var mouseDownPoint: NSPoint?
-    private var isDraggingRow = false
+    var onDragStateChange: ((ProjectRowView, DragPhase, NSEvent) -> Void)? {
+        didSet { gripView.onDragPhase = { [weak self] phase, event in
+            guard let self else { return }
+            self.onDragStateChange?(self, phase, event)
+        } }
+    }
 
     override func mouseDown(with event: NSEvent) {
-        mouseDownPoint = event.locationInWindow
-        isDraggingRow = false
-        // 选中不能在这里触发：onSelect → 激活项目 → 列表 reload → 本卡片被销毁，
-        // 后续 mouseDragged/mouseUp 全丢 —— 拖动排序永远起不来。选中挪到 mouseUp。
-    }
-
-    override func mouseDragged(with event: NSEvent) {
-        guard let down = mouseDownPoint else { return }
-        if !isDraggingRow {
-            let dx = event.locationInWindow.x - down.x
-            let dy = event.locationInWindow.y - down.y
-            guard dx * dx + dy * dy > 16 else { return } // 4px 内仍算点击
-            isDraggingRow = true
-            onDragStateChange?(self, .began, event)
-        } else {
-            onDragStateChange?(self, .moved, event)
-        }
-    }
-
-    override func mouseUp(with event: NSEvent) {
-        if isDraggingRow {
-            onDragStateChange?(self, .ended, event)
-        } else {
-            onSelect?(index)
-        }
-        mouseDownPoint = nil
-        isDraggingRow = false
+        // 卡片本体只管选中。拖动只能从抓手（GripView）发起 ——
+        // 所以这里不会再撞上「选中触发 reload 销毁自己」的自毁链。
+        onSelect?(index)
     }
 
     override func rightMouseDown(with event: NSEvent) {
@@ -494,6 +526,74 @@ final class ProjectRowView: NSView {
 
     @objc private func revealTapped() {
         onReveal?(index)
+    }
+}
+
+/// 拖拽抓手：两行三列 6 个小点。只有它能发起拖动 —— 卡片其余位置保持「点一下就选中」。
+/// 悬停变小手（resetCursorRects 声明式，不用 push/pop），拖动中换握拳。
+final class GripView: NSView {
+
+    var onDragPhase: ((ProjectRowView.DragPhase, NSEvent) -> Void)?
+
+    private var downPoint: NSPoint?
+    private var isDragging = false
+
+    override func draw(_ dirtyRect: NSRect) {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            MuMDesign.tertiaryText.setFill()
+            let dot: CGFloat = 2.4
+            let colGap: CGFloat = 5
+            let rowGap: CGFloat = 4.6
+            let originX = (bounds.width - (dot * 2 + colGap)) / 2
+            let originY = (bounds.height - (dot * 3 + rowGap * 2)) / 2
+            for row in 0..<3 {
+                for col in 0..<2 {
+                    let rect = NSRect(
+                        x: originX + CGFloat(col) * (dot + colGap),
+                        y: originY + CGFloat(row) * (dot + rowGap),
+                        width: dot, height: dot
+                    )
+                    NSBezierPath(ovalIn: rect).fill()
+                }
+            }
+        }
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: .pointingHand)
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        downPoint = event.locationInWindow
+        isDragging = false
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard let down = downPoint else { return }
+        if !isDragging {
+            let dx = event.locationInWindow.x - down.x
+            let dy = event.locationInWindow.y - down.y
+            guard dx * dx + dy * dy > 9 else { return } // 3px 阈值
+            isDragging = true
+            NSCursor.closedHand.push()
+            onDragPhase?(.began, event)
+        } else {
+            onDragPhase?(.moved, event)
+        }
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        if isDragging {
+            onDragPhase?(.ended, event)
+            NSCursor.pop()
+        }
+        downPoint = nil
+        isDragging = false
     }
 }
 
