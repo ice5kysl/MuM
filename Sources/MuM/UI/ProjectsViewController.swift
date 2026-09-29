@@ -24,6 +24,10 @@ final class ProjectsViewController: NSViewController {
     private let stack = NSStackView()
     private let emptyState = NSView()
 
+    // 拖动排序会话：来源行降透明度，目标缝隙亮一条指示线（不落子视图、不动 stack，只显示）
+    private var dragSourceIndex: Int?
+    private let dropIndicator = NSView()
+
     // MARK: - 生命周期
 
     override func loadView() {
@@ -132,6 +136,12 @@ final class ProjectsViewController: NSViewController {
             stack.bottomAnchor.constraint(equalTo: listContainer.bottomAnchor),
         ])
 
+        dropIndicator.wantsLayer = true
+        dropIndicator.layer?.backgroundColor = MuMDesign.accent.cgColor
+        dropIndicator.layer?.cornerRadius = 1
+        dropIndicator.isHidden = true
+        listContainer.addSubview(dropIndicator)
+
         scrollView.documentView = listContainer
         scrollView.hasVerticalScroller = true
         scrollView.autohidesScrollers = true
@@ -226,6 +236,9 @@ final class ProjectsViewController: NSViewController {
             row.onSelect = { [weak self] index in self?.onSelect?(index) }
             row.onClose = { [weak self] index in self?.onClose?(index) }
             row.onReveal = { [weak self] index in self?.onReveal?(index) }
+            row.onDragStateChange = { [weak self] row, phase, event in
+                self?.handleRowDrag(row: row, phase: phase, event: event)
+            }
             stack.addArrangedSubview(row)
             row.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -MuMDesign.paneInset * 2).isActive = true
         }
@@ -233,6 +246,62 @@ final class ProjectsViewController: NSViewController {
 
     @objc private func workspacesChanged() {
         reload()
+    }
+
+    // MARK: - 拖动排序
+
+    private func handleRowDrag(row: ProjectRowView, phase: ProjectRowView.DragPhase, event: NSEvent) {
+        switch phase {
+        case .began:
+            dragSourceIndex = row.index
+            row.alphaValue = 0.4
+        case .moved:
+            updateDropIndicator(with: event)
+        case .ended:
+            finishRowDrop(with: event, sourceRow: row)
+        }
+    }
+
+    /// 落点序号：listContainer 是 flipped（y 向下），返回「插到第几行之前」，越底返回行数
+    private func insertionIndex(for event: NSEvent) -> Int {
+        let point = listContainer.convert(event.locationInWindow, from: nil)
+        for (i, row) in stack.arrangedSubviews.enumerated() {
+            let midY = listContainer.convert(row.bounds, from: row).midY
+            if point.y < midY { return i }
+        }
+        return stack.arrangedSubviews.count
+    }
+
+    private func updateDropIndicator(with event: NSEvent) {
+        let index = insertionIndex(for: event)
+        let rows = stack.arrangedSubviews
+        let gapY: CGFloat
+        if index < rows.count {
+            gapY = listContainer.convert(rows[index].bounds, from: rows[index]).minY - 2
+        } else if let last = rows.last {
+            gapY = listContainer.convert(last.bounds, from: last).maxY + 1
+        } else {
+            return
+        }
+        dropIndicator.frame = CGRect(
+            x: MuMDesign.paneInset,
+            y: gapY,
+            width: max(listContainer.bounds.width - MuMDesign.paneInset * 2, 0),
+            height: 2
+        )
+        dropIndicator.isHidden = false
+    }
+
+    private func finishRowDrop(with event: NSEvent, sourceRow: ProjectRowView) {
+        dropIndicator.isHidden = true
+        sourceRow.alphaValue = 1
+        guard let source = dragSourceIndex else { return }
+        dragSourceIndex = nil
+
+        var target = insertionIndex(for: event)
+        if target > source { target -= 1 } // 抽走来源行后，落点序号跟着前移
+        guard target != source, WorkspaceStore.shared.workspaces.indices.contains(target) else { return }
+        WorkspaceStore.shared.move(from: source, to: target)
     }
 }
 
@@ -369,8 +438,39 @@ final class ProjectRowView: NSView {
 
     // MARK: - 交互
 
+    /// 拖动排序的阶段。不走 NSPasteboard：这是列表内部的纯重排，
+    /// 借 mouseDragged 事件链就够了，少一套拖拽注册和会话对象。
+    enum DragPhase { case began, moved, ended }
+    var onDragStateChange: ((ProjectRowView, DragPhase, NSEvent) -> Void)?
+
+    private var mouseDownPoint: NSPoint?
+    private var isDraggingRow = false
+
     override func mouseDown(with event: NSEvent) {
+        mouseDownPoint = event.locationInWindow
+        isDraggingRow = false
         onSelect?(index)
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard let down = mouseDownPoint else { return }
+        if !isDraggingRow {
+            let dx = event.locationInWindow.x - down.x
+            let dy = event.locationInWindow.y - down.y
+            guard dx * dx + dy * dy > 16 else { return } // 4px 内仍算点击
+            isDraggingRow = true
+            onDragStateChange?(self, .began, event)
+        } else {
+            onDragStateChange?(self, .moved, event)
+        }
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        if isDraggingRow {
+            onDragStateChange?(self, .ended, event)
+        }
+        mouseDownPoint = nil
+        isDraggingRow = false
     }
 
     override func rightMouseDown(with event: NSEvent) {

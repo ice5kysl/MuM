@@ -131,6 +131,20 @@ final class WorkspaceStore: @unchecked Sendable {
         NotificationCenter.default.post(name: .mumActiveWorkspaceChanged, object: self)
     }
 
+    /// 拖动排序：把 from 位的项目挪到结果数组的 to 位。
+    /// 激活项跟随项目本身而不是位置 —— ⌘数字 的肌肉记忆绑的是项目，拖完不该指向别人。
+    func move(from source: Int, to target: Int) {
+        guard workspaces.indices.contains(source), workspaces.indices.contains(target),
+              source != target else { return }
+        let wasActive = workspaces[activeIndex]
+        let workspace = workspaces.remove(at: source)
+        workspaces.insert(workspace, at: target)
+        activeIndex = workspaces.firstIndex(where: { $0.rootURL == wasActive.rootURL }) ?? 0
+        persist()
+        NotificationCenter.default.post(name: .mumWorkspaceListChanged, object: self)
+        NotificationCenter.default.post(name: .mumActiveWorkspaceChanged, object: self)
+    }
+
     // MARK: - 上次打开的文件
     //
     // 切回一个项目时应该回到上次在读的那一篇，而不是空白的欢迎界面。

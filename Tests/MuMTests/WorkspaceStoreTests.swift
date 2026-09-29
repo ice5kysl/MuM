@@ -95,6 +95,35 @@ final class WorkspaceStoreTests: XCTestCase {
         XCTAssertEqual(store.active?.rootURL, dirs[0].standardizedFileURL, "移动的是工作区本身")
     }
 
+    func testMoveReordersAndActiveFollows() {
+        for d in dirs { store.open(url: d) } // [0,1,2]，active=2
+
+        store.move(from: 2, to: 0) // 激活项挪到最前（常用项目往上拖的场景）
+        XCTAssertEqual(store.workspaces.map(\.rootURL), [
+            dirs[2].standardizedFileURL, dirs[0].standardizedFileURL, dirs[1].standardizedFileURL,
+        ])
+        XCTAssertEqual(store.activeIndex, 0, "激活项跟随项目本身")
+        XCTAssertEqual(store.active?.rootURL, dirs[2].standardizedFileURL)
+
+        store.move(from: 0, to: 2) // 再挪回末尾
+        XCTAssertEqual(store.workspaces.map(\.rootURL), [
+            dirs[0].standardizedFileURL, dirs[1].standardizedFileURL, dirs[2].standardizedFileURL,
+        ])
+        XCTAssertEqual(store.activeIndex, 2)
+
+        store.activate(index: 0) // 非激活项被拖动时，激活项位置动、指向不动
+        store.move(from: 2, to: 0)
+        XCTAssertEqual(store.active?.rootURL, dirs[0].standardizedFileURL)
+        XCTAssertEqual(store.activeIndex, 1)
+
+        store.move(from: 0, to: 0) // 原地不动是 no-op
+        store.move(from: 5, to: 0) // 越界是 no-op
+        XCTAssertEqual(store.count, 3)
+
+        let saved = UserDefaults.standard.stringArray(forKey: "MuM.workspacePaths") ?? []
+        XCTAssertEqual(saved, store.workspaces.map(\.rootURL.path), "拖动结果要落盘")
+    }
+
     func testPersistWritesPathList() {
         store.open(url: dirs[0])
         store.open(url: dirs[1])
