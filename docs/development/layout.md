@@ -32,6 +32,7 @@ MuM/
 ├── site/                  落地页（mum.jiker.ai，GitHub Pages）
 ├── Examples/demo/         示例项目（用 MuM 打开它）
 ├── brand/                 品牌标源文件（AppIcon.icns 由脚本从这里生成；archive/ 是落选候选）
+├── marketing/             发布素材（画廊/视频/截图母版；Finder 可见但 gitignore，大文件不进库）
 └── Resources/Info.plist   打包资源
 ```
 
