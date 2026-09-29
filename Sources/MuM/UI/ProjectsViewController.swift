@@ -421,12 +421,12 @@ final class ProjectRowView: NSView {
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: MuMDesign.projectRowHeight),
 
-            gripView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 3),
-            gripView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            gripView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            gripView.topAnchor.constraint(equalTo: topAnchor),
+            gripView.bottomAnchor.constraint(equalTo: bottomAnchor),
             gripView.widthAnchor.constraint(equalToConstant: 12),
-            gripView.heightAnchor.constraint(equalToConstant: 16),
 
-            iconView.leadingAnchor.constraint(equalTo: gripView.trailingAnchor, constant: 4),
+            iconView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 11),
             iconView.topAnchor.constraint(equalTo: topAnchor, constant: 12),
             iconView.widthAnchor.constraint(equalToConstant: 16),
             iconView.heightAnchor.constraint(equalToConstant: 16),
@@ -454,6 +454,8 @@ final class ProjectRowView: NSView {
         nameLabel.font = isActive ? MuMDesign.rowTitleStrong : MuMDesign.rowTitle
         nameLabel.textColor = MuMDesign.primaryText
         badgeLabel.textColor = isActive ? MuMDesign.accent : MuMDesign.tertiaryText
+        // 抓手平时隐身，悬停才浮现 —— 可发现但不抢（ice 的审美口径）
+        gripView.alphaValue = isHovered ? 1 : 0
     }
 
     private var background: NSColor {
@@ -541,9 +543,9 @@ final class GripView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             MuMDesign.tertiaryText.setFill()
-            let dot: CGFloat = 2.4
-            let colGap: CGFloat = 5
-            let rowGap: CGFloat = 4.6
+            let dot: CGFloat = 1.8
+            let colGap: CGFloat = 3.2
+            let rowGap: CGFloat = 3.4
             let originX = (bounds.width - (dot * 2 + colGap)) / 2
             let originY = (bounds.height - (dot * 3 + rowGap * 2)) / 2
             for row in 0..<3 {
