@@ -449,7 +449,8 @@ final class ProjectRowView: NSView {
     override func mouseDown(with event: NSEvent) {
         mouseDownPoint = event.locationInWindow
         isDraggingRow = false
-        onSelect?(index)
+        // 选中不能在这里触发：onSelect → 激活项目 → 列表 reload → 本卡片被销毁，
+        // 后续 mouseDragged/mouseUp 全丢 —— 拖动排序永远起不来。选中挪到 mouseUp。
     }
 
     override func mouseDragged(with event: NSEvent) {
@@ -468,6 +469,8 @@ final class ProjectRowView: NSView {
     override func mouseUp(with event: NSEvent) {
         if isDraggingRow {
             onDragStateChange?(self, .ended, event)
+        } else {
+            onSelect?(index)
         }
         mouseDownPoint = nil
         isDraggingRow = false
