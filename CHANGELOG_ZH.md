@@ -1,6 +1,6 @@
 # 更新日志
 
-[English](CHANGELOG.md) · [下载 macOS 版](https://github.com/ice5kysl/MuM/releases/download/v0.8.0/MuM-0.8.0.dmg) · [主页](https://mum.jiker.ai)
+[English](CHANGELOG.md) · [下载 macOS 版](https://github.com/ice5kysl/MuM/releases/download/v0.8.2/MuM-0.8.2.dmg) · [主页](https://mum.jiker.ai)
 
 本项目的所有重要变更都会记录在此。
 
@@ -17,6 +17,26 @@
 | :--- | :--- | :--- |
 | `VERSION` 文件 / `CFBundleShortVersionString` | `0.3.0` | Apple 不接受前缀 |
 | git tag / Release | `v0.3.0` | 惯例，加 `v` |
+
+## [0.8.2] - 2026-10-03
+
+**访达右键就能用 MuM 打开文件夹。**
+
+### 新增
+
+- **访达右键 →「服务」→「用 MuM 打开」** —— 右键一个文件夹直接开成项目，多选可以一次
+  开好几个；其它应用里选中文件也是同一项。**能力本来就有**（`public.folder` 文档类型
+  一直让 MuM 出现在访达的「打开方式」里），缺的是"不用往下翻一层就能看见"的入口。
+  声明的 UTI 只取精确的那几个（`public.folder` / `public.text` / `public.source-code`），
+  **刻意不写 `public.item`** —— 那会让右键 `.app` / `.dmg` 也冒出这一项。
+  同时补掉 0.4 的一笔欠账：那一版的路线图列了 Services 菜单，但 `NSServices` 从未真正发出
+
+### 工程
+
+- Services 的**标题**由系统在注册服务时解析，走不到我们自研的 L10n 表
+  （中文原文当 key + `en.strings` 查表）。`build-app.sh` 现在把同一份 `en.strings`
+  再拷一份到 `en.lproj/Localizable.strings` —— 一张表，两个读者。
+  已知边界：标题跟随**系统语言**，不跟随 app 内的语言开关（记在 `docs/known-limits.md`）
 
 ## [0.8.1] - 2026-09-29
 

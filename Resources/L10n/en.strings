@@ -58,6 +58,12 @@
 "检查更新…" = "Check for Updates…";
 "反馈问题或建议…" = "Send Feedback…";
 
+/* MARK: Services（Finder 右键 → 服务）
+   标题由系统读 Info.plist 的 NSServices 拿中文原文、再查标准 Localizable.strings
+   （build-app.sh 把本表拷进 en.lproj/）——不经过 L10n.t，但 key 必须是这里的原文。 */
+"用 MuM 打开" = "Open in MuM";
+"没有可打开的文件" = "No files to open";
+
 /* MARK: 设置 */
 "跟随系统" = "System";
 

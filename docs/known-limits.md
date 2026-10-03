@@ -7,6 +7,9 @@
 - 三种模式之间没有过渡动画（朴素 NSSplitView 的取舍）
 - 未做 `.gitignore` 感知，文件树用的是固定噪音目录黑名单
 - 单窗口单文件，没有标签页；这是刻意的取舍，但多标签对某些工作流确实更方便
+- **访达「服务」里那一项的文案跟随系统语言，不跟随 app 内的语言开关**（「系统」/中文/English）。
+  系统在注册服务时读 `Info.plist`，只认标准 `.lproj/Localizable.strings`，
+  拿不到运行期的语言覆盖 —— 这是 Services 机制的边界，不是漏做
 
 `Examples/demo/` 是一个用于验证渲染的示例项目，`docs/rendering.md` 覆盖了
 所有受支持的 Markdown 元素。

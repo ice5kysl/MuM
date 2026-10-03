@@ -29,6 +29,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.menuSet = menuSet
         NSApp.mainMenu = menuSet.mainMenu
 
+        // Finder 右键 →「服务」→「用 MuM 打开」（声明在 Resources/Info.plist 的 NSServices）。
+        // 只是挂一个 provider 指针，不注册任何东西、不进冷启动关键路径
+        NSApp.servicesProvider = self
+
         LaunchTimer.mark("开始构建 MainWindowController")
         let controller = MainWindowController()
         LaunchTimer.mark("MainWindowController 构建完成")
@@ -102,6 +106,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         for url in urls {
             controller.openIncoming(url)
         }
+    }
+
+    // MARK: - Services（Finder 右键 →「服务」）
+
+    /// `Resources/Info.plist` 的 `NSServices` 声明了 public.folder / public.text /
+    /// public.source-code；系统把选中项的**文件 URL**填进 pasteboard 后调这里。
+    ///
+    /// 只认文件 URL，不处理纯文本选区：MuM 打开的是磁盘上的项目或文档，
+    /// 一段没有落点的选中文字没有对应的文件可开。
+    @objc func openWithMuM(
+        _ pboard: NSPasteboard,
+        userData: String,
+        error: AutoreleasingUnsafeMutablePointer<NSString>
+    ) {
+        let urls = Self.fileURLs(from: pboard)
+        guard !urls.isEmpty else {
+            error.pointee = L10n.t("没有可打开的文件") as NSString
+            return
+        }
+        // 服务可能在窗口就绪之前到达（app 没运行、由 Finder 拉起），
+        // 和 application(_:open:) 走同一条排队路径 —— 路径不能丢
+        guard let controller = mainWindowController else {
+            pendingOpenURLs.append(contentsOf: urls)
+            return
+        }
+        open(urls, with: controller)
+    }
+
+    /// 从 Services 的 pasteboard 里取出文件 URL。
+    ///
+    /// 抽成静态纯函数是为了能单测：直接测 `openWithMuM` 会落到 WorkspaceStore 单例
+    /// 和真实窗口上，测不动（见 ServicesTests）。
+    static func fileURLs(from pboard: NSPasteboard) -> [URL] {
+        let options: [NSPasteboard.ReadingOptionKey: Any] = [.urlReadingFileURLsOnly: true]
+        return (pboard.readObjects(forClasses: [NSURL.self], options: options) as? [URL]) ?? []
     }
 
     @objc private func workspaceListChanged() {

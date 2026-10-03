@@ -1,6 +1,6 @@
 # Changelog
 
-[中文](CHANGELOG_ZH.md) · [Download for macOS](https://github.com/ice5kysl/MuM/releases/download/v0.8.0/MuM-0.8.0.dmg) · [Homepage](https://mum.jiker.ai)
+[中文](CHANGELOG_ZH.md) · [Download for macOS](https://github.com/ice5kysl/MuM/releases/download/v0.8.2/MuM-0.8.2.dmg) · [Homepage](https://mum.jiker.ai)
 
 All notable changes to this project are recorded here.
 
@@ -18,6 +18,27 @@ Two conventions differ — don't mix them up:
 | :--- | :--- | :--- |
 | `VERSION` file / `CFBundleShortVersionString` | `0.3.0` | Apple rejects a prefix |
 | git tag / Release | `v0.3.0` | Convention, with `v` |
+
+## [0.8.2] - 2026-10-03
+
+### Added
+
+- **"Open in MuM" in Finder's context menu** — right-click a folder → **Services** →
+  **Open in MuM**, and it opens as a project (multi-select opens several at once). The
+  same item handles a file picked in any other app. The capability was already there —
+  the `public.folder` document type has always put MuM in Finder's *Open With* submenu —
+  what was missing was an entry you can see without going a level down. Declared with
+  narrow UTIs only (`public.folder` / `public.text` / `public.source-code`; deliberately
+  **not** `public.item`, which would surface it on `.app` and `.dmg` too). This pays a
+  debt from 0.4, whose roadmap listed a Services menu that `NSServices` never shipped
+
+### Engineering
+
+- The Services **title** is resolved by the system at registration time, so it cannot go
+  through our own L10n table (Chinese-as-key + `en.strings` lookup). `build-app.sh` now
+  also copies that same `en.strings` into `en.lproj/Localizable.strings` — one table, two
+  readers. Known limit: the title follows the **system** language, not the in-app language
+  override (recorded in `docs/known-limits.md`)
 
 ## [0.8.1] - 2026-09-29
 

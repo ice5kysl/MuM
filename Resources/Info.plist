@@ -165,5 +165,47 @@
 			</array>
 		</dict>
 	</array>
+
+	<!--
+	  Services 菜单：Finder 右键文件夹 →「服务」→「用 MuM 打开」
+	  （其它应用里选中文件交给 MuM 打开同理）。
+
+	  为什么要有这一条：能力本来就有 —— 上面 CFBundleDocumentTypes 已经声明了
+	  public.folder，Finder 的「打开方式」里一直有 MuM。但那个入口藏在二级菜单，
+	  右键看不见。Services 让它在右键的「服务」里出现，且用户能在
+	  「系统设置 → 键盘 → 键盘快捷键 → 服务」里给它分配一个全局快捷键。
+
+	  两个约束，改动前先读：
+
+	  1. 菜单文案由**系统**在注册服务时解析，系统只认标准 .lproj/Localizable.strings，
+	     不认我们自研的 L10n 表（中文原文当 key + en.strings 查表）。所以这里的
+	     default 写中文原文（与 key 约定一致），英文由 build-app.sh 把同一份 en.strings
+	     拷进 en.lproj/Localizable.strings —— 不手写第二份表。
+	     副作用（系统机制所限，记在 docs/known-limits.md）：文案跟随**系统语言**，
+	     不跟随 app 内的语言覆盖开关。
+
+	  2. NSSendFileTypes 只列精确 UTI。**绝不加 public.item / public.data** ——
+	     那会让右键 .app / .dmg 也冒出「用 MuM 打开」。ServicesTests 钉着这条。
+	-->
+	<key>NSServices</key>
+	<array>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>用 MuM 打开</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>openWithMuM</string>
+			<key>NSPortName</key>
+			<string>MuM</string>
+			<key>NSSendFileTypes</key>
+			<array>
+				<string>public.folder</string>
+				<string>public.text</string>
+				<string>public.source-code</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

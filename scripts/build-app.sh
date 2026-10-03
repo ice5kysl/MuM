@@ -89,11 +89,27 @@ if [ -d "$ROOT/Resources/L10n" ]; then
   cp -R "$ROOT/Resources/L10n" "$APP/Contents/Resources/L10n"
 fi
 
+# Services 菜单文案（Finder 右键 →「服务」→「用 MuM 打开」）。
+# Info.plist 的 NSServices 由**系统**解析，系统只认标准 .lproj/Localizable.strings，
+# 不认上面那张自研 L10n 表 —— 所以这里要把同一份 en.strings 再放一个标准位置。
+# 直接复用，不手写第二份表；中文那份不用放（系统查不到就回退 Info.plist 里的原文）。
+if [ -f "$ROOT/Resources/L10n/en.strings" ]; then
+  mkdir -p "$APP/Contents/Resources/en.lproj"
+  cp "$ROOT/Resources/L10n/en.strings" "$APP/Contents/Resources/en.lproj/Localizable.strings"
+fi
+
 # `mum` 命令行入口：本体随 bundle 发布，用户软链到 PATH 即可（见 README）。
 # 放在 Resources 而不是 MacOS：macOS 默认大小写不敏感，`MacOS/mum` 和主二进制
 # `MacOS/MuM` 是同一个文件 —— 拷过去会把二进制覆盖掉（踩过，勿移）。
 cp "$ROOT/scripts/mum" "$APP/Contents/Resources/mum"
 chmod +x "$APP/Contents/Resources/mum"
+
+# 签名前清掉 bundle 根的扩展属性。工作目录落在 FileProvider 管的路径下
+# （iCloud Drive / ~/Documents）时，目录本身会带 com.apple.FinderInfo，
+# codesign 会以「resource fork, Finder information, or similar detritus not allowed」
+# 拒绝签名 —— ad-hoc 和发版签名都会挂。清掉即可。
+# 子文件上的 com.apple.provenance 是系统正常属性，不影响签名，不用一起清。
+xattr -c "$APP" 2>/dev/null || true
 
 if [ "$SIGN" = "1" ]; then
   # 发版签名：身份/凭据在本机配置里（gitignored），先载进来
