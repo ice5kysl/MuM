@@ -7,7 +7,7 @@
 阅读优先的 Markdown 引擎 —— 快、原生，给人用，也给 agent 用。
 
 [English](README.md) ·
-[**下载 macOS 版**](https://github.com/ice5kysl/MuM/releases/download/v0.8.1/MuM-0.8.1.dmg) ·
+[**下载 macOS 版**](https://github.com/ice5kysl/MuM/releases/download/v0.8.2/MuM-0.8.2.dmg) ·
 [主页](https://mum.jiker.ai) ·
 [更新日志](CHANGELOG_ZH.md) ·
 MIT
@@ -58,6 +58,9 @@ MIT
 - **项目 = 一个文件夹**。第 1 栏并排摆着所有项目，切回去自动回到上次在读的那一篇
 - **打开落单文件**（访达双击 / 拖入 / `mum 文件.md`）：进**单文件模式** —— 两栏收起、
   内容区直接读，不会把所在文件夹开成项目。打开或切回项目时两栏自动还原
+- **从访达右键打开**：右键一个文件夹 →「服务」→「用 MuM 打开」，直接开成项目
+  （多选可一次开多个）。其它应用里选中文件也能用同一项。嫌右键翻菜单深，
+  就在「系统设置 → 键盘 → 键盘快捷键 → 服务」里给它配个快捷键
 
 ### 文件管理
 

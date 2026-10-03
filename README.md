@@ -6,7 +6,7 @@
 **Fast, native — for humans and agents.**
 
 [中文](README_ZH.md) ·
-[**Download for macOS**](https://github.com/ice5kysl/MuM/releases/download/v0.8.1/MuM-0.8.1.dmg) ·
+[**Download for macOS**](https://github.com/ice5kysl/MuM/releases/download/v0.8.2/MuM-0.8.2.dmg) ·
 [Homepage](https://mum.jiker.ai) ·
 [Changelog](CHANGELOG.md) ·
 MIT
@@ -63,6 +63,10 @@ To make MuM the default app for `.md`, see
 - **Opening a lone file** (double-click in Finder, drag in, or `mum file.md`) enters
   **single-file mode** — both sidebars collapse and you just read. The containing folder
   is *not* turned into a project. Opening or switching to a project brings the panes back.
+- **From Finder's context menu** — right-click a folder → **Services** → **Open in MuM**
+  and it opens as a project (multi-select opens several). The same item handles a file
+  picked in any other app. If that menu feels deep, give it a shortcut in
+  System Settings → Keyboard → Keyboard Shortcuts → Services.
 
 ### File management
 
