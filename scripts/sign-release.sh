@@ -57,7 +57,15 @@ if [ "${2:-}" = "--dmg" ]; then
   DMG="${APP%.app}.dmg"
   echo "==> 出 DMG：$DMG"
   rm -f "$DMG"
-  hdiutil create -volname "MuM" -srcfolder "$APP" -ov -format UDZO "$DMG" | tail -1
+  # DMG 里要放一个 /Applications 的替身，用户才能把 app 拖进去。
+  # 直接 -srcfolder "$APP" 的话，挂载后只看到一个孤零零的 app、无处可拖
+  # （ice 2026-10-04 报「没办法直接拖到应用文件夹，很麻烦」）。
+  # 用 ditto 而不是 cp -R 拷进暂存目录：ditto 保证 bundle 的签名与装订票据原样过去。
+  STAGE="$(mktemp -d "${TMPDIR:-/tmp}/mum-dmg.XXXXXX")"
+  ditto "$APP" "$STAGE/$(basename "$APP")"
+  ln -s /Applications "$STAGE/Applications"
+  hdiutil create -volname "MuM" -srcfolder "$STAGE" -ov -format UDZO "$DMG" | tail -1
+  rm -rf "$STAGE"
   # DMG 是独立容器：.app 的公证票据贴不到它身上，
   # 必须单独签名、单独提交公证、单独装订（实测 stapler Error 65 的教训）
   codesign --force --timestamp --sign "$IDENTITY" "$DMG"

@@ -39,6 +39,9 @@ Two conventions differ — don't mix them up:
   also copies that same `en.strings` into `en.lproj/Localizable.strings` — one table, two
   readers. Known limit: the title follows the **system** language, not the in-app language
   override (recorded in `docs/known-limits.md`)
+- **The DMG now carries an `/Applications` alias** so the app can be dragged straight in.
+  `sign-release.sh` used to hand `-srcfolder` the bare `.app`, which left the mounted
+  image with nowhere to drop it
 
 ## [0.8.1] - 2026-09-29
 

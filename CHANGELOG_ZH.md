@@ -37,6 +37,8 @@
   （中文原文当 key + `en.strings` 查表）。`build-app.sh` 现在把同一份 `en.strings`
   再拷一份到 `en.lproj/Localizable.strings` —— 一张表，两个读者。
   已知边界：标题跟随**系统语言**，不跟随 app 内的语言开关（记在 `docs/known-limits.md`）
+- **DMG 里现在放了一个 `/Applications` 替身**，装的时候直接把 app 拖进去就行。
+  `sign-release.sh` 原来把光秃秃的 `.app` 交给 `-srcfolder`，挂载后没有可拖放的目标
 
 ## [0.8.1] - 2026-09-29
 
