@@ -3,7 +3,7 @@
 定位与判断标准见 [VISION.md](vision.md)。版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)，
 唯一来源是仓库根目录的 [`VERSION`](../VERSION)。
 
-**当前：v0.8.2。** 尚未到 1.0 —— 定位已清晰（`A reading-first Markdown engine`），
+**当前：v0.8.3。** 尚未到 1.0 —— 定位已清晰（`A reading-first Markdown engine`），
 第一条真实反馈已经落地（访达里的入口，见下「0.8+」），之后仍按「不预先编」走。
 
 版本号两处写法不同：`VERSION` 文件与 `CFBundleShortVersionString` 写 `0.2.0`（Apple 不接受前缀），

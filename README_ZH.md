@@ -7,7 +7,7 @@
 阅读优先的 Markdown 引擎 —— 快、原生，给人用，也给 agent 用。
 
 [English](README.md) ·
-[**下载 macOS 版**](https://github.com/ice5kysl/MuM/releases/download/v0.8.2/MuM-0.8.2.dmg) ·
+[**下载 macOS 版**](https://github.com/ice5kysl/MuM/releases/download/v0.8.3/MuM-0.8.3.dmg) ·
 [主页](https://mum.jiker.ai) ·
 [更新日志](CHANGELOG_ZH.md) ·
 MIT
