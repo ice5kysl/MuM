@@ -59,9 +59,9 @@
 "反馈问题或建议…" = "Send Feedback…";
 
 /* MARK: Services（Finder 右键 → 服务）
-   标题由系统读 Info.plist 的 NSServices 拿中文原文、再查标准 Localizable.strings
-   （build-app.sh 把本表拷进 en.lproj/）——不经过 L10n.t，但 key 必须是这里的原文。 */
-"用 MuM 打开" = "Open in MuM";
+   服务**标题不在这张表里** —— 系统只查 en.lproj/ServicesMenu.strings
+   （见 Resources/L10n/ServicesMenu.strings 与 build-app.sh）。
+   这里只留 app 内自己用的文案（走 L10n.t）。 */
 "没有可打开的文件" = "No files to open";
 
 /* MARK: 设置 */

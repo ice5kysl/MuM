@@ -90,12 +90,15 @@ if [ -d "$ROOT/Resources/L10n" ]; then
 fi
 
 # Services 菜单文案（Finder 右键 →「服务」→「用 MuM 打开」）。
-# Info.plist 的 NSServices 由**系统**解析，系统只认标准 .lproj/Localizable.strings，
-# 不认上面那张自研 L10n 表 —— 所以这里要把同一份 en.strings 再放一个标准位置。
-# 直接复用，不手写第二份表；中文那份不用放（系统查不到就回退 Info.plist 里的原文）。
-if [ -f "$ROOT/Resources/L10n/en.strings" ]; then
+# 系统查的是 **en.lproj/ServicesMenu.strings** —— 既不是 Localizable.strings，
+# 也不是 InfoPlist.strings。0.8.2 把标题放进 Localizable.strings，结果英文系统下
+# 查不到、回退显示 Info.plist 里的中文原文（ice 2026-10-07 报「语言对么」）。
+# 中文那份不用放：系统查不到就回退到 Info.plist 原文（中文）。
+if [ -d "$ROOT/Resources/L10n" ]; then
   mkdir -p "$APP/Contents/Resources/en.lproj"
-  cp "$ROOT/Resources/L10n/en.strings" "$APP/Contents/Resources/en.lproj/Localizable.strings"
+  if [ -f "$ROOT/Resources/L10n/ServicesMenu.strings" ]; then
+    cp "$ROOT/Resources/L10n/ServicesMenu.strings" "$APP/Contents/Resources/en.lproj/ServicesMenu.strings"
+  fi
 fi
 
 # `mum` 命令行入口：本体随 bundle 发布，用户软链到 PATH 即可（见 README）。

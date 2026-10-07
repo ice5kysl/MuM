@@ -1,6 +1,6 @@
 # 更新日志
 
-[English](CHANGELOG.md) · [下载 macOS 版](https://github.com/ice5kysl/MuM/releases/download/v0.8.2/MuM-0.8.2.dmg) · [主页](https://mum.jiker.ai)
+[English](CHANGELOG.md) · [下载 macOS 版](https://github.com/ice5kysl/MuM/releases/download/v0.8.3/MuM-0.8.3.dmg) · [主页](https://mum.jiker.ai)
 
 本项目的所有重要变更都会记录在此。
 
@@ -17,6 +17,29 @@
 | :--- | :--- | :--- |
 | `VERSION` 文件 / `CFBundleShortVersionString` | `0.3.0` | Apple 不接受前缀 |
 | git tag / Release | `v0.3.0` | 惯例，加 `v` |
+
+## [0.8.3] - 2026-10-07
+
+**「用 MuM 打开」这回真的出现在右键菜单里了，而且是正确的语言。**
+
+### 修复
+
+- **「用 MuM 打开」压根没在访达「服务」菜单里出现过。** 0.8.2 声明了 `NSServices`，
+  系统也确实收了 —— 服务注册成功，甚至能在「系统设置 → 键盘 → 快捷键 → 服务」里看到它
+  —— 但声明里少了 `NSRequiredContext`。没有 `NSTextContent = FilePath`，它就不算
+  「文件路径类服务」，访达不给它在右键菜单里的位置。Ghostty / Keka / iTerm2 全都声明了，
+  只有我们没写
+- **英文系统下标题回退成了中文。** 翻译被放进了 `Localizable.strings`，但服务标题只在
+  **`.lproj/ServicesMenu.strings`** 里查，别处一概不看。`build-app.sh` 现在会带上这个文件
+  （UTF-16，与 Keka 同一套机制）
+
+### 工程
+
+- 第一个 bug 的排查过程本身值得记一笔。第一轮就把声明拿去和能正常工作的 app 对比过了 ——
+  Ghostty 的 `NSServices` 是整段打印出来的 —— 但眼睛被 `NSSendTypes` 吸走，把紧挨着的
+  `NSRequiredContext` 那一节跳过去了。之后连着错了三次（怪注册延迟、怪纯 UTI 声明、怪升级
+  路径），全都是在推理机制，而不是逐字段对比两份声明。最后定案靠的是一次受控实验：
+  同一个二进制，只差一个字段
 
 ## [0.8.2] - 2026-10-03
 

@@ -121,16 +121,33 @@ final class ServicesTests: XCTestCase {
 
     // MARK: - 文案（跨文件一致性）
 
-    /// Info.plist 的标题会被系统当作 key 去查 `Localizable.strings`；
-    /// 它必须真的在英文表里，否则英文系统下这一项显示中文原文
-    func testServiceTitleExistsInEnglishTable() throws {
+    /// Info.plist 的标题会被系统当作 key 去查 **`ServicesMenu.strings`**
+    /// —— 不是 Localizable.strings，也不是 InfoPlist.strings。
+    /// 0.8.2 放错了文件，英文系统下这一项回退成了中文（ice 报「语言对么」）。
+    func testServiceTitleExistsInServicesMenuTable() throws {
         let title = try serviceTitle()
-        let tableURL = repoRoot.appendingPathComponent("Resources/L10n/en.strings")
+        let tableURL = repoRoot.appendingPathComponent("Resources/L10n/ServicesMenu.strings")
         let table = try XCTUnwrap(
             NSDictionary(contentsOf: tableURL) as? [String: String],
-            "读不到英文表：\(tableURL.path)"
+            "读不到 ServicesMenu.strings：\(tableURL.path)"
         )
-        XCTAssertNotNil(table[title], "Info.plist 的 Services 标题「\(title)」不在 en.strings 里 —— 英文系统会显示中文")
+        XCTAssertNotNil(
+            table[title],
+            "Info.plist 的 Services 标题「\(title)」不在 ServicesMenu.strings 里 —— 英文系统会显示中文"
+        )
+    }
+
+    /// 系统查的是 `<lang>.lproj/ServicesMenu.strings`，build-app.sh 必须把它拷进去
+    /// —— 光有源文件不够，打包漏拷同样会让英文系统显示中文
+    func testBuildScriptCopiesServicesMenuTable() throws {
+        let script = try String(
+            contentsOf: repoRoot.appendingPathComponent("scripts/build-app.sh"),
+            encoding: .utf8
+        )
+        XCTAssertTrue(
+            script.contains("en.lproj/ServicesMenu.strings"),
+            "build-app.sh 没有把 ServicesMenu.strings 拷进 en.lproj/ —— 服务标题会退回中文"
+        )
     }
 
     func testErrorCopyIsTranslated() {

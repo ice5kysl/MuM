@@ -199,6 +199,18 @@
 			<string>openWithMuM</string>
 			<key>NSPortName</key>
 			<string>MuM</string>
+			<!--
+			  少了这一节，右键「服务」里就没有 MuM —— 0.8.2 发布后实测的坑：
+			  没有它，服务照样能被系统收录、照样列在「系统设置 → 键盘 → 服务」里，
+			  但**右键菜单里就是不出现**。Finder 右键文件夹时给的上下文是「文件路径」，
+			  服务必须声明 NSTextContent = FilePath 才算「文件路径类服务」并进入右键菜单。
+			  Ghostty / Keka / iTerm2 全都声明了它，只有我们漏了。
+			-->
+			<key>NSRequiredContext</key>
+			<dict>
+				<key>NSTextContent</key>
+				<string>FilePath</string>
+			</dict>
 			<key>NSSendFileTypes</key>
 			<array>
 				<string>public.folder</string>

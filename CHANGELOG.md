@@ -1,6 +1,6 @@
 # Changelog
 
-[中文](CHANGELOG_ZH.md) · [Download for macOS](https://github.com/ice5kysl/MuM/releases/download/v0.8.2/MuM-0.8.2.dmg) · [Homepage](https://mum.jiker.ai)
+[中文](CHANGELOG_ZH.md) · [Download for macOS](https://github.com/ice5kysl/MuM/releases/download/v0.8.3/MuM-0.8.3.dmg) · [Homepage](https://mum.jiker.ai)
 
 All notable changes to this project are recorded here.
 
@@ -18,6 +18,33 @@ Two conventions differ — don't mix them up:
 | :--- | :--- | :--- |
 | `VERSION` file / `CFBundleShortVersionString` | `0.3.0` | Apple rejects a prefix |
 | git tag / Release | `v0.3.0` | Convention, with `v` |
+
+## [0.8.3] - 2026-10-07
+
+**The Services entry actually shows up now — and in the right language.**
+
+### Fixed
+
+- **"Open in MuM" never appeared in Finder's Services menu.** 0.8.2 declared `NSServices`
+  and the system accepted it — the service registered, and it even showed up in
+  System Settings → Keyboard → Shortcuts → Services — but the declaration was missing
+  `NSRequiredContext`. Without `NSTextContent = FilePath` the service isn't counted as a
+  *file-path* service, and Finder gives it no place in the context menu. Ghostty, Keka and
+  iTerm2 all declare it; we were the only one that didn't
+- **The title fell back to Chinese on English systems.** The translation was put in
+  `Localizable.strings`, but a Services title is looked up in
+  **`.lproj/ServicesMenu.strings`** and nowhere else. `build-app.sh` now ships that file
+  (UTF-16, the same mechanism Keka uses)
+
+### Engineering
+
+- Finding the first bug was a lesson in method worth recording. The declaration had been
+  compared against working apps from the very first round — Ghostty's `NSServices` was
+  printed in full — but the eye went to `NSSendTypes` and skipped the `NSRequiredContext`
+  block sitting right beside it. Three wrong hypotheses followed (registration lag, pure-UTI
+  declarations, the upgrade path), all from reasoning about the mechanism instead of diffing
+  the two declarations field by field. What settled it was a controlled probe: same binary,
+  one field apart
 
 ## [0.8.2] - 2026-10-03
 
