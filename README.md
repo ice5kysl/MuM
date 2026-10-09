@@ -6,7 +6,7 @@
 **Fast, native — for humans and agents.**
 
 [中文](README_ZH.md) ·
-[**Download for macOS**](https://github.com/ice5kysl/MuM/releases/download/v0.8.3/MuM-0.8.3.dmg) ·
+[**Download for macOS**](https://github.com/ice5kysl/MuM/releases/download/v0.8.4/MuM-0.8.4.dmg) ·
 [Homepage](https://mum.jiker.ai) ·
 [Changelog](CHANGELOG.md) ·
 MIT
@@ -187,7 +187,13 @@ Symlink it into your PATH:
 - **Zero personal information**, no build artifacts in the repo, no `.xcodeproj` —
   `source ./.mumenv && swift build` is all it takes
 - **The only third-party dependency is `swift-markdown`** (Apple). No private services,
-  no accounts, no telemetry
+  no accounts
+- **Privacy** — MuM sends **one anonymous request a day**: when it checks for updates it
+  also tells our own counter (the same no-cookie one this website uses) that today's
+  version is running, so we can tell roughly how many people use it. **No identifier, no
+  tracking** — the request carries a date and a version number and nothing else, and it
+  cannot be tied to you or across days. Turn it off in **Settings → Privacy** and nothing
+  is ever sent
 - Please open an issue before a PR (no plugin system or configuration layer — on purpose)
 
 License: [MIT](LICENSE)。

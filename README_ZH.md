@@ -7,7 +7,7 @@
 阅读优先的 Markdown 引擎 —— 快、原生，给人用，也给 agent 用。
 
 [English](README.md) ·
-[**下载 macOS 版**](https://github.com/ice5kysl/MuM/releases/download/v0.8.3/MuM-0.8.3.dmg) ·
+[**下载 macOS 版**](https://github.com/ice5kysl/MuM/releases/download/v0.8.4/MuM-0.8.4.dmg) ·
 [主页](https://mum.jiker.ai) ·
 [更新日志](CHANGELOG_ZH.md) ·
 MIT
@@ -175,7 +175,8 @@ mum check  doc.md --json                               # 退出码有意义
 ## 开源
 
 - **零个人信息**、构建产物不入库、没有 `.xcodeproj` —— `source ./.mumenv && swift build` 就能跑
-- **唯一的第三方依赖是 `swift-markdown`**（Apple 官方）；没有私有服务、没有账号、没有遥测
+- **唯一的第三方依赖是 `swift-markdown`**（Apple 官方）；没有私有服务、没有账号
+- **隐私** —— MuM **每天发一次匿名请求**：检查更新的时候顺带告诉我们的计数器（就是这个站点在用的那个无 cookie 计数器）今天这个版本在跑，好让我们大致知道有多少人在用。**没有任何标识、不可追踪** —— 请求里只有一个日期和一个版本号，关联不到你个人，也跨不了天。在**设置 → 隐私**里关掉，就永远不会发
 - 提 PR 之前建议先开 issue 对一下方向（没有插件系统和配置体系，这是刻意的）
 
 许可证：[MIT](LICENSE)。
