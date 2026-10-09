@@ -63,9 +63,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         // 启动后静默检查一次更新：延迟几秒，不挡启动路径；失败安静吞掉（reading is the point），
-        // 有新版本也只出一条不抢焦点的提示条
+        // 有新版本也只出一条不抢焦点的提示条。
+        //
+        // 同一个时机顺带报一次「今天有人启动过」—— 复用这次本来就会发生的网络动作，
+        // 而不是另起一个"打卡"请求（见 UsagePing 的说明）。关掉开关就永不发。
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
             self?.checkForUpdatesSilently()
+            UsagePing.reportIfNeeded(settings: SettingsStore.load())
         }
     }
 

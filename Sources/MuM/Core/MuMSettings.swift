@@ -36,6 +36,14 @@ struct MuMSettings {
     /// nil = 没有忽略任何版本。只记忽略，不记"已看过"——看过但想稍后再说，下次启动再提醒。
     var ignoredUpdateVersion: String?
 
+    /// 每天报一次匿名使用计数（版本号进事件路径，见 `UsagePing`）。
+    ///
+    /// 默认开：这是作者**唯一**能知道"有没有人在用"的信号 —— 项目没有账号、
+    /// 不留这个口子就完全是盲的（0.8.3 之前就是这样，发版决策全靠猜）。
+    /// 但它是可关的，关掉就永不发。对外口径写在 README 的 Privacy 一节，
+    /// **改这里必须同步改那儿**。
+    var sendsUsagePing = true
+
     // MARK: - 外观
 
     enum Appearance: Int, CaseIterable {
@@ -143,6 +151,7 @@ enum SettingsStore {
             if let value = boolean(stored["showsLineNumbers"]) { settings.showsLineNumbers = value }
             if let value = boolean(stored["highlightsCurrentLine"]) { settings.highlightsCurrentLine = value }
             if let value = stored["ignoredUpdateVersion"] as? String { settings.ignoredUpdateVersion = value }
+            if let value = boolean(stored["sendsUsagePing"]) { settings.sendsUsagePing = value }
 
             // 排版默认值修正（settingsVersion 2）：行距 4pt / 段间距 8pt 对中文太挤。
             // 老用户手里存的是旧默认值，不迁移的话改了默认也看不到效果。
@@ -209,6 +218,7 @@ enum SettingsStore {
             "editorFontSize": Double(settings.editorFontSize),
             "showsLineNumbers": settings.showsLineNumbers,
             "highlightsCurrentLine": settings.highlightsCurrentLine,
+            "sendsUsagePing": settings.sendsUsagePing,
         ]
         if let ignored = settings.ignoredUpdateVersion {
             dict["ignoredUpdateVersion"] = ignored

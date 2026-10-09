@@ -81,6 +81,19 @@ final class SystemSettingsPanelViewController: NSViewController {
         column.addArrangedSubview(SettingsControls.section(L10n.t("系统集成"), width: Self.columnWidth))
         column.addArrangedSubview(defaultEditorRow())
 
+        // 隐私：唯一一个"往外发数据"的开关，所以单独一个分区、写清楚它发什么。
+        column.addArrangedSubview(SettingsControls.section(L10n.t("隐私"), width: Self.columnWidth))
+        toggles["sendsUsagePing"] = SettingsToggleRow(
+            title: L10n.t("每天上报一次使用计数"),
+            isOn: settings.sendsUsagePing,
+            hint: L10n.t("只报日期与版本号，不含任何标识、不可追踪；关掉即永不发送"),
+            width: Self.columnWidth
+        ) { [weak self] isOn in
+            self?.settings.sendsUsagePing = isOn
+            self?.emit()
+        }
+        column.addArrangedSubview(toggles["sendsUsagePing"]!.view)
+
         view.addSubview(column)
         NSLayoutConstraint.activate([
             column.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
@@ -192,9 +205,11 @@ final class SystemSettingsPanelViewController: NSViewController {
         settings.startMode = MuMSettings().startMode
         settings.showsHiddenFiles = MuMSettings().showsHiddenFiles
         settings.indentWidth = MuMSettings().indentWidth
+        settings.sendsUsagePing = MuMSettings().sendsUsagePing
 
         toggles["restoresLastSession"]?.setOn(settings.restoresLastSession)
         toggles["showsHiddenFiles"]?.setOn(settings.showsHiddenFiles)
+        toggles["sendsUsagePing"]?.setOn(settings.sendsUsagePing)
         segments["startMode"]?.select(MuMSettings.StartMode.allCases.firstIndex(of: settings.startMode) ?? 1)
         segments["indentWidth"]?.select(settings.indentWidth == 4 ? 1 : 0)
 

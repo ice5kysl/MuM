@@ -67,6 +67,12 @@
 /* MARK: 设置 */
 "跟随系统" = "System";
 
+/* MARK: 隐私（系统设置 → 隐私）
+   启用/关闭「每天上报一次使用计数」。口径与 README 的 Privacy 一节一致。 */
+"隐私" = "Privacy";
+"每天上报一次使用计数" = "Send a daily usage count";
+"只报日期与版本号，不含任何标识、不可追踪；关掉即永不发送" = "Date and version only — no identifier, no tracking. Off means never sent.";
+
 /* MARK: 状态栏与标题带 */
 "%@ 字 · %@ 行 · %@" = "%@ words · %@ lines · %@";
 "%@ › %@ · 第 %d 行" = "%@ › %@ · Line %d";

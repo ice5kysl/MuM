@@ -1,6 +1,6 @@
 # Changelog
 
-[中文](CHANGELOG_ZH.md) · [Download for macOS](https://github.com/ice5kysl/MuM/releases/download/v0.8.3/MuM-0.8.3.dmg) · [Homepage](https://mum.jiker.ai)
+[中文](CHANGELOG_ZH.md) · [Download for macOS](https://github.com/ice5kysl/MuM/releases/download/v0.8.4/MuM-0.8.4.dmg) · [Homepage](https://mum.jiker.ai)
 
 All notable changes to this project are recorded here.
 
@@ -18,6 +18,37 @@ Two conventions differ — don't mix them up:
 | :--- | :--- | :--- |
 | `VERSION` file / `CFBundleShortVersionString` | `0.3.0` | Apple rejects a prefix |
 | git tag / Release | `v0.3.0` | Convention, with `v` |
+
+## [0.8.4] - 2026-10-09
+
+**A tool that knows whether anyone is using it.**
+
+### Added
+
+- **A daily anonymous usage count.** After launch, MuM reports to our own counter — the
+  same cookieless one this website uses — sending a **date and a version number, nothing
+  else**. It answers a question that had no way of being answered before: *is anyone out
+  there, and which version are they on?* (Release-page download counts can't tell you:
+  they're inflated by crawlers and can't distinguish "downloaded" from "installed".)
+  **No identifier, no tracking, no cross-day linkage** — and it can be switched off in
+  **Settings → Privacy**, in which case not one byte is ever sent
+
+### Changed
+
+- **The README's "no telemetry" line is now the honest version.** The old line was a flat
+  promise; the new one states exactly what is sent, why, and how to stop it. `vision.md`
+  records the exception as well: "no accounts" is still the rule, this is the one daily
+  count
+
+### Engineering
+
+- The count **reuses the update check's network moment** rather than adding a separate
+  "phone home" request. That request was always going out — it just went to GitHub before,
+  where we cannot see the statistics. To the user the action is still "check for a new
+  version", something they get value from
+- `UsagePing.swift` documents the privacy constraints, and the tests pin them down:
+  at most once per day, **UTC dates** (so changing time zones can't double-count), an event
+  path with nothing identifying in it, and "off" meaning not one byte
 
 ## [0.8.3] - 2026-10-07
 
